@@ -1,0 +1,6 @@
+[package]
+name = "taxi"
+version = "0.1.0"
+authors = ["Peter Higley <phigley@gmail.com>"]
+
+[dependencies]
