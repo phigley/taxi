@@ -4,3 +4,6 @@ version = "0.1.0"
 authors = ["Peter Higley <phigley@gmail.com>"]
 
 [dependencies]
+
+[dev-dependencies]
+assert_matches = "1.1"
