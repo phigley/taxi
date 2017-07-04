@@ -113,9 +113,19 @@ impl State {
                     }
                 }
 
+                if result.taxi.position.x < 0 || result.taxi.position.y < 0 {
+                    return Err(String::from("No taxi found."));
+                }
+
+                if result.passenger.position.x < 0 || result.passenger.position.y < 0 {
+                    return Err(String::from("No passenger found."));
+                }
+
+                if result.destination.position.x < 0 || result.destination.position.y < 0 {
+                    return Err(String::from("No destination found."));
+                }
+
                 Ok(result)
-
-
             }
         }
     }
@@ -131,12 +141,61 @@ fn parse_line(line: &str, result: &mut State) -> Result<(), String> {
                 result.walls.push(w);
             }
             b't' => {
+                if result.taxi.position.x >= 0 || result.taxi.position.y >= 0 {
+                    return Err(format!(
+                        "Found second taxi at {},{}.  First was at {}, {}",
+                        i as i32,
+                        result.height - 1,
+                        result.taxi.position.x,
+                        result.taxi.position.y
+                    ));
+                }
                 result.taxi = Taxi::new(i as i32, result.height - 1);
             }
+            b'T' => {
+                if result.taxi.position.x >= 0 || result.taxi.position.y >= 0 {
+                    return Err(format!(
+                        "Found second taxi at {},{}.  First was at {}, {}",
+                        i as i32,
+                        result.height - 1,
+                        result.taxi.position.x,
+                        result.taxi.position.y
+                    ));
+                }
+                if result.passenger.position.x >= 0 || result.passenger.position.y >= 0 {
+                    return Err(format!(
+                        "Found second passenger at {},{}.  First was at {}, {}",
+                        i as i32,
+                        result.height - 1,
+                        result.passenger.position.x,
+                        result.passenger.position.y
+                    ));
+                }
+                result.taxi = Taxi::new(i as i32, result.height - 1);
+                result.passenger = Passenger::new(i as i32, result.height - 1);
+            }
             b'p' => {
+                if result.passenger.position.x >= 0 || result.passenger.position.y >= 0 {
+                    return Err(format!(
+                        "Found second passenger at {},{}.  First was at {}, {}",
+                        i as i32,
+                        result.height - 1,
+                        result.passenger.position.x,
+                        result.passenger.position.y
+                    ));
+                }
                 result.passenger = Passenger::new(i as i32, result.height - 1);
             }
             b'd' => {
+                if result.destination.position.x >= 0 || result.destination.position.y >= 0 {
+                    return Err(format!(
+                        "Found second destination at {},{}.  First was at {}, {}",
+                        i as i32,
+                        result.height - 1,
+                        result.destination.position.x,
+                        result.destination.position.y
+                    ));
+                }
                 result.destination = Destination::new(i as i32, result.height - 1);
             }
             _ => {
@@ -170,8 +229,8 @@ mod test_state {
     fn build_correct_height() {
         let source = "\
             .\n\
-            .\n\
-            .\n\
+            T\n\
+            d\n\
             .\n\
             ";
 
@@ -182,7 +241,7 @@ mod test_state {
     #[test]
     fn build_correct_width() {
         let source = "\
-        .....\n\
+        dT...\n\
         ";
 
         let res = State::build_from_str(source);
@@ -214,8 +273,8 @@ mod test_state {
     #[test]
     fn build_correct_empty_walls() {
         let source = "\
-        .....\n\
-        .....\n\
+        d....\n\
+        .T...\n\
         .....\n\
         .....\n\
         .....\n\
@@ -224,6 +283,9 @@ mod test_state {
         let mut expected_state = State::build_empty();
         expected_state.width = 5;
         expected_state.height = 5;
+        expected_state.taxi = Taxi::new(1, 1);
+        expected_state.passenger = Passenger::new(1, 1);
+        expected_state.destination = Destination::new(0, 0);
 
         match State::build_from_str(source) {
             Err(msg) => panic!(msg),
@@ -236,8 +298,8 @@ mod test_state {
     #[test]
     fn build_correct_single_walls() {
         let source = "\
-        .....\n\
-        .....\n\
+        d....\n\
+        .T...\n\
         ...#.\n\
         .....\n\
         .....\n\
@@ -247,6 +309,9 @@ mod test_state {
         expected_state.width = 5;
         expected_state.height = 5;
         expected_state.walls = vec![ Wall::new(3,2) ];
+        expected_state.taxi = Taxi::new(1, 1);
+        expected_state.passenger = Passenger::new(1, 1);
+        expected_state.destination = Destination::new(0, 0);
 
         match State::build_from_str(source) {
             Err(msg) => panic!(msg),
@@ -260,10 +325,10 @@ mod test_state {
     fn build_correct_multi_walls() {
         let source = "\
         ##########\n\
-        #...#....#\n\
+        #T..#....#\n\
         #...#....#\n\
         #.....#..#\n\
-        #.#...#..#\n\
+        #.#...#d.#\n\
         #.#...#..#\n\
         ##########\n\
         ";
@@ -310,6 +375,9 @@ mod test_state {
                 Wall::new(8,6),
                 Wall::new(9,6),
             ];
+        expected_state.taxi = Taxi::new(1, 1);
+        expected_state.passenger = Passenger::new(1, 1);
+        expected_state.destination = Destination::new(7, 4);
 
         match State::build_from_str(source) {
             Err(msg) => panic!(msg),
@@ -322,10 +390,10 @@ mod test_state {
     #[test]
     fn build_correct_taxi() {
         let source = "\
+        d....\n\
         .....\n\
         .....\n\
-        .....\n\
-        .t...\n\
+        .T...\n\
         .....\n\
         ";
 
@@ -333,6 +401,8 @@ mod test_state {
         expected_state.width = 5;
         expected_state.height = 5;
         expected_state.taxi = Taxi::new(1, 3);
+        expected_state.passenger = Passenger::new(1, 3);
+        expected_state.destination = Destination::new(0, 0);
 
         match State::build_from_str(source) {
             Err(msg) => panic!(msg),
@@ -345,7 +415,7 @@ mod test_state {
     #[test]
     fn build_correct_passenger() {
         let source = "\
-        .....\n\
+        d....\n\
         ...p.\n\
         .....\n\
         .t...\n\
@@ -357,6 +427,7 @@ mod test_state {
         expected_state.height = 5;
         expected_state.taxi = Taxi::new(1, 3);
         expected_state.passenger = Passenger::new(3, 1);
+        expected_state.destination = Destination::new(0, 0);
 
         match State::build_from_str(source) {
             Err(msg) => panic!(msg),
@@ -389,5 +460,142 @@ mod test_state {
                 assert_eq!(res_state, expected_state);
             }
         }
+    }
+
+    #[test]
+    fn build_passenger_in_taxi() {
+        let source = "\
+        .....\n\
+        .....\n\
+        .....\n\
+        .T...\n\
+        ...d.\n\
+        ";
+
+        let mut expected_state = State::build_empty();
+        expected_state.width = 5;
+        expected_state.height = 5;
+        expected_state.taxi = Taxi::new(1, 3);
+        expected_state.passenger = Passenger::new(1, 3);
+        expected_state.destination = Destination::new(3, 4);
+
+        match State::build_from_str(source) {
+            Err(msg) => panic!(msg),
+            Ok(res_state) => {
+                assert_eq!(res_state, expected_state);
+            }
+        }
+    }
+
+    #[test]
+    fn fail_no_taxi() {
+        let source = "\
+        .....\n\
+        ...p.\n\
+        .....\n\
+        .....\n\
+        ...d.\n\
+        ";
+
+        let res = State::build_from_str(source);
+        assert_matches!( res, Err( _ ))
+    }
+
+    #[test]
+    fn fail_multi_taxi() {
+        let source = "\
+        .....\n\
+        ...t.\n\
+        .....\n\
+        .....\n\
+        ...t.\n\
+        ";
+
+        let res = State::build_from_str(source);
+        assert_matches!( res, Err( _ ))
+    }
+
+    #[test]
+    fn fail_multi_taxi_with_passenger() {
+        let source = "\
+        .....\n\
+        ...t.\n\
+        .....\n\
+        .....\n\
+        ...T.\n\
+        ";
+
+        let res = State::build_from_str(source);
+        assert_matches!( res, Err( _ ))
+    }
+
+    #[test]
+    fn fail_no_passenger() {
+        let source = "\
+        .....\n\
+        ...t.\n\
+        .....\n\
+        .....\n\
+        ...d.\n\
+        ";
+
+        let res = State::build_from_str(source);
+        assert_matches!( res, Err( _ ))
+    }
+
+    #[test]
+    fn fail_multi_passenger() {
+        let source = "\
+        .....\n\
+        ...p.\n\
+        .....\n\
+        .....\n\
+        ..pt.\n\
+        ";
+
+        let res = State::build_from_str(source);
+        assert_matches!( res, Err( _ ))
+    }
+
+    #[test]
+    fn fail_multi_passenger_in_taxi() {
+        let source = "\
+        .....\n\
+        ...p.\n\
+        .....\n\
+        .....\n\
+        ...T.\n\
+        ";
+
+        let res = State::build_from_str(source);
+        assert_matches!( res, Err( _ ))
+    }
+
+    #[test]
+    fn fail_no_destination() {
+        let source = "\
+        .....\n\
+        ...t.\n\
+        .....\n\
+        .....\n\
+        ...p.\n\
+        ";
+
+        let res = State::build_from_str(source);
+        assert_matches!( res, Err( _ ))
+    }
+
+    #[test]
+    fn fail_multi_destination() {
+        let source = "\
+        .....\n\
+        ...d.\n\
+        .....\n\
+        .....\n\
+        ..dT.\n\
+        ";
+
+        let res = State::build_from_str(source);
+        assert_matches!( res, Err( _ ))
     }
 }
