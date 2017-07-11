@@ -1,4 +1,5 @@
 
+use std::string;
 
 #[derive(Debug, PartialEq)]
 struct Position {
@@ -128,6 +129,76 @@ impl State {
                 Ok(result)
             }
         }
+    }
+
+
+
+    fn display(&self) -> Result<String, string::FromUtf8Error> {
+
+        let string_width = (self.width + 1) as usize;
+        let line_count = self.height as usize;
+        let mut bytes = Vec::with_capacity(string_width * line_count);
+
+        for _ in 0..line_count {
+            for _ in 0..(string_width - 1) {
+                bytes.push(b'.');
+            }
+
+            bytes.push(b'\n');
+        }
+
+        for w in self.walls.iter() {
+            let column_offset = (w.position.y as usize) * string_width;
+            let row_offset = w.position.x as usize;
+
+            let b: &mut u8 = &mut bytes[column_offset + row_offset];
+
+
+            *b = if *b == b'.' { b'#' } else { b'!' };
+        }
+
+        if self.taxi.position.x >= 0 && self.taxi.position.y >= 0 {
+            let column_offset = (self.taxi.position.y as usize) * string_width;
+            let row_offset = self.taxi.position.x as usize;
+
+            let b: &mut u8 = &mut bytes[column_offset + row_offset];
+
+            *b = if *b == b'.' { b't' } else { b'!' };
+        }
+
+        if self.passenger.position.x >= 0 && self.passenger.position.y >= 0 {
+            let column_offset = (self.passenger.position.y as usize) * string_width;
+            let row_offset = self.passenger.position.x as usize;
+
+            let b: &mut u8 = &mut bytes[column_offset + row_offset];
+
+            *b = if *b == b'.' {
+                b'p'
+            } else if *b == b't' {
+                b'T'
+            } else {
+                b'!'
+            };
+        }
+
+        if self.destination.position.x >= 0 && self.destination.position.y >= 0 {
+            let column_offset = (self.destination.position.y as usize) * string_width;
+            let row_offset = self.destination.position.x as usize;
+
+            let b: &mut u8 = &mut bytes[column_offset + row_offset];
+
+            *b = if *b == b'.' {
+                b'd'
+            } else if *b == b't' {
+                b's'
+            } else if *b == b'T' {
+                b'D'
+            } else {
+                b'!'
+            };
+        }
+
+        String::from_utf8(bytes)
     }
 }
 
@@ -597,5 +668,50 @@ mod test_state {
 
         let res = State::build_from_str(source);
         assert_matches!( res, Err( _ ))
+    }
+
+    #[test]
+    fn output_matches_str_simple() {
+        let source = "\
+        d.\n\
+        .T\n\
+        ";
+
+        match State::build_from_str(source) {
+            Err(msg) => panic!(msg),
+            Ok(state) => {
+                let output = state.display();
+                match output {
+                    Err(format_msg) => panic!("{:?}", format_msg),
+                    Ok(output_str) => assert_eq!(output_str, source),
+                }
+
+            }
+        }
+    }
+
+    #[test]
+    fn output_matches_str_complex() {
+        let source = "\
+        ##########\n\
+        #T..#....#\n\
+        #...#....#\n\
+        #.....#..#\n\
+        #.#...#d.#\n\
+        #.#...#..#\n\
+        ##########\n\
+        ";
+
+        match State::build_from_str(source) {
+            Err(msg) => panic!(msg),
+            Ok(state) => {
+                let output = state.display();
+                match output {
+                    Err(format_msg) => panic!("{:?}", format_msg),
+                    Ok(output_str) => assert_eq!(output_str, source),
+                }
+
+            }
+        }
     }
 }
