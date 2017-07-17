@@ -1,19 +1,9 @@
 
 use std::string;
+use position::Position;
+use world::World;
 
-#[derive(Debug, PartialEq)]
-struct Position {
-    x: i32,
-    y: i32,
-}
-
-impl Position {
-    fn new(x: i32, y: i32) -> Position {
-        Position { x: x, y: y }
-    }
-}
-
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 struct Taxi {
     position: Position,
 }
@@ -24,7 +14,7 @@ impl Taxi {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 struct Passenger {
     position: Position,
 }
@@ -35,7 +25,7 @@ impl Passenger {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 struct Destination {
     position: Position,
 }
@@ -47,33 +37,25 @@ impl Destination {
 }
 
 #[derive(Debug, PartialEq)]
-struct Wall {
-    position: Position,
+pub enum Actions {
+    North,
+    South,
+    East,
+    West,
 }
 
-
-impl Wall {
-    fn new(x: i32, y: i32) -> Wall {
-        Wall { position: Position::new(x, y) }
-    }
-}
-
-#[derive(Debug, PartialEq)]
-pub struct State {
-    width: i32,
-    height: i32,
-    walls: Vec<Wall>,
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub struct State<'a> {
+    world: &'a World,
     taxi: Taxi,
     passenger: Passenger,
     destination: Destination,
 }
 
-impl State {
-    fn build_empty() -> State {
+impl<'a> State<'a> {
+    fn build_empty(world: &'a World) -> State<'a> {
         State {
-            width: 0,
-            height: 0,
-            walls: vec![],
+            world: world,
             taxi: Taxi::new(-1, -1),
             passenger: Passenger::new(-1, -1),
             destination: Destination::new(-1, -1),
@@ -81,7 +63,7 @@ impl State {
 
     }
 
-    pub fn build_from_str(source: &str) -> Result<State, String> {
+    pub fn build_from_str(source: &str, world: &'a World) -> Result<State<'a>, String> {
 
         let mut lines = source.lines();
 
@@ -91,27 +73,16 @@ impl State {
 
             Some(first_line) => {
 
-                let mut result = State::build_empty();
-                result.width = first_line.len() as i32;
-                result.height = 1;
+                let mut result = State::build_empty(world);
 
-                parse_line(first_line, &mut result)?;
+                let mut current_y = 0;
+                parse_line(first_line, current_y, &mut result)?;
 
                 for l in lines {
 
-                    result.height += 1;
+                    current_y += 1;
 
-                    parse_line(l, &mut result)?;
-
-                    let current_width = l.len();
-                    if result.width != current_width as i32 {
-                        return Err(format!(
-                            "Failed to create state, line {} has width {} expected {}",
-                            result.height - 1,
-                            current_width,
-                            result.width,
-                        ));
-                    }
+                    parse_line(l, current_y, &mut result)?;
                 }
 
                 if result.taxi.position.x < 0 || result.taxi.position.y < 0 {
@@ -135,27 +106,8 @@ impl State {
 
     fn display(&self) -> Result<String, string::FromUtf8Error> {
 
-        let string_width = (self.width + 1) as usize;
-        let line_count = self.height as usize;
-        let mut bytes = Vec::with_capacity(string_width * line_count);
-
-        for _ in 0..line_count {
-            for _ in 0..(string_width - 1) {
-                bytes.push(b'.');
-            }
-
-            bytes.push(b'\n');
-        }
-
-        for w in self.walls.iter() {
-            let column_offset = (w.position.y as usize) * string_width;
-            let row_offset = w.position.x as usize;
-
-            let b: &mut u8 = &mut bytes[column_offset + row_offset];
-
-
-            *b = if *b == b'.' { b'#' } else { b'!' };
-        }
+        let string_width = (self.world.width + 1) as usize;
+        let mut bytes = self.world.display_bytes();
 
         if self.taxi.position.x >= 0 && self.taxi.position.y >= 0 {
             let column_offset = (self.taxi.position.y as usize) * string_width;
@@ -200,35 +152,110 @@ impl State {
 
         String::from_utf8(bytes)
     }
+
+    pub fn apply_action(&self, action: Actions) -> State<'a> {
+        let delta = position_delta(action);
+
+        let new_taxi_pos = self.taxi.position + delta;
+
+        if !self.valid_position(new_taxi_pos) {
+            *self
+        } else {
+            let new_taxi = Taxi {
+                position: new_taxi_pos,
+                ..self.taxi
+            };
+
+            State {
+                taxi: new_taxi,
+                ..*self
+            }
+
+        }
+
+    }
+
+    fn valid_position(&self, position: Position) -> bool {
+        if position.x < 0 {
+            false
+        } else if position.x >= self.world.width {
+            false
+        } else if position.y < 0 {
+            false
+        } else if position.y >= self.world.height {
+            false
+        } else {
+            for w in self.world.walls.iter() {
+                if w.position == position {
+                    return false;
+                }
+            }
+
+            true
+        }
+    }
 }
 
-fn parse_line(line: &str, result: &mut State) -> Result<(), String> {
+fn parse_line(line: &str, current_y: i32, result: &mut State) -> Result<(), String> {
+
+    if current_y >= result.world.height {
+        return Err(format!(
+            "Reading line number {} which is greater than world's height of {}.",
+            current_y + 1,
+            result.world.height
+        ));
+    }
 
     for (i, c) in line.bytes().enumerate() {
         match c {
-            b'.' => (),
+            b'.' => {
+                if i as i32 >= result.world.width {
+                    return Err(format!(
+                        "Reading character number {} which is greater than world's width of {}",
+                        i,
+                        result.world.width
+                    ));
+                }
+            }
             b'#' => {
-                let w = Wall::new(i as i32, result.height - 1);
-                result.walls.push(w);
+                if i as i32 >= result.world.width {
+                    return Err(format!(
+                        "Reading character number {} which is greater than world's width of {}",
+                        i,
+                        result.world.width
+                    ));
+                }
             }
             b't' => {
-                if result.taxi.position.x >= 0 || result.taxi.position.y >= 0 {
+                if i as i32 >= result.world.width {
+                    return Err(format!(
+                        "Reading character number {} which is greater than world's width of {}",
+                        i,
+                        result.world.width
+                    ));
+                } else if result.taxi.position.x >= 0 || result.taxi.position.y >= 0 {
                     return Err(format!(
                         "Found second taxi at {},{}.  First was at {}, {}",
                         i as i32,
-                        result.height - 1,
+                        current_y,
                         result.taxi.position.x,
                         result.taxi.position.y
                     ));
                 }
-                result.taxi = Taxi::new(i as i32, result.height - 1);
+                result.taxi = Taxi::new(i as i32, current_y);
             }
             b'T' => {
-                if result.taxi.position.x >= 0 || result.taxi.position.y >= 0 {
+                if i as i32 >= result.world.width {
+                    return Err(format!(
+                        "Reading character number {} which is greater than world's width of {}",
+                        i,
+                        result.world.width
+                    ));
+                } else if result.taxi.position.x >= 0 || result.taxi.position.y >= 0 {
                     return Err(format!(
                         "Found second taxi at {},{}.  First was at {}, {}",
                         i as i32,
-                        result.height - 1,
+                        current_y,
                         result.taxi.position.x,
                         result.taxi.position.y
                     ));
@@ -237,43 +264,55 @@ fn parse_line(line: &str, result: &mut State) -> Result<(), String> {
                     return Err(format!(
                         "Found second passenger at {},{}.  First was at {}, {}",
                         i as i32,
-                        result.height - 1,
+                        current_y,
                         result.passenger.position.x,
                         result.passenger.position.y
                     ));
                 }
-                result.taxi = Taxi::new(i as i32, result.height - 1);
-                result.passenger = Passenger::new(i as i32, result.height - 1);
+                result.taxi = Taxi::new(i as i32, current_y);
+                result.passenger = Passenger::new(i as i32, current_y);
             }
             b'p' => {
-                if result.passenger.position.x >= 0 || result.passenger.position.y >= 0 {
+                if i as i32 >= result.world.width {
+                    return Err(format!(
+                        "Reading character number {} which is greater than world's width of {}",
+                        i,
+                        result.world.width
+                    ));
+                } else if result.passenger.position.x >= 0 || result.passenger.position.y >= 0 {
                     return Err(format!(
                         "Found second passenger at {},{}.  First was at {}, {}",
                         i as i32,
-                        result.height - 1,
+                        current_y,
                         result.passenger.position.x,
                         result.passenger.position.y
                     ));
                 }
-                result.passenger = Passenger::new(i as i32, result.height - 1);
+                result.passenger = Passenger::new(i as i32, current_y);
             }
             b'd' => {
-                if result.destination.position.x >= 0 || result.destination.position.y >= 0 {
+                if i as i32 >= result.world.width {
+                    return Err(format!(
+                        "Reading character number {} which is greater than world's width of {}",
+                        i,
+                        result.world.width
+                    ));
+                } else if result.destination.position.x >= 0 || result.destination.position.y >= 0 {
                     return Err(format!(
                         "Found second destination at {},{}.  First was at {}, {}",
                         i as i32,
-                        result.height - 1,
+                        current_y,
                         result.destination.position.x,
                         result.destination.position.y
                     ));
                 }
-                result.destination = Destination::new(i as i32, result.height - 1);
+                result.destination = Destination::new(i as i32, current_y);
             }
             _ => {
                 return Err(format!(
                     "Unknown character {}, line {}, col {}",
                     char::from(c),
-                    result.height - 1,
+                    current_y,
                     i
                 ))
             }
@@ -283,52 +322,20 @@ fn parse_line(line: &str, result: &mut State) -> Result<(), String> {
     Ok(())
 }
 
+fn position_delta(action: Actions) -> Position {
+    match action {
+        Actions::North => Position::new(0, -1),
+        Actions::South => Position::new(0, 1),
+        Actions::East => Position::new(1, 0),
+        Actions::West => Position::new(-1, 0),
+    }
+}
+
 
 #[cfg(test)]
 mod test_state {
 
     use super::*;
-
-    #[test]
-    fn build_fails_on_emptystring() {
-        let s = State::build_from_str("");
-
-        assert!(s.is_err())
-    }
-
-    #[test]
-    fn build_correct_height() {
-        let source = "\
-            .\n\
-            T\n\
-            d\n\
-            .\n\
-            ";
-
-        let res = State::build_from_str(source);
-        assert_matches!( res, Ok( State { height: 4, .. } ))
-    }
-
-    #[test]
-    fn build_correct_width() {
-        let source = "\
-        dT...\n\
-        ";
-
-        let res = State::build_from_str(source);
-        assert_matches!( res, Ok( State { width: 5, .. } ))
-    }
-
-    #[test]
-    fn build_fails_unequal_width() {
-        let source = "\
-        ...\n\
-        ....\n\
-        ";
-
-        let res = State::build_from_str(source);
-        assert_matches!( res, Err( _ ))
-    }
 
     #[test]
     fn build_fails_unknown_character() {
@@ -337,8 +344,13 @@ mod test_state {
         ..<.\n\
         ";
 
-        let res = State::build_from_str(source);
-        assert_matches!( res, Err( _ ))
+        match World::build_from_str(source) {
+            Err(msg) => panic!(msg),
+            Ok(w) => {
+                let res = State::build_from_str(source, &w);
+                assert_matches!( res, Err( _ ))
+            }
+        }
     }
 
     #[test]
@@ -351,19 +363,23 @@ mod test_state {
         .....\n\
         ";
 
-        let mut expected_state = State::build_empty();
-        expected_state.width = 5;
-        expected_state.height = 5;
-        expected_state.taxi = Taxi::new(1, 1);
-        expected_state.passenger = Passenger::new(1, 1);
-        expected_state.destination = Destination::new(0, 0);
-
-        match State::build_from_str(source) {
+        match World::build_from_str(source) {
             Err(msg) => panic!(msg),
-            Ok(res_state) => {
-                assert_eq!(res_state, expected_state);
+            Ok(w) => {
+                let mut expected_state = State::build_empty(&w);
+                expected_state.taxi = Taxi::new(1, 1);
+                expected_state.passenger = Passenger::new(1, 1);
+                expected_state.destination = Destination::new(0, 0);
+
+                match State::build_from_str(source, &w) {
+                    Err(msg) => panic!(msg),
+                    Ok(res_state) => {
+                        assert_eq!(res_state, expected_state);
+                    }
+                }
             }
         }
+
     }
 
     #[test]
@@ -376,20 +392,23 @@ mod test_state {
         .....\n\
         ";
 
-        let mut expected_state = State::build_empty();
-        expected_state.width = 5;
-        expected_state.height = 5;
-        expected_state.walls = vec![ Wall::new(3,2) ];
-        expected_state.taxi = Taxi::new(1, 1);
-        expected_state.passenger = Passenger::new(1, 1);
-        expected_state.destination = Destination::new(0, 0);
-
-        match State::build_from_str(source) {
+        match World::build_from_str(source) {
             Err(msg) => panic!(msg),
-            Ok(res_state) => {
-                assert_eq!(res_state, expected_state);
+            Ok(w) => {
+                let mut expected_state = State::build_empty(&w);
+                expected_state.taxi = Taxi::new(1, 1);
+                expected_state.passenger = Passenger::new(1, 1);
+                expected_state.destination = Destination::new(0, 0);
+
+                match State::build_from_str(source, &w) {
+                    Err(msg) => panic!(msg),
+                    Ok(res_state) => {
+                        assert_eq!(res_state, expected_state);
+                    }
+                }
             }
         }
+
     }
 
     #[test]
@@ -404,56 +423,21 @@ mod test_state {
         ##########\n\
         ";
 
-        let mut expected_state = State::build_empty();
-        expected_state.width = 10;
-        expected_state.height = 7;
-        expected_state.walls = vec![
-                Wall::new(0,0),
-                Wall::new(1,0),
-                Wall::new(2,0),
-                Wall::new(3,0),
-                Wall::new(4,0),
-                Wall::new(5,0),
-                Wall::new(6,0),
-                Wall::new(7,0),
-                Wall::new(8,0),
-                Wall::new(9,0),
-                Wall::new(0,1),
-                Wall::new(4,1),
-                Wall::new(9,1),
-                Wall::new(0,2),
-                Wall::new(4,2),
-                Wall::new(9,2),
-                Wall::new(0,3),
-                Wall::new(6,3),
-                Wall::new(9,3),
-                Wall::new(0,4),
-                Wall::new(2,4),
-                Wall::new(6,4),
-                Wall::new(9,4),
-                Wall::new(0,5),
-                Wall::new(2,5),
-                Wall::new(6,5),
-                Wall::new(9,5),
-                Wall::new(0,6),
-                Wall::new(1,6),
-                Wall::new(2,6),
-                Wall::new(3,6),
-                Wall::new(4,6),
-                Wall::new(5,6),
-                Wall::new(6,6),
-                Wall::new(7,6),
-                Wall::new(8,6),
-                Wall::new(9,6),
-            ];
-        expected_state.taxi = Taxi::new(1, 1);
-        expected_state.passenger = Passenger::new(1, 1);
-        expected_state.destination = Destination::new(7, 4);
-
-        match State::build_from_str(source) {
+        match World::build_from_str(source) {
             Err(msg) => panic!(msg),
-            Ok(res_state) => {
-                assert_eq!(res_state, expected_state);
+            Ok(w) => {
+                let mut expected_state = State::build_empty(&w);
+
+                expected_state.taxi = Taxi::new(1, 1);
+                expected_state.passenger = Passenger::new(1, 1);
+                expected_state.destination = Destination::new(7, 4);
+
+                match State::build_from_str(source, &w) {
+                    Err(msg) => panic!(msg),
+                    Ok(res_state) => {
+                        assert_eq!(res_state, expected_state);
+                    }
+                }
             }
         }
     }
@@ -468,19 +452,23 @@ mod test_state {
         .....\n\
         ";
 
-        let mut expected_state = State::build_empty();
-        expected_state.width = 5;
-        expected_state.height = 5;
-        expected_state.taxi = Taxi::new(1, 3);
-        expected_state.passenger = Passenger::new(1, 3);
-        expected_state.destination = Destination::new(0, 0);
-
-        match State::build_from_str(source) {
+        match World::build_from_str(source) {
             Err(msg) => panic!(msg),
-            Ok(res_state) => {
-                assert_eq!(res_state, expected_state);
+            Ok(w) => {
+                let mut expected_state = State::build_empty(&w);
+                expected_state.taxi = Taxi::new(1, 3);
+                expected_state.passenger = Passenger::new(1, 3);
+                expected_state.destination = Destination::new(0, 0);
+
+                match State::build_from_str(source, &w) {
+                    Err(msg) => panic!(msg),
+                    Ok(res_state) => {
+                        assert_eq!(res_state, expected_state);
+                    }
+                }
             }
         }
+
     }
 
     #[test]
@@ -493,17 +481,20 @@ mod test_state {
         .....\n\
         ";
 
-        let mut expected_state = State::build_empty();
-        expected_state.width = 5;
-        expected_state.height = 5;
-        expected_state.taxi = Taxi::new(1, 3);
-        expected_state.passenger = Passenger::new(3, 1);
-        expected_state.destination = Destination::new(0, 0);
-
-        match State::build_from_str(source) {
+        match World::build_from_str(source) {
             Err(msg) => panic!(msg),
-            Ok(res_state) => {
-                assert_eq!(res_state, expected_state);
+            Ok(w) => {
+                let mut expected_state = State::build_empty(&w);
+                expected_state.taxi = Taxi::new(1, 3);
+                expected_state.passenger = Passenger::new(3, 1);
+                expected_state.destination = Destination::new(0, 0);
+
+                match State::build_from_str(source, &w) {
+                    Err(msg) => panic!(msg),
+                    Ok(res_state) => {
+                        assert_eq!(res_state, expected_state);
+                    }
+                }
             }
         }
     }
@@ -518,19 +509,23 @@ mod test_state {
         ...d.\n\
         ";
 
-        let mut expected_state = State::build_empty();
-        expected_state.width = 5;
-        expected_state.height = 5;
-        expected_state.taxi = Taxi::new(1, 3);
-        expected_state.passenger = Passenger::new(3, 1);
-        expected_state.destination = Destination::new(3, 4);
-
-        match State::build_from_str(source) {
+        match World::build_from_str(source) {
             Err(msg) => panic!(msg),
-            Ok(res_state) => {
-                assert_eq!(res_state, expected_state);
+            Ok(w) => {
+                let mut expected_state = State::build_empty(&w);
+                expected_state.taxi = Taxi::new(1, 3);
+                expected_state.passenger = Passenger::new(3, 1);
+                expected_state.destination = Destination::new(3, 4);
+
+                match State::build_from_str(source, &w) {
+                    Err(msg) => panic!(msg),
+                    Ok(res_state) => {
+                        assert_eq!(res_state, expected_state);
+                    }
+                }
             }
         }
+
     }
 
     #[test]
@@ -543,19 +538,23 @@ mod test_state {
         ...d.\n\
         ";
 
-        let mut expected_state = State::build_empty();
-        expected_state.width = 5;
-        expected_state.height = 5;
-        expected_state.taxi = Taxi::new(1, 3);
-        expected_state.passenger = Passenger::new(1, 3);
-        expected_state.destination = Destination::new(3, 4);
-
-        match State::build_from_str(source) {
+        match World::build_from_str(source) {
             Err(msg) => panic!(msg),
-            Ok(res_state) => {
-                assert_eq!(res_state, expected_state);
+            Ok(w) => {
+                let mut expected_state = State::build_empty(&w);
+                expected_state.taxi = Taxi::new(1, 3);
+                expected_state.passenger = Passenger::new(1, 3);
+                expected_state.destination = Destination::new(3, 4);
+
+                match State::build_from_str(source, &w) {
+                    Err(msg) => panic!(msg),
+                    Ok(res_state) => {
+                        assert_eq!(res_state, expected_state);
+                    }
+                }
             }
         }
+
     }
 
     #[test]
@@ -568,8 +567,13 @@ mod test_state {
         ...d.\n\
         ";
 
-        let res = State::build_from_str(source);
-        assert_matches!( res, Err( _ ))
+        match World::build_from_str(source) {
+            Err(msg) => panic!(msg),
+            Ok(w) => {
+                let res = State::build_from_str(source, &w);
+                assert_matches!( res, Err( _ ))
+            }
+        }
     }
 
     #[test]
@@ -582,8 +586,14 @@ mod test_state {
         ...t.\n\
         ";
 
-        let res = State::build_from_str(source);
-        assert_matches!( res, Err( _ ))
+        match World::build_from_str(source) {
+            Err(msg) => panic!(msg),
+            Ok(w) => {
+                let res = State::build_from_str(source, &w);
+                assert_matches!( res, Err( _ ))
+            }
+        }
+
     }
 
     #[test]
@@ -596,8 +606,14 @@ mod test_state {
         ...T.\n\
         ";
 
-        let res = State::build_from_str(source);
-        assert_matches!( res, Err( _ ))
+        match World::build_from_str(source) {
+            Err(msg) => panic!(msg),
+            Ok(w) => {
+                let res = State::build_from_str(source, &w);
+                assert_matches!( res, Err( _ ))
+            }
+        }
+
     }
 
     #[test]
@@ -610,8 +626,13 @@ mod test_state {
         ...d.\n\
         ";
 
-        let res = State::build_from_str(source);
-        assert_matches!( res, Err( _ ))
+        match World::build_from_str(source) {
+            Err(msg) => panic!(msg),
+            Ok(w) => {
+                let res = State::build_from_str(source, &w);
+                assert_matches!( res, Err( _ ))
+            }
+        }
     }
 
     #[test]
@@ -624,8 +645,13 @@ mod test_state {
         ..pt.\n\
         ";
 
-        let res = State::build_from_str(source);
-        assert_matches!( res, Err( _ ))
+        match World::build_from_str(source) {
+            Err(msg) => panic!(msg),
+            Ok(w) => {
+                let res = State::build_from_str(source, &w);
+                assert_matches!( res, Err( _ ))
+            }
+        }
     }
 
     #[test]
@@ -638,8 +664,14 @@ mod test_state {
         ...T.\n\
         ";
 
-        let res = State::build_from_str(source);
-        assert_matches!( res, Err( _ ))
+        match World::build_from_str(source) {
+            Err(msg) => panic!(msg),
+            Ok(w) => {
+                let res = State::build_from_str(source, &w);
+                assert_matches!( res, Err( _ ))
+            }
+        }
+
     }
 
     #[test]
@@ -652,8 +684,13 @@ mod test_state {
         ...p.\n\
         ";
 
-        let res = State::build_from_str(source);
-        assert_matches!( res, Err( _ ))
+        match World::build_from_str(source) {
+            Err(msg) => panic!(msg),
+            Ok(w) => {
+                let res = State::build_from_str(source, &w);
+                assert_matches!( res, Err( _ ))
+            }
+        }
     }
 
     #[test]
@@ -666,8 +703,14 @@ mod test_state {
         ..dT.\n\
         ";
 
-        let res = State::build_from_str(source);
-        assert_matches!( res, Err( _ ))
+        match World::build_from_str(source) {
+            Err(msg) => panic!(msg),
+            Ok(w) => {
+                let res = State::build_from_str(source, &w);
+                assert_matches!( res, Err( _ ))
+            }
+        }
+
     }
 
     #[test]
@@ -677,16 +720,29 @@ mod test_state {
         .T\n\
         ";
 
-        match State::build_from_str(source) {
+        match World::build_from_str(source) {
             Err(msg) => panic!(msg),
-            Ok(state) => {
-                let output = state.display();
-                match output {
-                    Err(format_msg) => panic!("{:?}", format_msg),
-                    Ok(output_str) => assert_eq!(output_str, source),
-                }
+            Ok(w) => {
+                match State::build_from_str(source, &w) {
+                    Err(msg) => panic!(msg),
+                    Ok(state) => {
+                        let output = state.display();
+                        match output {
+                            Err(format_msg) => panic!("{:?}", format_msg),
+                            Ok(output_str) => assert_eq!(output_str, source),
+                        }
 
+                    }
+                }
             }
+        }
+
+    }
+
+    fn test_expected(expected_str: &str, result: &State) {
+        match result.display() {
+            Err(format_msg) => panic!(format_msg),
+            Ok(result_str) => assert_eq!(expected_str, result_str),
         }
     }
 
@@ -702,15 +758,409 @@ mod test_state {
         ##########\n\
         ";
 
-        match State::build_from_str(source) {
+        match World::build_from_str(source) {
             Err(msg) => panic!(msg),
-            Ok(state) => {
-                let output = state.display();
-                match output {
-                    Err(format_msg) => panic!("{:?}", format_msg),
-                    Ok(output_str) => assert_eq!(output_str, source),
+            Ok(w) => {
+                match State::build_from_str(source, &w) {
+                    Err(msg) => panic!(msg),
+                    Ok(state) => test_expected(source, &state),
                 }
+            }
+        }
+    }
 
+    #[test]
+    fn move_allowed_north() {
+        let source = "\
+        d....\n\
+        ...p.\n\
+        .....\n\
+        .t...\n\
+        .....\n\
+        ";
+
+        let expected_north = "\
+        d....\n\
+        ...p.\n\
+        .t...\n\
+        .....\n\
+        .....\n\
+        ";
+
+
+        match World::build_from_str(source) {
+            Err(msg) => panic!(msg),
+            Ok(w) => {
+                match State::build_from_str(source, &w) {
+                    Err(msg) => panic!(msg),
+                    Ok(state) => {
+                        let state_north = state.apply_action(Actions::North);
+                        test_expected(expected_north, &state_north);
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn move_top_north() {
+        let source = "\
+        dt...\n\
+        ...p.\n\
+        .....\n\
+        .....\n\
+        .....\n\
+        ";
+
+        let expected_north = "\
+        dt...\n\
+        ...p.\n\
+        .....\n\
+        .....\n\
+        .....\n\
+        ";
+
+
+        match World::build_from_str(source) {
+            Err(msg) => panic!(msg),
+            Ok(w) => {
+                match State::build_from_str(source, &w) {
+                    Err(msg) => panic!(msg),
+                    Ok(state) => {
+                        let state_north = state.apply_action(Actions::North);
+                        test_expected(expected_north, &state_north);
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn move_wall_north() {
+        let source = "\
+        d....\n\
+        ...p.\n\
+        .#...\n\
+        .t...\n\
+        .....\n\
+        ";
+
+        let expected_north = "\
+        d....\n\
+        ...p.\n\
+        .#...\n\
+        .t...\n\
+        .....\n\
+        ";
+
+
+        match World::build_from_str(source) {
+            Err(msg) => panic!(msg),
+            Ok(w) => {
+                match State::build_from_str(source, &w) {
+                    Err(msg) => panic!(msg),
+                    Ok(state) => {
+                        let state_north = state.apply_action(Actions::North);
+                        test_expected(expected_north, &state_north);
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn move_allowed_south() {
+        let source = "\
+        d....\n\
+        ...p.\n\
+        .....\n\
+        .t...\n\
+        .....\n\
+        ";
+
+        let expected_south = "\
+        d....\n\
+        ...p.\n\
+        .....\n\
+        .....\n\
+        .t...\n\
+        ";
+
+
+        match World::build_from_str(source) {
+            Err(msg) => panic!(msg),
+            Ok(w) => {
+                match State::build_from_str(source, &w) {
+                    Err(msg) => panic!(msg),
+                    Ok(state) => {
+                        let state_south = state.apply_action(Actions::South);
+                        test_expected(expected_south, &state_south);
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn move_bottom_south() {
+        let source = "\
+        d....\n\
+        ...p.\n\
+        .....\n\
+        .....\n\
+        .t...\n\
+        ";
+
+        let expected_south = "\
+        d....\n\
+        ...p.\n\
+        .....\n\
+        .....\n\
+        .t...\n\
+        ";
+
+
+        match World::build_from_str(source) {
+            Err(msg) => panic!(msg),
+            Ok(w) => {
+                match State::build_from_str(source, &w) {
+                    Err(msg) => panic!(msg),
+                    Ok(state) => {
+                        let state_south = state.apply_action(Actions::South);
+                        test_expected(expected_south, &state_south);
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn move_wall_south() {
+        let source = "\
+        d....\n\
+        ...p.\n\
+        .....\n\
+        .t...\n\
+        .#...\n\
+        ";
+
+        let expected_south = "\
+        d....\n\
+        ...p.\n\
+        .....\n\
+        .t...\n\
+        .#...\n\
+        ";
+
+
+        match World::build_from_str(source) {
+            Err(msg) => panic!(msg),
+            Ok(w) => {
+                match State::build_from_str(source, &w) {
+                    Err(msg) => panic!(msg),
+                    Ok(state) => {
+                        let state_south = state.apply_action(Actions::South);
+                        test_expected(expected_south, &state_south);
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn move_allowed_east() {
+        let source = "\
+        d....\n\
+        ...p.\n\
+        .....\n\
+        .t...\n\
+        .....\n\
+        ";
+
+        let expected_east = "\
+        d....\n\
+        ...p.\n\
+        .....\n\
+        ..t..\n\
+        .....\n\
+        ";
+
+
+        match World::build_from_str(source) {
+            Err(msg) => panic!(msg),
+            Ok(w) => {
+                match State::build_from_str(source, &w) {
+                    Err(msg) => panic!(msg),
+                    Ok(state) => {
+                        let state_east = state.apply_action(Actions::East);
+                        test_expected(expected_east, &state_east);
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn move_right_east() {
+        let source = "\
+        d....\n\
+        ...p.\n\
+        ....t\n\
+        .....\n\
+        .....\n\
+        ";
+
+        let expected_east = "\
+        d....\n\
+        ...p.\n\
+        ....t\n\
+        .....\n\
+        .....\n\
+        ";
+
+
+        match World::build_from_str(source) {
+            Err(msg) => panic!(msg),
+            Ok(w) => {
+                match State::build_from_str(source, &w) {
+                    Err(msg) => panic!(msg),
+                    Ok(state) => {
+                        let state_east = state.apply_action(Actions::East);
+                        test_expected(expected_east, &state_east);
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn move_wall_east() {
+        let source = "\
+        d....\n\
+        ...p.\n\
+        .....\n\
+        .t#..\n\
+        .....\n\
+        ";
+
+        let expected_east = "\
+        d....\n\
+        ...p.\n\
+        .....\n\
+        .t#..\n\
+        .....\n\
+        ";
+
+
+        match World::build_from_str(source) {
+            Err(msg) => panic!(msg),
+            Ok(w) => {
+                match State::build_from_str(source, &w) {
+                    Err(msg) => panic!(msg),
+                    Ok(state) => {
+                        let state_east = state.apply_action(Actions::East);
+                        test_expected(expected_east, &state_east);
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn move_allowed_west() {
+        let source = "\
+        d....\n\
+        ...p.\n\
+        .....\n\
+        .t...\n\
+        .....\n\
+        ";
+
+        let expected_west = "\
+        d....\n\
+        ...p.\n\
+        .....\n\
+        t....\n\
+        .....\n\
+        ";
+
+
+        match World::build_from_str(source) {
+            Err(msg) => panic!(msg),
+            Ok(w) => {
+                match State::build_from_str(source, &w) {
+                    Err(msg) => panic!(msg),
+                    Ok(state) => {
+                        let state_west = state.apply_action(Actions::West);
+                        test_expected(expected_west, &state_west);
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn move_left_west() {
+        let source = "\
+        d....\n\
+        ...p.\n\
+        .....\n\
+        t....\n\
+        .....\n\
+        ";
+
+        let expected_west = "\
+        d....\n\
+        ...p.\n\
+        .....\n\
+        t....\n\
+        .....\n\
+        ";
+
+
+        match World::build_from_str(source) {
+            Err(msg) => panic!(msg),
+            Ok(w) => {
+                match State::build_from_str(source, &w) {
+                    Err(msg) => panic!(msg),
+                    Ok(state) => {
+                        let state_west = state.apply_action(Actions::West);
+                        test_expected(expected_west, &state_west);
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn move_wall_west() {
+        let source = "\
+        d....\n\
+        ...p.\n\
+        .....\n\
+        #t...\n\
+        .....\n\
+        ";
+
+        let expected_west = "\
+        d....\n\
+        ...p.\n\
+        .....\n\
+        #t...\n\
+        .....\n\
+        ";
+
+
+        match World::build_from_str(source) {
+            Err(msg) => panic!(msg),
+            Ok(w) => {
+                match State::build_from_str(source, &w) {
+                    Err(msg) => panic!(msg),
+                    Ok(state) => {
+                        let state_west = state.apply_action(Actions::West);
+                        test_expected(expected_west, &state_west);
+                    }
+                }
             }
         }
     }

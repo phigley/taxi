@@ -1,7 +1,9 @@
 #[macro_use]
 extern crate assert_matches;
 
-#[allow(dead_code)]
+
+mod position;
+mod world;
 mod state;
 
 fn main() {
