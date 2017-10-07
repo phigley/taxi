@@ -166,13 +166,27 @@ impl<'a> State<'a> {
                 ..self.taxi
             };
 
+            let new_passenger = if self.taxi.position == self.passenger.position {
+                Passenger {
+                    position: new_taxi_pos,
+                    ..self.passenger
+                }
+            } else {
+                self.passenger
+            };
+
             State {
                 taxi: new_taxi,
+                passenger: new_passenger,
                 ..*self
             }
 
         }
 
+    }
+
+    pub fn at_destination(&self) -> bool {
+        self.passenger.position == self.destination.position
     }
 
     fn valid_position(&self, position: Position) -> bool {
@@ -1164,4 +1178,109 @@ mod test_state {
             }
         }
     }
+
+    #[test]
+    fn passenger_moves_in_taxi() {
+        let source = "\
+        d....\n\
+        ...T.\n\
+        .....\n\
+        #....\n\
+        .....\n\
+        ";
+
+        let expected = "\
+        d....\n\
+        .....\n\
+        ...T.\n\
+        #....\n\
+        .....\n\
+        ";
+
+        match World::build_from_str(source) {
+            Err(msg) => panic!(msg),
+            Ok(w) => {
+                match State::build_from_str(source, &w) {
+                    Err(msg) => panic!(msg),
+                    Ok(state) => {
+                        let result = state.apply_action(Actions::South);
+                        test_expected(expected, &result);
+                        assert_eq!(result.passenger, Passenger::new(3,2));
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn passenger_picked_up_in_taxi() {
+        let source = "\
+        d....\n\
+        ...t.\n\
+        ...p.\n\
+        #....\n\
+        .....\n\
+        ";
+
+        let expected0 = "\
+        d....\n\
+        .....\n\
+        ...T.\n\
+        #....\n\
+        .....\n\
+        ";
+
+        let expected1 = "\
+        d....\n\
+        .....\n\
+        ..T..\n\
+        #....\n\
+        .....\n\
+        ";
+
+        match World::build_from_str(source) {
+            Err(msg) => panic!(msg),
+            Ok(w) => {
+                match State::build_from_str(source, &w) {
+                    Err(msg) => panic!(msg),
+                    Ok(state) => {
+                        let result0 = state.apply_action(Actions::South);
+                        test_expected(expected0, &result0);
+                        let result1 = result0.apply_action(Actions::West);
+                        test_expected(expected1, &result1);
+                        assert_eq!(result1.passenger, Passenger::new(2,2));
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn reaches_destination() {
+        let source = "\
+        .....\n\
+        ..dt.\n\
+        ..p..\n\
+        #....\n\
+        .....\n\
+        ";
+
+        match World::build_from_str(source) {
+            Err(msg) => panic!(msg),
+            Ok(w) => {
+                match State::build_from_str(source, &w) {
+                    Err(msg) => panic!(msg),
+                    Ok(state) => {
+                        let result0 = state.apply_action(Actions::West);
+                        assert!( result0.at_destination() == false );
+                        let result1 = result0.apply_action(Actions::South);
+                        assert!( result1.at_destination() == false );
+                        let result2 = result1.apply_action(Actions::North);
+                        assert!( result2.at_destination() == true );
+                    }
+                }
+            }
+        }
+    }
+
 }
