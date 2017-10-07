@@ -2,6 +2,7 @@
 use std::string;
 use position::Position;
 use world::World;
+use actions::Actions;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 struct Taxi {
@@ -34,14 +35,6 @@ impl Destination {
     fn new(x: i32, y: i32) -> Destination {
         Destination { position: Position::new(x, y) }
     }
-}
-
-#[derive(Debug, PartialEq)]
-pub enum Actions {
-    North,
-    South,
-    East,
-    West,
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -104,7 +97,7 @@ impl<'a> State<'a> {
 
 
 
-    fn display(&self) -> Result<String, string::FromUtf8Error> {
+    pub fn display(&self) -> Result<String, string::FromUtf8Error> {
 
         let string_width = (self.world.width + 1) as usize;
         let mut bytes = self.world.display_bytes();
