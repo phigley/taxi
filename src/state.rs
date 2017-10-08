@@ -39,7 +39,7 @@ impl Destination {
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct State<'a> {
-    world: &'a World,
+    pub world: &'a World,
     taxi: Taxi,
     passenger: Passenger,
     destination: Destination,

@@ -5,6 +5,8 @@ authors = ["Peter Higley <phigley@gmail.com>"]
 
 [dependencies]
 rand = "*"
+tui = "*"
+termion = "*"
 
 [dev-dependencies]
 assert_matches = "1.1"
