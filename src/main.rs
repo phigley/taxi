@@ -1,15 +1,7 @@
-#[cfg(test)]
-#[macro_use]
-extern crate assert_matches;
-
 extern crate rand;
 extern crate tui;
 extern crate termion;
-
-mod position;
-mod world;
-mod state;
-mod actions;
+extern crate taxi;
 
 use std::io;
 
@@ -21,20 +13,25 @@ use termion::input::TermRead;
 use tui::Terminal;
 use tui::backend::TermionBackend;
 use tui::widgets::{Widget, Block, Paragraph, border};
-use tui::style::Style;
 use tui::layout::{Group, Direction, Size, Rect};
 
-use state::State;
-use world::World;
-use actions::Actions;
+use taxi::state::State;
+use taxi::world::World;
+use taxi::actions::Actions;
 
 fn main() {
     let source = "\
-        d....\n\
-        ...p.\n\
-        .....\n\
-        #t...\n\
-        .....\n\
+        ┌───┬─────┐\n\
+        │d .│. . .│\n\
+        │   │     │\n\
+        │. .│. . .│\n\
+        │         │\n\
+        │. . t . .│\n\
+        │         │\n\
+        │.│. .│. .│\n\
+        │ │   │   │\n\
+        │.│. .│p .│\n\
+        └─┴───┴───┘\n\
         ";
 
     match World::build_from_str(source) {
@@ -139,15 +136,15 @@ impl Simulation {
 
         let mut states = Vec::with_capacity(actions.len() + 1);
 
-        states.push(show_state(&state));
+        states.push(state.display());
 
         for a in actions {
             state = state.apply_action(*a);
-            states.push(show_state(&state));
+            states.push(state.display());
         }
 
-        let state_height = (state.world.height + 2) as u16;
-        let state_width = std::cmp::max(state.world.width + 2, 10) as u16;
+        let state_height = (2 * state.world.height + 1) as u16;
+        let state_width = std::cmp::max(2 * state.world.width + 1, 10) as u16;
 
         let term_width = std::cmp::max(state_width, 80);
         let term_height = state_height + 5;
@@ -223,13 +220,6 @@ impl Simulation {
         t.draw()?;
 
         Ok(())
-    }
-}
-
-fn show_state(state: &State) -> String {
-    match state.display() {
-        Err(msg) => format!("Failed to display: {}", msg),
-        Ok(state_str) => state_str,
     }
 }
 

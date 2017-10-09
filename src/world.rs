@@ -1,15 +1,50 @@
 
+use std::iter;
+use std::fmt;
+
 use position::Position;
 
-#[derive(Debug, PartialEq)]
+#[derive(PartialEq, Clone)]
 pub struct Wall {
-    pub position: Position,
+    pub north: bool,
+    pub south: bool,
+    pub east: bool,
+    pub west: bool,
 }
 
 
 impl Wall {
-    pub fn new(x: i32, y: i32) -> Wall {
-        Wall { position: Position::new(x, y) }
+    pub fn new() -> Wall {
+        Wall {
+            north: false,
+            south: false,
+            east: false,
+            west: false,
+        }
+    }
+}
+
+impl fmt::Debug for Wall {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Wall('")?;
+
+        if self.north {
+            write!(f, "n")?;
+        }
+
+        if self.south {
+            write!(f, "s")?;
+        }
+
+        if self.east {
+            write!(f, "e")?;
+        }
+
+        if self.west {
+            write!(f, "w")?;
+        }
+
+        write!(f, "')")
     }
 }
 
@@ -17,106 +52,368 @@ impl Wall {
 pub struct World {
     pub width: i32,
     pub height: i32,
-    pub walls: Vec<Wall>,
+    pub walls: Vec<Vec<Wall>>,
 }
 
 impl World {
-    fn build_empty() -> World {
-        World {
-            width: 0,
-            height: 0,
-            walls: vec![],
-        }
-
-    }
-
     pub fn build_from_str(source: &str) -> Result<World, String> {
 
         let mut lines = source.lines();
 
-        match lines.next() {
+        if let Some(first_line) = lines.next() {
 
-            None => Err(String::from("Empty string passed to World::new")),
+            let line_width = first_line.chars().count();
 
-            Some(first_line) => {
+            let mut line_count = 1;
 
-                let mut result = World::build_empty();
-                result.width = first_line.len() as i32;
-                result.height = 1;
+            let width = line_width / 2;
 
-                parse_line(first_line, &mut result)?;
+            let mut walls = Vec::new();
 
-                for l in lines {
+            let mut wall_row = Vec::with_capacity(width);
+            wall_row.extend(iter::repeat(Wall::new()).take(width));
+            parse_wall_line(first_line, line_count, width, None, Some(&mut wall_row))?;
 
-                    result.height += 1;
+            while let (Some(content_line), Some(wall_line)) = (lines.next(), lines.next()) {
 
-                    parse_line(l, &mut result)?;
+                let mut next_wall_row = Vec::with_capacity(width);
+                next_wall_row.extend(iter::repeat(Wall::new()).take(width));
 
-                    let current_width = l.len();
-                    if result.width != current_width as i32 {
-                        return Err(format!(
-                            "Failed to create world, line {} has width {} expected {}",
-                            result.height - 1,
-                            current_width,
-                            result.width,
-                        ));
-                    }
-                }
+                parse_content_line(content_line, line_count, width, &mut wall_row)?;
+                line_count += 1;
+                parse_wall_line(
+                    &wall_line,
+                    line_count,
+                    width,
+                    Some(&mut wall_row),
+                    Some(&mut next_wall_row),
+                )?;
 
-                Ok(result)
+                walls.push(wall_row);
+                wall_row = next_wall_row;
             }
+
+            let height = walls.len() as i32;
+
+            Ok(World {
+                width: width as i32,
+                height: height as i32,
+                walls,
+            })
+
+        } else {
+            Err(String::from("Empty string passed to World::new"))
         }
     }
 
+    pub fn get_wall(&self, positon: &Position) -> &Wall {
+        &self.walls[positon.y as usize][positon.x as usize]
+    }
 
+    pub fn display_strings(&self) -> Vec<String> {
 
-    pub fn display_bytes(&self) -> Vec<u8> {
+        let line_count = (2 * self.height + 1) as usize;
+        let mut result = Vec::with_capacity(line_count);
 
-        let string_width = (self.width + 1) as usize;
-        let line_count = self.height as usize;
-        let mut bytes = Vec::with_capacity(string_width * line_count);
+        let mut previous_row: Option<&[Wall]> = None;
 
-        for _ in 0..line_count {
-            for _ in 0..(string_width - 1) {
-                bytes.push(b'.');
+        for row in &self.walls {
+
+            let mut upper_chars = String::new();
+            let mut chars = String::new();
+
+            let mut previous_wall = None;
+
+            for (i, w) in row.iter().enumerate() {
+
+                let upper_wall = if let Some(previous_row) = previous_row {
+                    Some(&previous_row[i])
+                } else {
+                    None
+                };
+
+                upper_chars.push(calc_upper_left_char(w, previous_wall, upper_wall));
+                upper_chars.push(if w.north { '─' } else { ' ' });
+
+                chars.push(if w.west { '│' } else { ' ' });
+                chars.push('.');
+
+                previous_wall = Some(w);
             }
 
-            bytes.push(b'\n');
+            if let Some(w) = previous_wall {
+
+                let upper_wall = if let Some(previous_row) = previous_row {
+                    Some(&previous_row[(self.width - 1) as usize])
+                } else {
+                    None
+                };
+
+
+                upper_chars.push(calc_upper_right_char(w, upper_wall));
+                chars.push(if w.east { '│' } else { ' ' });
+            }
+
+            result.push(upper_chars);
+            result.push(chars);
+
+            previous_row = Some(row);
         }
 
-        for w in self.walls.iter() {
-            let column_offset = (w.position.y as usize) * string_width;
-            let row_offset = w.position.x as usize;
+        if let Some(r) = previous_row {
 
-            let b: &mut u8 = &mut bytes[column_offset + row_offset];
+            let mut bottom_chars = String::new();
+            let mut previous_wall = None;
+            for w in r {
 
+                bottom_chars.push(calc_lower_left_char(w, previous_wall));
+                bottom_chars.push(if w.south { '─' } else { ' ' });
 
-            *b = if *b == b'.' { b'#' } else { b'!' };
+                previous_wall = Some(w);
+            }
+
+            if let Some(w) = previous_wall {
+                bottom_chars.push(render_connection(w.east, false, false, w.south));
+            }
+
+            result.push(bottom_chars);
         }
 
-        bytes
+        result
     }
 }
 
-fn parse_line(line: &str, result: &mut World) -> Result<(), String> {
+fn calc_upper_left_char(
+    current_wall: &Wall,
+    previous_wall: Option<&Wall>,
+    upper_wall: Option<&Wall>,
+) -> char {
 
-    for (i, c) in line.bytes().enumerate() {
-        match c {
-            b'.' => (),
-            b'#' => {
-                let w = Wall::new(i as i32, result.height - 1);
-                result.walls.push(w);
-            }
-            _ => (),
+    let mut connect_north = false;
+    let mut connect_south = false;
+    let mut connect_east = false;
+    let mut connect_west = false;
+
+
+    if let Some(upper_wall) = upper_wall {
+        if upper_wall.west {
+            connect_north = true;
         }
     }
 
-    Ok(())
+    if current_wall.west {
+        connect_south = true;
+    }
+
+    if current_wall.north {
+        connect_east = true;
+    }
+
+
+    if let Some(previous_wall) = previous_wall {
+        if previous_wall.north {
+            connect_west = true;
+        }
+    }
+
+    render_connection(connect_north, connect_south, connect_east, connect_west)
+}
+
+fn calc_upper_right_char(current_wall: &Wall, upper_wall: Option<&Wall>) -> char {
+
+    let mut connect_north = false;
+    let mut connect_south = false;
+    let connect_east = false;
+    let mut connect_west = false;
+
+
+    if let Some(upper_wall) = upper_wall {
+        if upper_wall.east {
+            connect_north = true;
+        }
+    }
+
+    if current_wall.east {
+        connect_south = true;
+    }
+
+    if current_wall.north {
+        connect_west = true;
+    }
+
+    render_connection(connect_north, connect_south, connect_east, connect_west)
+}
+
+fn calc_lower_left_char(current_wall: &Wall, previous_wall: Option<&Wall>) -> char {
+
+    let mut connect_north = false;
+    let connect_south = false;
+    let mut connect_east = false;
+    let mut connect_west = false;
+
+    if current_wall.west {
+        connect_north = true;
+    }
+
+    if current_wall.south {
+        connect_east = true;
+    }
+
+    if let Some(previous_wall) = previous_wall {
+        if previous_wall.south {
+            connect_west = true;
+        }
+    }
+
+    render_connection(connect_north, connect_south, connect_east, connect_west)
+}
+
+fn render_connection(
+    connect_north: bool,
+    connect_south: bool,
+    connect_east: bool,
+    connect_west: bool,
+) -> char {
+
+    // ─ │ ┌ ┐ └ ┘ ├ ┤ ┬ ┴ ┼
+
+    match (connect_north, connect_south, connect_east, connect_west) {
+
+        (true, true, true, true) => '┼',
+
+        (true, true, true, false) => '├',
+        (true, true, false, true) => '┤',
+        (true, false, true, true) => '┴',
+        (false, true, true, true) => '┬',
+
+        (true, true, false, false) => '│',
+        (true, false, true, false) => '└',
+        (true, false, false, true) => '┘',
+        (false, true, true, false) => '┌',
+        (false, true, false, true) => '┐',
+        (false, false, true, true) => '─',
+
+        (true, false, false, false) => ' ',
+        (false, true, false, false) => ' ',
+        (false, false, true, false) => ' ',
+        (false, false, false, true) => ' ',
+        (false, false, false, false) => ' ',
+    }
+
+}
+
+fn parse_wall_line(
+    line: &str,
+    line_count: usize,
+    width: usize,
+    mut previous_row: Option<&mut [Wall]>,
+    mut row: Option<&mut [Wall]>,
+) -> Result<(), String> {
+
+    let mut num_chars_read = 0;
+    let expected_num_chars = 2 * width + 1;
+
+    for (i, c) in line.chars().enumerate() {
+
+        num_chars_read += 1;
+
+        if num_chars_read > expected_num_chars {
+            return Err(format!(
+                "Line {} longer than initial width of {}.",
+                line_count,
+                expected_num_chars
+            ));
+        }
+
+        if i % 2 == 1 {
+
+            let x = i / 2;
+
+            if x > width {}
+
+
+
+            if c == '─' {
+                if let Some(ref mut prev) = previous_row {
+                    (*prev)[x].south = true;
+                }
+
+                if let Some(ref mut current) = row {
+                    current[x].north = true;
+                }
+            }
+        }
+    }
+
+    if num_chars_read == expected_num_chars {
+        Ok(())
+    } else {
+        Err(format!(
+            "Failed to create world, line {} has width {} expected {}",
+            line_count,
+            num_chars_read,
+            expected_num_chars,
+        ))
+    }
+
+}
+
+fn parse_content_line(
+    line: &str,
+    line_count: usize,
+    width: usize,
+    wall_row: &mut Vec<Wall>,
+) -> Result<(), String> {
+
+    let mut num_chars_read = 0;
+    let expected_num_chars = 2 * width + 1;
+
+
+    for (i, c) in line.chars().enumerate() {
+
+        num_chars_read += 1;
+
+        if num_chars_read > expected_num_chars {
+            return Err(format!(
+                "Line {} longer than initial width of {}.",
+                line_count,
+                expected_num_chars
+            ));
+        }
+
+        if i % 2 == 0 {
+
+
+            let x = i / 2;
+
+            if c == '│' {
+                if x < width {
+                    wall_row[x].west = true;
+                }
+
+                if x > 0 {
+                    wall_row[x - 1].east = true;
+                }
+            }
+        }
+
+    }
+
+    if num_chars_read == expected_num_chars {
+        Ok(())
+    } else {
+        Err(format!(
+            "Failed to create world, line {} has width {} expected {}",
+            line_count,
+            num_chars_read,
+            expected_num_chars,
+        ))
+    }
 }
 
 
 #[cfg(test)]
-mod test_state {
+mod test_world {
 
     use super::*;
 
@@ -130,11 +427,15 @@ mod test_state {
     #[test]
     fn build_correct_height() {
         let source = "\
-            .\n\
-            T\n\
-            d\n\
-            .\n\
-            ";
+            ┌─┐\n\
+            │.│\n\
+            │ │\n\
+            │T│\n\
+            │ │\n\
+            │d│\n\
+            │ │\n\
+            │.│\n\
+            └─┘";
 
         let res = World::build_from_str(source);
         assert_matches!( res, Ok( World { height: 4, .. } ))
@@ -143,7 +444,9 @@ mod test_state {
     #[test]
     fn build_correct_width() {
         let source = "\
-        dT...\n\
+        ┌─────────┐\n\
+        │d T . . .│\n\
+        └─────────┘\n\
         ";
 
         let res = World::build_from_str(source);
@@ -151,10 +454,13 @@ mod test_state {
     }
 
     #[test]
-    fn build_fails_unequal_width() {
+    fn build_fails_short_content() {
         let source = "\
-        ...\n\
-        ....\n\
+        ┌───────┐\n\
+        │. . .│\n\
+        │       │\n\
+        │. . . .│\n\
+        └───────┘\n\
         ";
 
         let res = World::build_from_str(source);
@@ -162,59 +468,290 @@ mod test_state {
     }
 
     #[test]
-    fn build_complex() {
+    fn build_fails_short_wall() {
         let source = "\
-        ##########\n\
-        #...#....#\n\
-        #...#....#\n\
-        #.....#..#\n\
-        #.#...#..#\n\
-        #.#...#..#\n\
-        ##########\n\
+        ┌─────────┐\n\
+        │ . . . . │\n\
+        │        │\n\
+        │ . . . . │\n\
+        └─────────┘\n\
         ";
 
-        let mut expected_w = World::build_empty();
-        expected_w.width = 10;
-        expected_w.height = 7;
+        let res = World::build_from_str(source);
+        assert_matches!( res, Err( _ ))
+    }
+
+    #[test]
+    fn build_fails_short_initial() {
+        let source = "\
+        ┌────────┐\n\
+        │ . . . . │\n\
+        │         │\n\
+        │ . . . . │\n\
+        └─────────┘\n\
+        ";
+
+        let res = World::build_from_str(source);
+        assert_matches!( res, Err( _ ))
+    }
+
+    #[test]
+    fn build_fails_short_final() {
+        let source = "\
+        ┌─────────┐\n\
+        │ . . . . │\n\
+        │         │\n\
+        │ . . . . │\n\
+        └────────┘\n\
+        ";
+
+        let res = World::build_from_str(source);
+        assert_matches!( res, Err( _ ))
+    }
+
+    #[test]
+    fn build_fails_long_content() {
+        let source = "\
+        ┌───────┐\n\
+        │. . . . │\n\
+        │       │\n\
+        │. . . .│\n\
+        └───────┘\n\
+        ";
+
+        let res = World::build_from_str(source);
+        assert_matches!( res, Err( _ ))
+    }
+
+    #[test]
+    fn build_fails_long_wall() {
+        let source = "\
+        ┌─────────┐\n\
+        │ . . . . │\n\
+        │          │\n\
+        │ . . . . │\n\
+        └─────────┘\n\
+        ";
+
+        let res = World::build_from_str(source);
+        assert_matches!( res, Err( _ ))
+    }
+
+    #[test]
+    fn build_fails_long_initial() {
+        let source = "\
+        ┌──────────┐\n\
+        │ . . . . │\n\
+        │         │\n\
+        │ . . . . │\n\
+        └─────────┘\n\
+        ";
+
+        let res = World::build_from_str(source);
+        assert_matches!( res, Err( _ ))
+    }
+
+    #[test]
+    fn build_fails_long_final() {
+        let source = "\
+        ┌─────────┐\n\
+        │ . . . . │\n\
+        │         │\n\
+        │ . . . . │\n\
+        └──────────┘\n\
+        ";
+
+        let res = World::build_from_str(source);
+        assert_matches!( res, Err( _ ))
+    }
+
+    fn build_wall(desc: &str) -> Wall {
+        let mut result = Wall::new();
+
+        for c in desc.chars() {
+            match c {
+                'n' => result.north = true,
+                's' => result.south = true,
+                'e' => result.east = true,
+                'w' => result.west = true,
+                _ => (),
+            }
+        }
+
+        result
+    }
+
+    fn build_empty_world() -> World {
+        World {
+            width: 0,
+            height: 0,
+            walls: vec![],
+        }
+
+    }
+
+
+    #[test]
+    fn build_very_simple() {
+        let source = "\
+        ┌─┐\n\
+        │.│\n\
+        └─┘\n\
+        ";
+
+        let mut expected_w = build_empty_world();
+        expected_w.width = 1;
+        expected_w.height = 1;
+        expected_w.walls = vec![ vec![
+            build_wall("nsew")
+        ] ];
+
+        match World::build_from_str(source) {
+            Err(msg) => panic!(msg),
+            Ok(w) => {
+                assert_eq!(w, expected_w);
+            }
+        }
+    }
+
+    #[test]
+    fn build_simple() {
+        let source = "\
+        ┌─────┐\n\
+        │. . .│\n\
+        │     │\n\
+        │. . .│\n\
+        │     │\n\
+        │. . .│\n\
+        │     │\n\
+        │. . .│\n\
+        └─────┘\n\
+        ";
+
+        let mut expected_w = build_empty_world();
+        expected_w.width = 3;
+        expected_w.height = 4;
+        expected_w.walls = vec![ vec![
+            build_wall("nw"),
+            build_wall("n"),
+            build_wall("ne")
+        ],
+        vec![
+            build_wall("w"),
+            build_wall(""),
+            build_wall("e")
+        ],
+        vec![
+            build_wall("w"),
+            build_wall(""),
+            build_wall("e")
+        ],
+        vec![
+            build_wall("sw"),
+            build_wall("s"),
+            build_wall("se")
+        ] ];
+
+        match World::build_from_str(source) {
+            Err(msg) => panic!(msg),
+            Ok(w) => {
+                assert_eq!(w, expected_w);
+            }
+        }
+    }
+
+    #[test]
+    fn build_middle_wall() {
+        let source = "\
+        ┌───────┐\n\
+        │. . . .│\n\
+        │ ┌─    │\n\
+        │.│. . .│\n\
+        │ │     │\n\
+        │.│. . .│\n\
+        └─┴─────┘\n\
+        ";
+
+        let mut expected_w = build_empty_world();
+        expected_w.width = 4;
+        expected_w.height = 3;
+        expected_w.walls = vec![ vec![
+            build_wall("nw"),
+            build_wall("ns"),
+            build_wall("n"),
+            build_wall("ne")
+        ],
+        vec![
+            build_wall("ew"),
+            build_wall("nw"),
+            build_wall(""),
+            build_wall("e")
+        ],
+        vec![
+            build_wall("sew"),
+            build_wall("sw"),
+            build_wall("s"),
+            build_wall("se")
+        ] ];
+
+        match World::build_from_str(source) {
+            Err(msg) => panic!(msg),
+            Ok(w) => {
+                assert_eq!(w, expected_w);
+            }
+        }
+    }
+
+    #[test]
+    fn build_complex() {
+        let source = "\
+        ┌───┬─────┐\n\
+        │. .│. . .│\n\
+        │   │     │\n\
+        │. .│. . .│\n\
+        │         │\n\
+        │. . . . .│\n\
+        │         │\n\
+        │.│. .│. .│\n\
+        │ │   │   │\n\
+        │.│. .│. .│\n\
+        └─┴───┴───┘\n\
+        ";
+
+        let mut expected_w = build_empty_world();
+        expected_w.width = 5;
+        expected_w.height = 5;
         expected_w.walls = vec![
-                Wall::new(0,0),
-                Wall::new(1,0),
-                Wall::new(2,0),
-                Wall::new(3,0),
-                Wall::new(4,0),
-                Wall::new(5,0),
-                Wall::new(6,0),
-                Wall::new(7,0),
-                Wall::new(8,0),
-                Wall::new(9,0),
-                Wall::new(0,1),
-                Wall::new(4,1),
-                Wall::new(9,1),
-                Wall::new(0,2),
-                Wall::new(4,2),
-                Wall::new(9,2),
-                Wall::new(0,3),
-                Wall::new(6,3),
-                Wall::new(9,3),
-                Wall::new(0,4),
-                Wall::new(2,4),
-                Wall::new(6,4),
-                Wall::new(9,4),
-                Wall::new(0,5),
-                Wall::new(2,5),
-                Wall::new(6,5),
-                Wall::new(9,5),
-                Wall::new(0,6),
-                Wall::new(1,6),
-                Wall::new(2,6),
-                Wall::new(3,6),
-                Wall::new(4,6),
-                Wall::new(5,6),
-                Wall::new(6,6),
-                Wall::new(7,6),
-                Wall::new(8,6),
-                Wall::new(9,6),
-            ];
+            vec![ build_wall("nw"),
+            build_wall("ne"),
+            build_wall("nw"),
+            build_wall("n"),
+            build_wall("ne") ],
+
+            vec![ build_wall("w"),
+            build_wall("e"),
+            build_wall("w"),
+            build_wall(""),
+            build_wall("e") ],
+
+            vec![ build_wall("w"),
+            build_wall(""),
+            build_wall(""),
+            build_wall(""),
+            build_wall("e") ],
+
+            vec![ build_wall("we"),
+            build_wall("w"),
+            build_wall("e"),
+            build_wall("w"),
+            build_wall("e") ],
+
+            vec![ build_wall("swe"),
+            build_wall("sw"),
+            build_wall("se"),
+            build_wall("sw"),
+            build_wall("se") ],
+        ];
 
         match World::build_from_str(source) {
             Err(msg) => panic!(msg),

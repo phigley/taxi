@@ -3,6 +3,9 @@ name = "taxi"
 version = "0.1.0"
 authors = ["Peter Higley <phigley@gmail.com>"]
 
+[lib]
+name = "taxi"
+
 [dependencies]
 rand = "*"
 tui = "*"
@@ -10,3 +13,7 @@ termion = "*"
 
 [dev-dependencies]
 assert_matches = "1.1"
+
+[[bin]]
+name = "taxi"
+test = false
