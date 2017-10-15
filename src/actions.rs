@@ -1,4 +1,5 @@
 
+use std::fmt;
 use rand::{Rand, Rng};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -53,6 +54,17 @@ impl Rand for Actions {
             64...127 => Actions::South,
             128...191 => Actions::East,
             _ => Actions::West,
+        }
+    }
+}
+
+impl fmt::Display for Actions {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            Actions::North => write!(f, "N"),
+            Actions::South => write!(f, "S"),
+            Actions::East => write!(f, "E"),
+            Actions::West => write!(f, "W"),
         }
     }
 }
