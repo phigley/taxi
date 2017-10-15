@@ -7,7 +7,8 @@ use taxi::actions::Actions;
 
 pub struct RandomSolver {
     pub iterations: u32,
-    pub solution: Option<Vec<Actions>>,
+    pub solved: bool,
+    pub applied_actions: Vec<Actions>,
 }
 
 impl RandomSolver {
@@ -24,14 +25,16 @@ impl RandomSolver {
             if current_state.at_destination() {
                 break RandomSolver {
                     iterations,
-                    solution: Some(applied_actions),
+                    solved: true,
+                    applied_actions,
                 };
             }
 
             if iterations >= max_iterations {
                 break RandomSolver {
                     iterations,
-                    solution: None,
+                    solved: false,
+                    applied_actions,
                 };
             }
 

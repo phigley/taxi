@@ -15,6 +15,7 @@ use taxi::actions::Actions;
 pub struct Replay {
     states: Vec<String>,
     actions: Vec<Actions>,
+    solved: bool,
     step_height: u16,
     summary_height: u16,
     summary: String,
@@ -24,7 +25,7 @@ pub struct Replay {
 }
 
 impl Replay {
-    pub fn new(mut state: State, actions: &[Actions]) -> Replay {
+    pub fn new(mut state: State, solved: bool, actions: &[Actions]) -> Replay {
 
         let mut states = Vec::with_capacity(actions.len() + 1);
 
@@ -39,18 +40,9 @@ impl Replay {
 
         let num_actions = actions.len();
 
-        let summary =
-            format!(
-                    "\n\
-                     Solved in {} steps.\n\
-                     \n\
-                     Left/Right arrow to advance.\n\
-                     Escape to exit.\n\
-                     ",
-                    num_actions,
-                );
+        let summary = build_summary_string(solved, num_actions);
 
-        let summary_height = 5;
+        let summary_height = summary.lines().count() as u16;
 
         let step_height = 3;
 
@@ -64,6 +56,7 @@ impl Replay {
         Replay {
             states,
             actions: actions.to_vec(),
+            solved,
             step_height,
             summary,
             summary_height,
@@ -142,7 +135,7 @@ impl Replay {
                     .render(&mut t, &render_state_chunk);
 
 
-                let step_data = build_step_str(step as usize, &self.actions);
+                let step_data = build_step_string(step as usize, self.solved, &self.actions);
 
                 Paragraph::default().text(&step_data).render(
                     &mut t,
@@ -162,14 +155,39 @@ impl Replay {
     }
 }
 
-fn build_step_str(step: usize, actions: &[Actions]) -> String {
+fn build_summary_string(solved: bool, num_steps: usize) -> String {
+
     let mut result = String::new();
-    result += &format!("Step {:^3}\n", step);
+
+    if solved {
+        result += &format!("Solved in {} steps.", num_steps);
+    } else {
+        result += &format!("Failed after {} steps.", num_steps);
+    };
+
+    result += &format!(
+        "\n\
+         \n\
+         Left/Right arrow to advance.\n\
+         Escape to exit.\n\
+         "
+    );
+
+    result
+}
+
+fn build_step_string(step: usize, solved: bool, actions: &[Actions]) -> String {
+    let mut result = String::new();
+    result += &format!("Step {:^3}", step);
 
     if step < actions.len() {
-        result += &format!("Next action: {}", actions[step]);
+        result += &format!("\nNext action: {}", actions[step]);
     } else {
-        result += "Finished"
+        if solved {
+            result += "\nSucceeded";
+        } else {
+            result += "\nFailed";
+        }
     }
 
     result

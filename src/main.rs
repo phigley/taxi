@@ -59,17 +59,10 @@ fn main() {
                 Ok(initial_state) => {
                     let result = RandomSolver::new(initial_state.clone(), input.max_steps);
 
-                    if let Some(actions) = result.solution {
+                    let replay = Replay::new(initial_state, result.solved, &result.applied_actions);
 
-                        let replay = Replay::new(initial_state, &actions);
-
-                        if let Err(error) = replay.run() {
-                            println!("IO error : {:?}", error);
-                        }
-
-                    } else {
-                        println!("{}", input.initial_state);
-                        println!("Failed to find solution in {} steps.", result.iterations);
+                    if let Err(error) = replay.run() {
+                        println!("IO error : {:?}", error);
                     }
                 }
             }
