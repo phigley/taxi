@@ -16,6 +16,9 @@ use std::fs::File;
 use std::io;
 use std::io::prelude::*;
 
+use rand::thread_rng;
+use rand::distributions::{IndependentSample, Range};
+
 use termion::event;
 use termion::input::TermRead;
 
@@ -49,34 +52,59 @@ fn main() {
         }
     };
 
-    match World::build_from_str(&config.initial_state) {
-        Err(msg) => {
-            println!("Failed to build world: {}", msg);
-            println!("Using source:");
-            println!("{}", config.initial_state);
-        }
-        Ok(w) => {
-            match State::build_from_str(&config.initial_state, &w) {
-                Err(msg) => {
-                    println!("Failed to build state: {}", msg);
-                    println!("Using state:");
-                    println!("{}", config.initial_state);
+    if config.initial_states.len() > 0 {
+
+        match World::build_from_str(&config.initial_states[0]) {
+            Err(msg) => {
+                println!("Failed to build world: {}", msg);
+                println!("Using source:");
+                println!("{}", config.initial_states[0]);
+            }
+            Ok(w) => {
+
+                let mut initial_states = Vec::new();
+
+                for ref initial_state_str in &config.initial_states {
+
+                    match State::build_from_str(initial_state_str, &w) {
+                        Err(msg) => {
+                            println!("Failed to build state: {}", msg);
+                            println!("Using state:");
+                            println!("{}", config.initial_states[0]);
+                        }
+
+                        Ok(initial_state) => initial_states.push(initial_state),
+                    }
                 }
 
-                Ok(initial_state) => execute_trials(&config, &initial_state),
+                if initial_states.len() > 0 {
+                    execute_trials(&config, &initial_states);
+                } else {
+                    println!("Failed to parse any initial_states, cannot execute trials.");
+                }
             }
         }
+    } else {
+        println!("Found no initial_states, cannot run trials.");
     }
+
+
 }
 
 
-fn execute_trials(config: &Configuration, initial_state: &State) {
+fn execute_trials(config: &Configuration, initial_states: &[State]) {
+
+    let mut rng = thread_rng();
+    let select_offset = Range::new(0, initial_states.len());
 
     let mut replay_result = None;
 
     let mut successes = Vec::new();
 
     for trial_num in 0..config.trials {
+
+        let initial_state_offset = select_offset.ind_sample(&mut rng);
+        let initial_state = initial_states[initial_state_offset];
 
         let result = RandomSolver::new(initial_state.clone(), config.max_steps);
 
@@ -86,9 +114,19 @@ fn execute_trials(config: &Configuration, initial_state: &State) {
 
             successes.push(num_steps as f64);
 
-            println!("{} - Solved after {} steps.", trial_num, num_steps);
+            println!(
+                "{} - Solved {} after {} steps.",
+                trial_num,
+                initial_state_offset,
+                num_steps
+            );
         } else {
-            println!("{} - Failed after {} steps.", trial_num, num_steps);
+            println!(
+                "{} - Failed {} after {} steps.",
+                trial_num,
+                initial_state_offset,
+                num_steps
+            );
         }
 
         match config.replay_mode {
