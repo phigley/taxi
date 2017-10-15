@@ -4,15 +4,15 @@ extern crate termion;
 extern crate taxi;
 
 mod replay;
+mod random_solver;
 
-
-use rand::Rng;
 
 use replay::Replay;
 
+use random_solver::RandomSolver;
+
 use taxi::state::State;
 use taxi::world::World;
-use taxi::actions::Actions;
 
 fn main() {
     let source = "\
@@ -59,46 +59,6 @@ fn main() {
                     }
                 }
             }
-        }
-    }
-}
-
-struct RandomSolver {
-    iterations: u32,
-    solution: Option<Vec<Actions>>,
-}
-
-impl RandomSolver {
-    fn new(state: State, max_iterations: u32) -> RandomSolver {
-
-        let mut rng = rand::thread_rng();
-
-        let mut iterations = 0;
-        let mut applied_actions = Vec::new();
-
-        let mut current_state = state;
-
-        loop {
-            if current_state.at_destination() {
-                break RandomSolver {
-                    iterations,
-                    solution: Some(applied_actions),
-                };
-            }
-
-            if iterations >= max_iterations {
-                break RandomSolver {
-                    iterations,
-                    solution: None,
-                };
-            }
-
-            iterations += 1;
-
-            let action: Actions = rng.gen();
-
-            applied_actions.push(action);
-            current_state = current_state.apply_action(action);
         }
     }
 }
