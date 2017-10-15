@@ -13,9 +13,13 @@ mod random_solver;
 
 use std::env;
 use std::fs::File;
+use std::io;
 use std::io::prelude::*;
 
-use configuration::Configuration;
+use termion::event;
+use termion::input::TermRead;
+
+use configuration::{Configuration, ReplayMode};
 use replay::Replay;
 
 use random_solver::RandomSolver;
@@ -27,7 +31,7 @@ fn main() {
 
     let args: Vec<String> = env::args().collect();
 
-    let input = if args.len() < 2 {
+    let config = if args.len() < 2 {
         Configuration::default()
     } else {
 
@@ -39,32 +43,152 @@ fn main() {
             &format!("Failed to read file '{}'", args[1],),
         );
 
-        toml::from_str(&config_string).unwrap()
+        match toml::from_str(&config_string) {
+            Ok(result) => result,
+            Err(err) => panic!("Failed to parse config file '{}' - {}", args[1], err),
+        }
     };
 
-    match World::build_from_str(&input.initial_state) {
+    match World::build_from_str(&config.initial_state) {
         Err(msg) => {
             println!("Failed to build world: {}", msg);
             println!("Using source:");
-            println!("{}", input.initial_state);
+            println!("{}", config.initial_state);
         }
         Ok(w) => {
-            match State::build_from_str(&input.initial_state, &w) {
+            match State::build_from_str(&config.initial_state, &w) {
                 Err(msg) => {
                     println!("Failed to build state: {}", msg);
                     println!("Using state:");
-                    println!("{}", input.initial_state);
+                    println!("{}", config.initial_state);
                 }
 
-                Ok(initial_state) => {
-                    let result = RandomSolver::new(initial_state.clone(), input.max_steps);
+                Ok(initial_state) => execute_trials(&config, &initial_state),
+            }
+        }
+    }
+}
 
-                    let replay = Replay::new(initial_state, result.solved, &result.applied_actions);
 
-                    if let Err(error) = replay.run() {
-                        println!("IO error : {:?}", error);
+fn execute_trials(config: &Configuration, initial_state: &State) {
+
+    let mut replay_result = None;
+
+    let mut successes = Vec::new();
+
+    for trial_num in 0..config.trials {
+
+        let result = RandomSolver::new(initial_state.clone(), config.max_steps);
+
+        let num_steps = result.applied_actions.len();
+
+        if result.solved {
+
+            successes.push(num_steps as f64);
+
+            println!("{} - Solved after {} steps.", trial_num, num_steps);
+        } else {
+            println!("{} - Failed after {} steps.", trial_num, num_steps);
+        }
+
+        match config.replay_mode {
+            ReplayMode::None => (),
+            ReplayMode::First => {
+                if let None = replay_result {
+                    replay_result = Some(Replay::new(
+                        initial_state.clone(),
+                        result.solved,
+                        &result.applied_actions,
+                    ));
+                }
+            }
+
+            ReplayMode::FirstSuccess => {
+                if result.solved {
+                    if let None = replay_result {
+                        replay_result = Some(Replay::new(
+                            initial_state.clone(),
+                            result.solved,
+                            &result.applied_actions,
+                        ));
                     }
                 }
+            }
+
+            ReplayMode::FirstFailure => {
+                if !result.solved {
+                    if let None = replay_result {
+                        replay_result = Some(Replay::new(
+                            initial_state.clone(),
+                            result.solved,
+                            &result.applied_actions,
+                        ));
+                    }
+                }
+            }
+        }
+    }
+
+    if config.trials > 0 {
+
+        let success_percent = (successes.len() as f64) / (config.trials as f64);
+
+        println!(
+            "Averaged {:.1} % success.  Failure at {} steps.",
+            success_percent * 100.0,
+            config.max_steps
+        );
+
+        if successes.len() > 1 {
+
+            let mut average = 0.0f64;
+            let mut variance_sum = 0.0f64;
+            let mut count = 0.0f64;
+
+            for s in successes {
+
+                let old_average = average;
+
+                count += 1.0;
+                average += (s - average) / count;
+
+                variance_sum += (s - old_average) * (s - average);
+            }
+
+            let sample_stddev_sqr = variance_sum / (count - 1.0);
+            let sample_stddev = sample_stddev_sqr.sqrt();
+
+            println!("Avg steps = {:.2}  Std Dev = {:.2}", average, sample_stddev);
+        }
+
+    }
+
+    if let Some(replay) = replay_result {
+
+        if let Some(_) = wait_for_input() {
+            if let Err(error) = replay.run() {
+                println!("IO error : {:?}", error);
+            }
+        }
+    }
+}
+
+fn wait_for_input() -> Option<()> {
+    println!("Press Enter to see replay.  q to exit.");
+
+    loop {
+        for c in io::stdin().keys() {
+
+            match c {
+                Ok(evt) => {
+                    match evt {
+                        event::Key::Char('q') |
+                        event::Key::Char('Q') => return None,
+                        event::Key::Char('\n') => return Some(()),
+                        _ => (),
+                    }
+                }
+                Err(_) => return None,
             }
         }
     }
