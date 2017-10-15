@@ -142,11 +142,8 @@ impl Replay {
                     .render(&mut t, &render_state_chunk);
 
 
-                let step_data = format!(
-                    "Step {:^3}\nNext action: {}",
-                    step,
-                    self.actions[step as usize]
-                );
+                let step_data = build_step_str(step as usize, &self.actions);
+
                 Paragraph::default().text(&step_data).render(
                     &mut t,
                     &step_data_chunk,
@@ -163,4 +160,17 @@ impl Replay {
 
         Ok(())
     }
+}
+
+fn build_step_str(step: usize, actions: &[Actions]) -> String {
+    let mut result = String::new();
+    result += &format!("Step {:^3}\n", step);
+
+    if step < actions.len() {
+        result += &format!("Next action: {}", actions[step]);
+    } else {
+        result += "Finished"
+    }
+
+    result
 }
