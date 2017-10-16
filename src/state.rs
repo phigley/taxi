@@ -54,6 +54,36 @@ impl State {
 
     }
 
+    pub fn build(
+        world: &World,
+        taxi_pos: &Position,
+        passenger_id: char,
+        destination_id: char,
+    ) -> Result<State, String> {
+
+        match world.get_fixed_position(passenger_id) {
+            None => Err(format!(
+                "Failed to find passenger location '{}'",
+                passenger_id
+            )),
+            Some(passenger_pos) => {
+                match world.get_fixed_position(destination_id) {
+                    None => Err(format!(
+                        "Failed to find destination location '{}'",
+                        destination_id
+                    )),
+                    Some(destination_pos) => {
+                        Ok(State {
+                            taxi: Taxi::new(taxi_pos.x, taxi_pos.y),
+                            passenger: Passenger::new(passenger_pos.x, passenger_pos.y),
+                            destination: Destination::new(destination_pos.x, destination_pos.y),
+                        })
+                    }
+                }
+            }
+        }
+    }
+
     pub fn build_from_str(source: &str, world: &World) -> Result<State, String> {
 
         let mut lines = source.lines();
@@ -438,6 +468,93 @@ mod test_state {
         }
     }
 
+    #[test]
+    fn build_correct() {
+        let source_world = "\
+        ┌───┬─────┐\n\
+        │R .│. . .│\n\
+        │   │     │\n\
+        │. .│G . .│\n\
+        │         │\n\
+        │. . . . .│\n\
+        │         │\n\
+        │.│Y .│B .│\n\
+        │ │   │   │\n\
+        │.│. .│. .│\n\
+        └─┴───┴───┘\n\
+        ";
+
+        match World::build_from_str(source_world) {
+            Err(msg) => panic!(msg),
+            Ok(w) => {
+                let mut expected_state = State::build_empty();
+
+                expected_state.taxi = Taxi::new(1, 3);
+                expected_state.passenger = Passenger::new(0, 0);
+                expected_state.destination = Destination::new(3, 3);
+
+                match State::build(&w, &Position::new(1, 3), 'R', 'B') {
+                    Err(msg) => panic!(msg),
+                    Ok(res_state) => assert_eq!(res_state, expected_state),
+                }
+
+            }
+        }
+    }
+
+    #[test]
+    fn build_fails_unknown_passenger() {
+        let source_world = "\
+        ┌───┬─────┐\n\
+        │R .│. . .│\n\
+        │   │     │\n\
+        │. .│G . .│\n\
+        │         │\n\
+        │. . . . .│\n\
+        │         │\n\
+        │.│Y .│B .│\n\
+        │ │   │   │\n\
+        │.│. .│. .│\n\
+        └─┴───┴───┘\n\
+        ";
+
+        match World::build_from_str(source_world) {
+            Err(msg) => panic!(msg),
+            Ok(w) => {
+                match State::build(&w, &Position::new(1, 3), 'C', 'B') {
+                    Err(_) => (), // panic!(msg),
+                    Ok(res_state) => panic!("Found valid passenger: {:?}", res_state.passenger),
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn build_fails_unknown_destination() {
+        let source_world = "\
+        ┌───┬─────┐\n\
+        │R .│. . .│\n\
+        │   │     │\n\
+        │. .│G . .│\n\
+        │         │\n\
+        │. . . . .│\n\
+        │         │\n\
+        │.│Y .│B .│\n\
+        │ │   │   │\n\
+        │.│. .│. .│\n\
+        └─┴───┴───┘\n\
+        ";
+
+        match World::build_from_str(source_world) {
+            Err(msg) => panic!(msg),
+            Ok(w) => {
+                match State::build(&w, &Position::new(1, 3), 'Y', 'Q') {
+                    Err(_) => (), // panic!(msg),
+                    Ok(res_state) => panic!("Found valid destination: {:?}", res_state.destination),
+                }
+            }
+        }
+    }
     #[test]
     fn build_correct_outside_taxi() {
         let source = "\
