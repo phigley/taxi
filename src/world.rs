@@ -6,7 +6,7 @@ use position::Position;
 use actions::Actions;
 
 #[derive(PartialEq, Clone)]
-pub struct Wall {
+struct Wall {
     pub north: bool,
     pub south: bool,
     pub east: bool,
@@ -15,7 +15,7 @@ pub struct Wall {
 
 
 impl Wall {
-    pub fn new() -> Wall {
+    fn new() -> Wall {
         Wall {
             north: false,
             south: false,
@@ -50,10 +50,17 @@ impl fmt::Debug for Wall {
 }
 
 #[derive(Debug, PartialEq)]
+struct FixedPosition {
+    id: char,
+    position: Position,
+}
+
+#[derive(Debug, PartialEq)]
 pub struct World {
     pub width: i32,
     pub height: i32,
     walls: Vec<Vec<Wall>>,
+    fixed_positions: Vec<FixedPosition>,
 }
 
 impl World {
@@ -69,6 +76,8 @@ impl World {
 
             let width = line_width / 2;
 
+            let mut fixed_positions = Vec::new();
+
             let mut walls = Vec::new();
 
             let mut wall_row = Vec::with_capacity(width);
@@ -80,7 +89,15 @@ impl World {
                 let mut next_wall_row = Vec::with_capacity(width);
                 next_wall_row.extend(iter::repeat(Wall::new()).take(width));
 
-                parse_content_line(content_line, line_count, width, &mut wall_row)?;
+                line_count += 1;
+                parse_content_line(
+                    content_line,
+                    line_count,
+                    width,
+                    &mut wall_row,
+                    &mut fixed_positions,
+                )?;
+
                 line_count += 1;
                 parse_wall_line(
                     &wall_line,
@@ -100,11 +117,22 @@ impl World {
                 width: width as i32,
                 height: height as i32,
                 walls,
+                fixed_positions,
             })
 
         } else {
             Err(String::from("Empty string passed to World::new"))
         }
+    }
+
+    pub fn get_fixed_position(&self, id: char) -> Option<&Position> {
+        for fp in &self.fixed_positions {
+            if fp.id == id {
+                return Some(&fp.position);
+            }
+        }
+
+        None
     }
 
     fn get_wall(&self, positon: &Position) -> &Wall {
@@ -127,17 +155,17 @@ impl World {
 
         let mut previous_row: Option<&[Wall]> = None;
 
-        for row in &self.walls {
+        for (y, row) in self.walls.iter().enumerate() {
 
             let mut upper_chars = String::new();
             let mut chars = String::new();
 
             let mut previous_wall = None;
 
-            for (i, w) in row.iter().enumerate() {
+            for (x, w) in row.iter().enumerate() {
 
                 let upper_wall = if let Some(previous_row) = previous_row {
-                    Some(&previous_row[i])
+                    Some(&previous_row[x])
                 } else {
                     None
                 };
@@ -146,7 +174,17 @@ impl World {
                 upper_chars.push(if w.north { '─' } else { ' ' });
 
                 chars.push(if w.west { '│' } else { ' ' });
-                chars.push('.');
+
+                let mut content_char = '.';
+
+                for fp in &self.fixed_positions {
+                    if fp.position.y == (y as i32) && fp.position.x == (x as i32) {
+                        content_char = fp.id;
+                        break;
+                    }
+                }
+
+                chars.push(content_char);
 
                 previous_wall = Some(w);
             }
@@ -373,11 +411,13 @@ fn parse_content_line(
     line_count: usize,
     width: usize,
     wall_row: &mut Vec<Wall>,
+    fixed_positions: &mut Vec<FixedPosition>,
 ) -> Result<(), String> {
 
     let mut num_chars_read = 0;
     let expected_num_chars = 2 * width + 1;
 
+    let y = (line_count - 1) / 2;
 
     for (i, c) in line.chars().enumerate() {
 
@@ -391,11 +431,29 @@ fn parse_content_line(
             ));
         }
 
-        if i % 2 == 0 {
+        let x = i / 2;
 
 
-            let x = i / 2;
+        if i % 2 == 1 {
+            // odd characters are points themselves
+            if c != '.' {
 
+                // for now, ignore the taxi, passenger, and destination characters.
+                if c != 't' && c != 'T' && c != 'd' && c != 'D' && c != 'p' {
+                    for fp in fixed_positions.iter() {
+                        if fp.id == c {
+                            return Err(format!("Found duplicate fixed position '{}'.", c));
+                        }
+                    }
+                }
+
+                fixed_positions.push(FixedPosition {
+                    id: c,
+                    position: Position::new(x as i32, y as i32),
+                })
+            }
+        } else {
+            // even characters can only be walls
             if c == '│' {
                 if x < width {
                     wall_row[x].west = true;
@@ -596,6 +654,7 @@ mod test_world {
             width: 0,
             height: 0,
             walls: vec![],
+            fixed_positions: vec![],
         }
 
     }
@@ -761,6 +820,66 @@ mod test_world {
             build_wall("se"),
             build_wall("sw"),
             build_wall("se") ],
+        ];
+
+        match World::build_from_str(source) {
+            Err(msg) => panic!(msg),
+            Ok(w) => {
+                assert_eq!(w, expected_w);
+            }
+        }
+    }
+
+    #[test]
+    fn build_simple_fixed_positions() {
+        let source = "\
+        ┌─────┐\n\
+        │A . .│\n\
+        │     │\n\
+        │. B .│\n\
+        │     │\n\
+        │. . C│\n\
+        │     │\n\
+        │. . .│\n\
+        └─────┘\n\
+        ";
+
+        let mut expected_w = build_empty_world();
+        expected_w.width = 3;
+        expected_w.height = 4;
+        expected_w.walls = vec![ vec![
+            build_wall("nw"),
+            build_wall("n"),
+            build_wall("ne")
+        ],
+        vec![
+            build_wall("w"),
+            build_wall(""),
+            build_wall("e")
+        ],
+        vec![
+            build_wall("w"),
+            build_wall(""),
+            build_wall("e")
+        ],
+        vec![
+            build_wall("sw"),
+            build_wall("s"),
+            build_wall("se")
+        ] ];
+        expected_w.fixed_positions = vec![
+            FixedPosition {
+                id: 'A',
+                position: Position::new(0,0)
+            },
+            FixedPosition {
+                id: 'B',
+                position: Position::new(1,1)
+            },
+            FixedPosition {
+                id: 'C',
+                position: Position::new(2,2)
+            },
         ];
 
         match World::build_from_str(source) {

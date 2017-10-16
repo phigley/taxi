@@ -120,10 +120,10 @@ fn edge_action_validity() {
 }
 
 #[test]
-fn output_world() {
+fn read_fixed_position() {
     let source = "\
     ┌───┬─────┐\n\
-    │. .│. . .│\n\
+    │R .│. . G│\n\
     │   │     │\n\
     │. .│. . .│\n\
     │         │\n\
@@ -131,7 +131,60 @@ fn output_world() {
     │         │\n\
     │.│. .│. .│\n\
     │ │   │   │\n\
+    │Y│. .│B .│\n\
+    └─┴───┴───┘\n\
+    ";
+
+    match World::build_from_str(source) {
+        Err(msg) => panic!(msg),
+        Ok(world) => {
+            assert_eq!(world.get_fixed_position('R'), Some(&Position::new(0, 0)));
+            assert_eq!(world.get_fixed_position('G'), Some(&Position::new(4, 0)));
+            assert_eq!(world.get_fixed_position('Y'), Some(&Position::new(0, 4)));
+            assert_eq!(world.get_fixed_position('B'), Some(&Position::new(3, 4)));
+
+            assert_eq!(world.get_fixed_position('?'), None);
+        }
+    }
+}
+
+#[test]
+fn no_duplicate_fixed_position() {
+    let source = "\
+    ┌───┬─────┐\n\
+    │R .│. . G│\n\
+    │   │     │\n\
+    │. .│. . .│\n\
+    │         │\n\
+    │. . . . .│\n\
+    │         │\n\
     │.│. .│. .│\n\
+    │ │   │   │\n\
+    │Y│. .│R .│\n\
+    └─┴───┴───┘\n\
+    ";
+
+    match World::build_from_str(source) {
+        Err(_) => (),
+        Ok(_) => {
+            panic!("Failed to report duplicate.");
+        }
+    }
+}
+
+#[test]
+fn output_world() {
+    let source = "\
+    ┌───┬─────┐\n\
+    │R .│. . G│\n\
+    │   │     │\n\
+    │. .│. . .│\n\
+    │         │\n\
+    │. . . . .│\n\
+    │         │\n\
+    │.│. .│. .│\n\
+    │ │   │   │\n\
+    │Y│. .│B .│\n\
     └─┴───┴───┘\n\
     ";
 
