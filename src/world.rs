@@ -3,6 +3,7 @@ use std::iter;
 use std::fmt;
 
 use position::Position;
+use actions::Actions;
 
 #[derive(PartialEq, Clone)]
 pub struct Wall {
@@ -52,7 +53,7 @@ impl fmt::Debug for Wall {
 pub struct World {
     pub width: i32,
     pub height: i32,
-    pub walls: Vec<Vec<Wall>>,
+    walls: Vec<Vec<Wall>>,
 }
 
 impl World {
@@ -106,8 +107,17 @@ impl World {
         }
     }
 
-    pub fn get_wall(&self, positon: &Position) -> &Wall {
+    fn get_wall(&self, positon: &Position) -> &Wall {
         &self.walls[positon.y as usize][positon.x as usize]
+    }
+
+    pub fn valid_action(&self, position: &Position, action: Actions) -> bool {
+        match action {
+            Actions::North => position.y > 0 && !self.get_wall(&position).north,
+            Actions::South => position.y < (self.height - 1) && !self.get_wall(&position).south,
+            Actions::East => position.x < (self.width - 1) && !self.get_wall(&position).east,
+            Actions::West => position.x > 0 && !self.get_wall(&position).west,
+        }
     }
 
     pub fn display_strings(&self) -> Vec<String> {

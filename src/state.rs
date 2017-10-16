@@ -165,80 +165,38 @@ impl State {
 
     pub fn apply_action(&self, world: &World, action: Actions) -> State {
 
-        if !self.valid_action(world, action) {
+        if !world.valid_action(&self.taxi.position, action) {
             *self
         } else {
+
             let delta = position_delta(action);
 
             let new_taxi_pos = self.taxi.position + delta;
 
-            if !valid_position(world, new_taxi_pos) {
-                *self
-            } else {
-                let new_taxi = Taxi {
+            let new_taxi = Taxi {
+                position: new_taxi_pos,
+                ..self.taxi
+            };
+
+            let new_passenger = if self.taxi.position == self.passenger.position {
+                Passenger {
                     position: new_taxi_pos,
-                    ..self.taxi
-                };
-
-                let new_passenger = if self.taxi.position == self.passenger.position {
-                    Passenger {
-                        position: new_taxi_pos,
-                        ..self.passenger
-                    }
-                } else {
-                    self.passenger
-                };
-
-                State {
-                    taxi: new_taxi,
-                    passenger: new_passenger,
-                    ..*self
+                    ..self.passenger
                 }
+            } else {
+                self.passenger
+            };
 
-            }
-        }
-    }
-
-    fn valid_action(&self, world: &World, action: Actions) -> bool {
-        match action {
-            Actions::North => {
-                let w = world.get_wall(&self.taxi.position);
-                !w.north
-            }
-
-            Actions::South => {
-                let w = world.get_wall(&self.taxi.position);
-                !w.south
-            }
-
-            Actions::East => {
-                let w = world.get_wall(&self.taxi.position);
-                !w.east
-            }
-
-            Actions::West => {
-                let w = world.get_wall(&self.taxi.position);
-                !w.west
+            State {
+                taxi: new_taxi,
+                passenger: new_passenger,
+                ..*self
             }
         }
     }
 
     pub fn at_destination(&self) -> bool {
         self.passenger.position == self.destination.position
-    }
-}
-
-fn valid_position(world: &World, position: Position) -> bool {
-    if position.x < 0 {
-        false
-    } else if position.x >= world.width {
-        false
-    } else if position.y < 0 {
-        false
-    } else if position.y >= world.height {
-        false
-    } else {
-        true
     }
 }
 
