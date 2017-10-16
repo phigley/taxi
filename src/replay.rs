@@ -11,6 +11,7 @@ use tui::layout::{Group, Direction, Size, Rect};
 
 use taxi::state::State;
 use taxi::actions::Actions;
+use taxi::world::World;
 
 pub struct Replay {
     states: Vec<String>,
@@ -25,18 +26,18 @@ pub struct Replay {
 }
 
 impl Replay {
-    pub fn new(mut state: State, solved: bool, actions: &[Actions]) -> Replay {
+    pub fn new(world: &World, mut state: State, solved: bool, actions: &[Actions]) -> Replay {
 
         let mut states = Vec::with_capacity(actions.len() + 1);
 
-        states.push(state.display());
+        states.push(state.display(&world));
 
         for a in actions {
-            state = state.apply_action(*a);
-            states.push(state.display());
+            state = state.apply_action(&world, *a);
+            states.push(state.display(&world));
         }
 
-        let state_height = (2 * state.world.height + 1) as u16;
+        let state_height = (2 * world.height + 1) as u16;
 
         let num_actions = actions.len();
 

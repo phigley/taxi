@@ -38,17 +38,15 @@ impl Destination {
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]
-pub struct State<'a> {
-    pub world: &'a World,
+pub struct State {
     taxi: Taxi,
     passenger: Passenger,
     destination: Destination,
 }
 
-impl<'a> State<'a> {
-    fn build_empty(world: &'a World) -> State<'a> {
+impl State {
+    fn build_empty() -> State {
         State {
-            world: world,
             taxi: Taxi::new(-1, -1),
             passenger: Passenger::new(-1, -1),
             destination: Destination::new(-1, -1),
@@ -56,7 +54,7 @@ impl<'a> State<'a> {
 
     }
 
-    pub fn build_from_str(source: &str, world: &'a World) -> Result<State<'a>, String> {
+    pub fn build_from_str(source: &str, world: &World) -> Result<State, String> {
 
         let mut lines = source.lines();
 
@@ -66,7 +64,7 @@ impl<'a> State<'a> {
 
             Some(_) => {
 
-                let mut result = State::build_empty(world);
+                let mut result = State::build_empty();
 
                 let mut current_y = 0;
 
@@ -75,7 +73,7 @@ impl<'a> State<'a> {
                 for l in lines {
 
                     if process_line {
-                        parse_line(l, current_y, &mut result)?;
+                        parse_line(l, current_y, &world, &mut result)?;
                         current_y += 1;
 
                     }
@@ -102,9 +100,9 @@ impl<'a> State<'a> {
 
 
 
-    pub fn display(&self) -> String {
+    pub fn display(&self, world: &World) -> String {
 
-        let world_strings = self.world.display_strings();
+        let world_strings = world.display_strings();
 
         let mut result = String::new();
 
@@ -165,16 +163,16 @@ impl<'a> State<'a> {
 
     }
 
-    pub fn apply_action(&self, action: Actions) -> State<'a> {
+    pub fn apply_action(&self, world: &World, action: Actions) -> State {
 
-        if !self.valid_action(action) {
+        if !self.valid_action(world, action) {
             *self
         } else {
             let delta = position_delta(action);
 
             let new_taxi_pos = self.taxi.position + delta;
 
-            if !self.valid_position(new_taxi_pos) {
+            if !valid_position(world, new_taxi_pos) {
                 *self
             } else {
                 let new_taxi = Taxi {
@@ -201,25 +199,25 @@ impl<'a> State<'a> {
         }
     }
 
-    fn valid_action(&self, action: Actions) -> bool {
+    fn valid_action(&self, world: &World, action: Actions) -> bool {
         match action {
             Actions::North => {
-                let w = self.world.get_wall(&self.taxi.position);
+                let w = world.get_wall(&self.taxi.position);
                 !w.north
             }
 
             Actions::South => {
-                let w = self.world.get_wall(&self.taxi.position);
+                let w = world.get_wall(&self.taxi.position);
                 !w.south
             }
 
             Actions::East => {
-                let w = self.world.get_wall(&self.taxi.position);
+                let w = world.get_wall(&self.taxi.position);
                 !w.east
             }
 
             Actions::West => {
-                let w = self.world.get_wall(&self.taxi.position);
+                let w = world.get_wall(&self.taxi.position);
                 !w.west
             }
         }
@@ -228,35 +226,29 @@ impl<'a> State<'a> {
     pub fn at_destination(&self) -> bool {
         self.passenger.position == self.destination.position
     }
+}
 
-    fn valid_position(&self, position: Position) -> bool {
-        if position.x < 0 {
-            false
-        } else if position.x >= self.world.width {
-            false
-        } else if position.y < 0 {
-            false
-        } else if position.y >= self.world.height {
-            false
-        } else {
-            // for w in self.world.walls.iter() {
-            //     if w.position == position {
-            //         return false;
-            //     }
-            // }
-
-            true
-        }
+fn valid_position(world: &World, position: Position) -> bool {
+    if position.x < 0 {
+        false
+    } else if position.x >= world.width {
+        false
+    } else if position.y < 0 {
+        false
+    } else if position.y >= world.height {
+        false
+    } else {
+        true
     }
 }
 
-fn parse_line(line: &str, current_y: i32, result: &mut State) -> Result<(), String> {
+fn parse_line(line: &str, current_y: i32, world: &World, result: &mut State) -> Result<(), String> {
 
-    if current_y >= result.world.height {
+    if current_y >= world.height {
         return Err(format!(
             "Reading line number {} which is greater than world's height of {}.",
             current_y + 1,
-            result.world.height
+            world.height
         ));
     }
 
@@ -264,11 +256,11 @@ fn parse_line(line: &str, current_y: i32, result: &mut State) -> Result<(), Stri
         if i % 2 == 1 {
             let x = (i / 2) as i32;
 
-            if x >= result.world.width {
+            if x >= world.width {
                 return Err(format!(
                     "Reading character position {} which is greater than world's width of {}",
                     x,
-                    result.world.width
+                    world.width
                 ));
             }
 
@@ -403,7 +395,7 @@ mod test_state {
         match World::build_from_str(&source) {
             Err(msg) => panic!(msg),
             Ok(w) => {
-                let mut expected_state = State::build_empty(&w);
+                let mut expected_state = State::build_empty();
                 expected_state.taxi = Taxi::new(1, 1);
                 expected_state.passenger = Passenger::new(1, 1);
                 expected_state.destination = Destination::new(0, 0);
@@ -437,7 +429,7 @@ mod test_state {
         match World::build_from_str(&source) {
             Err(msg) => panic!(msg),
             Ok(w) => {
-                let mut expected_state = State::build_empty(&w);
+                let mut expected_state = State::build_empty();
                 expected_state.taxi = Taxi::new(1, 1);
                 expected_state.passenger = Passenger::new(1, 1);
                 expected_state.destination = Destination::new(0, 0);
@@ -472,7 +464,7 @@ mod test_state {
         match World::build_from_str(source) {
             Err(msg) => panic!(msg),
             Ok(w) => {
-                let mut expected_state = State::build_empty(&w);
+                let mut expected_state = State::build_empty();
 
                 expected_state.taxi = Taxi::new(0, 0);
                 expected_state.passenger = Passenger::new(0, 0);
@@ -507,7 +499,7 @@ mod test_state {
         match World::build_from_str(source) {
             Err(msg) => panic!(msg),
             Ok(w) => {
-                let mut expected_state = State::build_empty(&w);
+                let mut expected_state = State::build_empty();
 
                 expected_state.taxi = Taxi::new(1, 3);
                 expected_state.passenger = Passenger::new(0, 0);
@@ -559,8 +551,8 @@ mod test_state {
                 match State::build_from_str(source, &w) {
                     Err(msg) => panic!(msg),
                     Ok(state) => {
-                        let result = state.apply_action(Actions::North);
-                        let result_str = result.display();
+                        let result = state.apply_action(&w, Actions::North);
+                        let result_str = result.display(&w);
                         assert_eq!(expected, result_str);
                         assert_eq!(result.passenger, Passenger::new(1,2));
                     }
@@ -619,12 +611,12 @@ mod test_state {
                 match State::build_from_str(source, &w) {
                     Err(msg) => panic!(msg),
                     Ok(state) => {
-                        let result0 = state.apply_action(Actions::North);
-                        let result0_str = result0.display();
+                        let result0 = state.apply_action(&w, Actions::North);
+                        let result0_str = result0.display(&w);
                         assert_eq!(expected0, result0_str);
 
-                        let result1 = result0.apply_action(Actions::West);
-                        let result1_str = result1.display();
+                        let result1 = result0.apply_action(&w, Actions::West);
+                        let result1_str = result1.display(&w);
                         assert_eq!(expected1, result1_str);
 
                         assert_eq!(result1.passenger, Passenger::new(0,2));

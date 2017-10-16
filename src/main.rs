@@ -78,7 +78,7 @@ fn main() {
                 }
 
                 if initial_states.len() > 0 {
-                    execute_trials(&config, &initial_states);
+                    execute_trials(&config, &w, &initial_states);
                 } else {
                     println!("Failed to parse any initial_states, cannot execute trials.");
                 }
@@ -92,7 +92,7 @@ fn main() {
 }
 
 
-fn execute_trials(config: &Configuration, initial_states: &[State]) {
+fn execute_trials(config: &Configuration, world: &World, initial_states: &[State]) {
 
     let mut rng = thread_rng();
     let select_offset = Range::new(0, initial_states.len());
@@ -106,7 +106,7 @@ fn execute_trials(config: &Configuration, initial_states: &[State]) {
         let initial_state_offset = select_offset.ind_sample(&mut rng);
         let initial_state = initial_states[initial_state_offset];
 
-        let result = RandomSolver::new(initial_state.clone(), config.max_steps);
+        let result = RandomSolver::new(&world, initial_state.clone(), config.max_steps);
 
         let num_steps = result.applied_actions.len();
 
@@ -134,6 +134,7 @@ fn execute_trials(config: &Configuration, initial_states: &[State]) {
             ReplayMode::First => {
                 if let None = replay_result {
                     replay_result = Some(Replay::new(
+                        &world,
                         initial_state.clone(),
                         result.solved,
                         &result.applied_actions,
@@ -145,6 +146,7 @@ fn execute_trials(config: &Configuration, initial_states: &[State]) {
                 if result.solved {
                     if let None = replay_result {
                         replay_result = Some(Replay::new(
+                            &world,
                             initial_state.clone(),
                             result.solved,
                             &result.applied_actions,
@@ -157,6 +159,7 @@ fn execute_trials(config: &Configuration, initial_states: &[State]) {
                 if !result.solved {
                     if let None = replay_result {
                         replay_result = Some(Replay::new(
+                            &world,
                             initial_state.clone(),
                             result.solved,
                             &result.applied_actions,

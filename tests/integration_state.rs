@@ -23,7 +23,7 @@ fn output_matches_str_simple() {
             match State::build_from_str(&source, &w) {
                 Err(msg) => panic!(msg),
                 Ok(state) => {
-                    let output = state.display();
+                    let output = state.display(&w);
                     assert_eq!(output, source);
                 }
             }
@@ -252,20 +252,13 @@ fn output_matches_str_complex() {
             match State::build_from_str(source, &w) {
                 Err(msg) => panic!(msg),
                 Ok(state) => {
-                    let state_str = state.display();
+                    let state_str = state.display(&w);
                     assert_eq!(source, state_str);
                 }
             }
         }
     }
 }
-
-fn test_expected(expected_str: &str, result: &State) {
-    let result_str = result.display();
-    assert_eq!(expected_str, result_str);
-}
-
-
 
 #[test]
 fn move_allowed_north() {
@@ -304,8 +297,8 @@ fn move_allowed_north() {
             match State::build_from_str(source, &w) {
                 Err(msg) => panic!(msg),
                 Ok(state) => {
-                    let state_north = state.apply_action(Actions::North);
-                    test_expected(expected_north, &state_north);
+                    let state_north = state.apply_action(&w, Actions::North);
+                    assert_eq!(expected_north, state_north.display(&w));
                 }
             }
         }
@@ -349,8 +342,8 @@ fn move_top_north() {
             match State::build_from_str(source, &w) {
                 Err(msg) => panic!(msg),
                 Ok(state) => {
-                    let state_north = state.apply_action(Actions::North);
-                    test_expected(expected_north, &state_north);
+                    let state_north = state.apply_action(&w, Actions::North);
+                    assert_eq!(expected_north, state_north.display(&w));
                 }
             }
         }
@@ -394,8 +387,8 @@ fn move_wall_north() {
             match State::build_from_str(source, &w) {
                 Err(msg) => panic!(msg),
                 Ok(state) => {
-                    let state_north = state.apply_action(Actions::North);
-                    test_expected(expected_north, &state_north);
+                    let state_north = state.apply_action(&w, Actions::North);
+                    assert_eq!(expected_north, state_north.display(&w));
                 }
             }
         }
@@ -439,8 +432,8 @@ fn move_allowed_south() {
             match State::build_from_str(source, &w) {
                 Err(msg) => panic!(msg),
                 Ok(state) => {
-                    let state_south = state.apply_action(Actions::South);
-                    test_expected(expected_south, &state_south);
+                    let state_south = state.apply_action(&w, Actions::South);
+                    assert_eq!(expected_south, state_south.display(&w));
                 }
             }
         }
@@ -484,8 +477,8 @@ fn move_bottom_south() {
             match State::build_from_str(source, &w) {
                 Err(msg) => panic!(msg),
                 Ok(state) => {
-                    let state_south = state.apply_action(Actions::South);
-                    test_expected(expected_south, &state_south);
+                    let state_south = state.apply_action(&w, Actions::South);
+                    assert_eq!(expected_south, state_south.display(&w));
                 }
             }
         }
@@ -529,8 +522,8 @@ fn move_wall_south() {
             match State::build_from_str(source, &w) {
                 Err(msg) => panic!(msg),
                 Ok(state) => {
-                    let state_south = state.apply_action(Actions::South);
-                    test_expected(expected_south, &state_south);
+                    let state_south = state.apply_action(&w, Actions::South);
+                    assert_eq!(expected_south, state_south.display(&w));
                 }
             }
         }
@@ -574,8 +567,8 @@ fn move_allowed_east() {
             match State::build_from_str(source, &w) {
                 Err(msg) => panic!(msg),
                 Ok(state) => {
-                    let state_east = state.apply_action(Actions::East);
-                    test_expected(expected_east, &state_east);
+                    let state_east = state.apply_action(&w, Actions::East);
+                    assert_eq!(expected_east, state_east.display(&w));
                 }
             }
         }
@@ -619,8 +612,8 @@ fn move_right_east() {
             match State::build_from_str(source, &w) {
                 Err(msg) => panic!(msg),
                 Ok(state) => {
-                    let state_east = state.apply_action(Actions::East);
-                    test_expected(expected_east, &state_east);
+                    let state_east = state.apply_action(&w, Actions::East);
+                    assert_eq!(expected_east, state_east.display(&w));
                 }
             }
         }
@@ -664,8 +657,8 @@ fn move_wall_east() {
             match State::build_from_str(source, &w) {
                 Err(msg) => panic!(msg),
                 Ok(state) => {
-                    let state_east = state.apply_action(Actions::East);
-                    test_expected(expected_east, &state_east);
+                    let state_east = state.apply_action(&w, Actions::East);
+                    assert_eq!(expected_east, state_east.display(&w));
                 }
             }
         }
@@ -709,8 +702,8 @@ fn move_allowed_west() {
             match State::build_from_str(source, &w) {
                 Err(msg) => panic!(msg),
                 Ok(state) => {
-                    let state_west = state.apply_action(Actions::West);
-                    test_expected(expected_west, &state_west);
+                    let state_west = state.apply_action(&w, Actions::West);
+                    assert_eq!(expected_west, state_west.display(&w));
                 }
             }
         }
@@ -754,8 +747,8 @@ fn move_left_west() {
             match State::build_from_str(source, &w) {
                 Err(msg) => panic!(msg),
                 Ok(state) => {
-                    let state_west = state.apply_action(Actions::West);
-                    test_expected(expected_west, &state_west);
+                    let state_west = state.apply_action(&w, Actions::West);
+                    assert_eq!(expected_west, state_west.display(&w));
                 }
             }
         }
@@ -799,8 +792,8 @@ fn move_wall_west() {
             match State::build_from_str(source, &w) {
                 Err(msg) => panic!(msg),
                 Ok(state) => {
-                    let state_west = state.apply_action(Actions::West);
-                    test_expected(expected_west, &state_west);
+                    let state_west = state.apply_action(&w, Actions::West);
+                    assert_eq!(expected_west, state_west.display(&w));
                 }
             }
         }
@@ -829,11 +822,11 @@ fn reaches_destination() {
             match State::build_from_str(source, &w) {
                 Err(msg) => panic!(msg),
                 Ok(state) => {
-                    let result0 = state.apply_action(Actions::East);
+                    let result0 = state.apply_action(&w, Actions::East);
                     assert!( result0.at_destination() == false );
-                    let result1 = result0.apply_action(Actions::South);
+                    let result1 = result0.apply_action(&w, Actions::South);
                     assert!( result1.at_destination() == false );
-                    let result2 = result1.apply_action(Actions::South);
+                    let result2 = result1.apply_action(&w, Actions::South);
                     assert!( result2.at_destination() == true );
                 }
             }

@@ -3,7 +3,7 @@ use rand::{Rng, thread_rng};
 
 use taxi::state::State;
 use taxi::actions::Actions;
-
+use taxi::world::World;
 
 pub struct RandomSolver {
     pub iterations: u32,
@@ -12,7 +12,7 @@ pub struct RandomSolver {
 }
 
 impl RandomSolver {
-    pub fn new(state: State, max_iterations: u32) -> RandomSolver {
+    pub fn new(world: &World, state: State, max_iterations: u32) -> RandomSolver {
 
         let mut rng = thread_rng();
 
@@ -43,7 +43,7 @@ impl RandomSolver {
             let action: Actions = rng.gen();
 
             applied_actions.push(action);
-            current_state = current_state.apply_action(action);
+            current_state = current_state.apply_action(&world, action);
         }
     }
 }
