@@ -54,23 +54,29 @@ fn main() {
 
     if config.initial_states.len() > 0 {
 
-        match World::build_from_str(&config.initial_states[0]) {
+        match World::build_from_str(&config.world) {
             Err(msg) => {
                 println!("Failed to build world: {}", msg);
                 println!("Using source:");
-                println!("{}", config.initial_states[0]);
+                println!("{}", config.world);
             }
+
             Ok(w) => {
 
                 let mut initial_states = Vec::new();
 
-                for ref initial_state_str in &config.initial_states {
+                for ref initial_state in &config.initial_states {
 
-                    match State::build_from_str(initial_state_str, &w) {
+                    match State::build(
+                        &w,
+                        initial_state.taxi_pos,
+                        initial_state.passenger_loc,
+                        initial_state.destination_loc,
+                    ) {
                         Err(msg) => {
                             println!("Failed to build state: {}", msg);
                             println!("Using state:");
-                            println!("{}", config.initial_states[0]);
+                            println!("{:?}", initial_state);
                         }
 
                         Ok(initial_state) => initial_states.push(initial_state),

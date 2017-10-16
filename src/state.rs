@@ -45,90 +45,48 @@ pub struct State {
 }
 
 impl State {
-    fn build_empty() -> State {
-        State {
-            taxi: Taxi::new(-1, -1),
-            passenger: Passenger::new(-1, -1),
-            destination: Destination::new(-1, -1),
-        }
-
-    }
-
     pub fn build(
         world: &World,
-        taxi_pos: &Position,
+        taxi_pos: (i32, i32),
         passenger_id: char,
         destination_id: char,
     ) -> Result<State, String> {
 
-        match world.get_fixed_position(passenger_id) {
-            None => Err(format!(
-                "Failed to find passenger location '{}'",
-                passenger_id
-            )),
-            Some(passenger_pos) => {
-                match world.get_fixed_position(destination_id) {
-                    None => Err(format!(
-                        "Failed to find destination location '{}'",
-                        destination_id
-                    )),
-                    Some(destination_pos) => {
-                        Ok(State {
-                            taxi: Taxi::new(taxi_pos.x, taxi_pos.y),
-                            passenger: Passenger::new(passenger_pos.x, passenger_pos.y),
-                            destination: Destination::new(destination_pos.x, destination_pos.y),
-                        })
+        if taxi_pos.0 < 0 || taxi_pos.0 >= world.width || taxi_pos.1 < 0 ||
+            taxi_pos.1 >= world.height
+        {
+            Err(format!(
+                "Taxi position ({},{}) is invalid, world (width, height) is ({},{}).",
+                taxi_pos.0,
+                taxi_pos.1,
+                world.width,
+                world.height
+            ))
+        } else {
+
+            match world.get_fixed_position(passenger_id) {
+                None => Err(format!(
+                    "Failed to find passenger location '{}'",
+                    passenger_id
+                )),
+                Some(passenger_pos) => {
+                    match world.get_fixed_position(destination_id) {
+                        None => Err(format!(
+                            "Failed to find destination location '{}'",
+                            destination_id
+                        )),
+                        Some(destination_pos) => {
+                            Ok(State {
+                                taxi: Taxi::new(taxi_pos.0, taxi_pos.1),
+                                passenger: Passenger::new(passenger_pos.x, passenger_pos.y),
+                                destination: Destination::new(destination_pos.x, destination_pos.y),
+                            })
+                        }
                     }
                 }
             }
         }
     }
-
-    pub fn build_from_str(source: &str, world: &World) -> Result<State, String> {
-
-        let mut lines = source.lines();
-
-        match lines.next() {
-
-            None => Err(String::from("Empty string pased to State::new")),
-
-            Some(_) => {
-
-                let mut result = State::build_empty();
-
-                let mut current_y = 0;
-
-                let mut process_line = true;
-
-                for l in lines {
-
-                    if process_line {
-                        parse_line(l, current_y, &world, &mut result)?;
-                        current_y += 1;
-
-                    }
-
-                    process_line = !process_line;
-                }
-
-                if result.taxi.position.x < 0 || result.taxi.position.y < 0 {
-                    return Err(String::from("No taxi found."));
-                }
-
-                if result.passenger.position.x < 0 || result.passenger.position.y < 0 {
-                    return Err(String::from("No passenger found."));
-                }
-
-                if result.destination.position.x < 0 || result.destination.position.y < 0 {
-                    return Err(String::from("No destination found."));
-                }
-
-                Ok(result)
-            }
-        }
-    }
-
-
 
     pub fn display(&self, world: &World) -> String {
 
@@ -230,105 +188,6 @@ impl State {
     }
 }
 
-fn parse_line(line: &str, current_y: i32, world: &World, result: &mut State) -> Result<(), String> {
-
-    if current_y >= world.height {
-        return Err(format!(
-            "Reading line number {} which is greater than world's height of {}.",
-            current_y + 1,
-            world.height
-        ));
-    }
-
-    for (i, c) in line.chars().enumerate() {
-        if i % 2 == 1 {
-            let x = (i / 2) as i32;
-
-            if x >= world.width {
-                return Err(format!(
-                    "Reading character position {} which is greater than world's width of {}",
-                    x,
-                    world.width
-                ));
-            }
-
-            match c {
-                '.' => (),
-
-                't' => {
-
-                    if result.taxi.position.x >= 0 || result.taxi.position.y >= 0 {
-                        return Err(format!(
-                            "Found second taxi at {},{}.  First was at {}, {}",
-                            x,
-                            current_y,
-                            result.taxi.position.x,
-                            result.taxi.position.y
-                        ));
-                    }
-                    result.taxi = Taxi::new(x, current_y);
-                }
-                'T' => {
-
-                    if result.taxi.position.x >= 0 || result.taxi.position.y >= 0 {
-                        return Err(format!(
-                            "Found second taxi at {},{}.  First was at {}, {}",
-                            x,
-                            current_y,
-                            result.taxi.position.x,
-                            result.taxi.position.y
-                        ));
-                    }
-                    if result.passenger.position.x >= 0 || result.passenger.position.y >= 0 {
-                        return Err(format!(
-                            "Found second passenger at {},{}.  First was at {}, {}",
-                            x,
-                            current_y,
-                            result.passenger.position.x,
-                            result.passenger.position.y
-                        ));
-                    }
-                    result.taxi = Taxi::new(x, current_y);
-                    result.passenger = Passenger::new(x, current_y);
-                }
-                'p' => {
-                    if result.passenger.position.x >= 0 || result.passenger.position.y >= 0 {
-                        return Err(format!(
-                            "Found second passenger at {},{}.  First was at {}, {}",
-                            x,
-                            current_y,
-                            result.passenger.position.x,
-                            result.passenger.position.y
-                        ));
-                    }
-                    result.passenger = Passenger::new(x, current_y);
-                }
-                'd' => {
-                    if result.destination.position.x >= 0 || result.destination.position.y >= 0 {
-                        return Err(format!(
-                            "Found second destination at {},{}.  First was at {}, {}",
-                            x,
-                            current_y,
-                            result.destination.position.x,
-                            result.destination.position.y
-                        ));
-                    }
-                    result.destination = Destination::new(x, current_y);
-                }
-                _ => {
-                    return Err(format!(
-                        "Unknown character {}, at position ({}, {})",
-                        char::from(c),
-                        x,
-                        current_y
-                    ))
-                }
-            }
-        }
-    }
-
-    Ok(())
-}
 
 fn position_delta(action: Actions) -> Position {
     match action {
@@ -344,129 +203,6 @@ fn position_delta(action: Actions) -> Position {
 mod test_state {
 
     use super::*;
-
-    #[test]
-    fn build_fails_unknown_character() {
-        let source = "\
-        ┌───────┐\n\
-        │. . . .│\n\
-        │       │\n\
-        │. . < .│\n\
-        └───────┘\n\
-        ";
-
-        match World::build_from_str(source) {
-            Err(msg) => panic!(msg),
-            Ok(w) => {
-                let res = State::build_from_str(source, &w);
-                assert_matches!( res, Err( _ ))
-            }
-        }
-    }
-
-    #[test]
-    fn build_correct_empty_walls() {
-
-        let mut source = String::new();
-        source += "           \n";
-        source += " d . . . . \n";
-        source += "           \n";
-        source += " . T . . . \n";
-        source += "           \n";
-        source += " . . . . . \n";
-        source += "           \n";
-        source += " . . . . . \n";
-        source += "           \n";
-        source += " . . . . . \n";
-        source += "           \n";
-
-        match World::build_from_str(&source) {
-            Err(msg) => panic!(msg),
-            Ok(w) => {
-                let mut expected_state = State::build_empty();
-                expected_state.taxi = Taxi::new(1, 1);
-                expected_state.passenger = Passenger::new(1, 1);
-                expected_state.destination = Destination::new(0, 0);
-
-                match State::build_from_str(&source, &w) {
-                    Err(msg) => panic!(msg),
-                    Ok(res_state) => {
-                        assert_eq!(res_state, expected_state);
-                    }
-                }
-            }
-        }
-
-    }
-
-    #[test]
-    fn build_correct_single_walls() {
-        let mut source = String::new();
-        source += "           \n";
-        source += " d . . . . \n";
-        source += "           \n";
-        source += " .│T . . . \n";
-        source += "           \n";
-        source += " . . . . . \n";
-        source += "           \n";
-        source += " . . . . . \n";
-        source += "           \n";
-        source += " . . . . . \n";
-        source += "           \n";
-
-        match World::build_from_str(&source) {
-            Err(msg) => panic!(msg),
-            Ok(w) => {
-                let mut expected_state = State::build_empty();
-                expected_state.taxi = Taxi::new(1, 1);
-                expected_state.passenger = Passenger::new(1, 1);
-                expected_state.destination = Destination::new(0, 0);
-
-                match State::build_from_str(&source, &w) {
-                    Err(msg) => panic!(msg),
-                    Ok(res_state) => {
-                        assert_eq!(res_state, expected_state);
-                    }
-                }
-            }
-        }
-
-    }
-
-    #[test]
-    fn build_correct_multi_walls() {
-        let source = "\
-        ┌───┬─────┐\n\
-        │T .│. . .│\n\
-        │   │     │\n\
-        │. .│. . .│\n\
-        │         │\n\
-        │. . . . .│\n\
-        │         │\n\
-        │.│. .│d .│\n\
-        │ │   │   │\n\
-        │.│. .│. .│\n\
-        └─┴───┴───┘\n\
-        ";
-
-        match World::build_from_str(source) {
-            Err(msg) => panic!(msg),
-            Ok(w) => {
-                let mut expected_state = State::build_empty();
-
-                expected_state.taxi = Taxi::new(0, 0);
-                expected_state.passenger = Passenger::new(0, 0);
-                expected_state.destination = Destination::new(3, 3);
-
-                match State::build_from_str(source, &w) {
-                    Err(msg) => panic!(msg),
-                    Ok(res_state) => {
-                        assert_eq!(res_state, expected_state);
-                    }
-                }
-            }
-        }
-    }
 
     #[test]
     fn build_correct() {
@@ -487,13 +223,13 @@ mod test_state {
         match World::build_from_str(source_world) {
             Err(msg) => panic!(msg),
             Ok(w) => {
-                let mut expected_state = State::build_empty();
+                let expected_state = State {
+                    taxi: Taxi::new(1, 3),
+                    passenger: Passenger::new(0, 0),
+                    destination: Destination::new(3, 3),
+                };
 
-                expected_state.taxi = Taxi::new(1, 3);
-                expected_state.passenger = Passenger::new(0, 0);
-                expected_state.destination = Destination::new(3, 3);
-
-                match State::build(&w, &Position::new(1, 3), 'R', 'B') {
+                match State::build(&w, (1, 3), 'R', 'B') {
                     Err(msg) => panic!(msg),
                     Ok(res_state) => assert_eq!(res_state, expected_state),
                 }
@@ -521,7 +257,7 @@ mod test_state {
         match World::build_from_str(source_world) {
             Err(msg) => panic!(msg),
             Ok(w) => {
-                match State::build(&w, &Position::new(1, 3), 'C', 'B') {
+                match State::build(&w, (1, 3), 'C', 'B') {
                     Err(_) => (), // panic!(msg),
                     Ok(res_state) => panic!("Found valid passenger: {:?}", res_state.passenger),
                 }
@@ -548,43 +284,36 @@ mod test_state {
         match World::build_from_str(source_world) {
             Err(msg) => panic!(msg),
             Ok(w) => {
-                match State::build(&w, &Position::new(1, 3), 'Y', 'Q') {
+                match State::build(&w, (1, 3), 'Y', 'Q') {
                     Err(_) => (), // panic!(msg),
                     Ok(res_state) => panic!("Found valid destination: {:?}", res_state.destination),
                 }
             }
         }
     }
+
     #[test]
-    fn build_correct_outside_taxi() {
-        let source = "\
+    fn build_fails_invalid_taxi() {
+        let source_world = "\
         ┌───┬─────┐\n\
-        │p .│. . .│\n\
+        │R .│. . .│\n\
         │   │     │\n\
-        │. .│. . .│\n\
+        │. .│G . .│\n\
         │         │\n\
         │. . . . .│\n\
         │         │\n\
-        │.│t .│d .│\n\
+        │.│Y .│B .│\n\
         │ │   │   │\n\
         │.│. .│. .│\n\
         └─┴───┴───┘\n\
         ";
 
-        match World::build_from_str(source) {
+        match World::build_from_str(source_world) {
             Err(msg) => panic!(msg),
             Ok(w) => {
-                let mut expected_state = State::build_empty();
-
-                expected_state.taxi = Taxi::new(1, 3);
-                expected_state.passenger = Passenger::new(0, 0);
-                expected_state.destination = Destination::new(3, 3);
-
-                match State::build_from_str(source, &w) {
-                    Err(msg) => panic!(msg),
-                    Ok(res_state) => {
-                        assert_eq!(res_state, expected_state);
-                    }
+                match State::build(&w, (1, 6), 'R', 'B') {
+                    Err(_msg) => (), //panic!(_msg),
+                    Ok(res_state) => panic!("Found valid taxi: {:?}", res_state.taxi),
                 }
             }
         }
@@ -600,7 +329,7 @@ mod test_state {
         │         │\n\
         │. . . . .│\n\
         │         │\n\
-        │.│T .│d .│\n\
+        │.│R .│G .│\n\
         │ │   │   │\n\
         │.│. .│. .│\n\
         └─┴───┴───┘\n\
@@ -623,13 +352,13 @@ mod test_state {
         match World::build_from_str(source) {
             Err(msg) => panic!(msg),
             Ok(w) => {
-                match State::build_from_str(source, &w) {
+                match State::build(&w, (1, 3), 'R', 'G') {
                     Err(msg) => panic!(msg),
                     Ok(state) => {
                         let result = state.apply_action(&w, Actions::North);
                         let result_str = result.display(&w);
                         assert_eq!(expected, result_str);
-                        assert_eq!(result.passenger, Passenger::new(1,2));
+                        assert_eq!(result.passenger, Passenger::new(1, 2));
                     }
                 }
             }
@@ -644,9 +373,9 @@ mod test_state {
         │   │     │\n\
         │. .│. . .│\n\
         │         │\n\
-        │. p . . .│\n\
+        │. R . . .│\n\
         │         │\n\
-        │.│t .│d .│\n\
+        │.│. .│G .│\n\
         │ │   │   │\n\
         │.│. .│. .│\n\
         └─┴───┴───┘\n\
@@ -683,7 +412,7 @@ mod test_state {
         match World::build_from_str(source) {
             Err(msg) => panic!(msg),
             Ok(w) => {
-                match State::build_from_str(source, &w) {
+                match State::build(&w, (1, 3), 'R', 'G') {
                     Err(msg) => panic!(msg),
                     Ok(state) => {
                         let result0 = state.apply_action(&w, Actions::North);
@@ -694,7 +423,7 @@ mod test_state {
                         let result1_str = result1.display(&w);
                         assert_eq!(expected1, result1_str);
 
-                        assert_eq!(result1.passenger, Passenger::new(0,2));
+                        assert_eq!(result1.passenger, Passenger::new(0, 2));
                     }
                 }
             }

@@ -9,9 +9,17 @@ pub enum ReplayMode {
 }
 
 #[derive(Deserialize, Debug)]
+pub struct InitialState {
+    pub taxi_pos: (i32, i32),
+    pub passenger_loc: char,
+    pub destination_loc: char,
+}
+
+#[derive(Deserialize, Debug)]
 #[serde(default)]
 pub struct Configuration {
-    pub initial_states: Vec<String>,
+    pub world: String,
+    pub initial_states: Vec<InitialState>,
     pub max_steps: u32,
     pub trials: u32,
     pub replay_mode: ReplayMode,
@@ -19,22 +27,29 @@ pub struct Configuration {
 
 impl Default for Configuration {
     fn default() -> Configuration {
-        let initial_state = "\
+        let world_str = "\
         ┌───┬─────┐\n\
-        │d .│. . .│\n\
+        │R .│. . G│\n\
         │   │     │\n\
         │. .│. . .│\n\
         │         │\n\
-        │. . t . .│\n\
+        │. . . . .│\n\
         │         │\n\
         │.│. .│. .│\n\
         │ │   │   │\n\
-        │.│. .│p .│\n\
+        │Y│. .│B .│\n\
         └─┴───┴───┘\n\
         ";
 
         Configuration {
-            initial_states: vec![String::from(initial_state)],
+            world: String::from(world_str),
+            initial_states: vec![
+                InitialState {
+                    taxi_pos: (2, 2),
+                    passenger_loc: 'B',
+                    destination_loc: 'R',
+                },
+            ],
             trials: 1,
             max_steps: 500,
             replay_mode: ReplayMode::First,
