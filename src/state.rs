@@ -7,43 +7,10 @@ use world::World;
 use actions::Actions;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
-struct Taxi {
-    position: Position,
-}
-
-impl Taxi {
-    fn new(x: i32, y: i32) -> Taxi {
-        Taxi { position: Position::new(x, y) }
-    }
-}
-
-#[derive(Debug, PartialEq, Clone, Copy)]
-struct Passenger {
-    position: Position,
-}
-
-impl Passenger {
-    fn new(x: i32, y: i32) -> Passenger {
-        Passenger { position: Position::new(x, y) }
-    }
-}
-
-#[derive(Debug, PartialEq, Clone, Copy)]
-struct Destination {
-    position: Position,
-}
-
-impl Destination {
-    fn new(x: i32, y: i32) -> Destination {
-        Destination { position: Position::new(x, y) }
-    }
-}
-
-#[derive(Debug, PartialEq, Clone, Copy)]
 pub struct State {
-    taxi: Taxi,
-    passenger: Passenger,
-    destination: Destination,
+    taxi: Position,
+    passenger: Option<char>,
+    destination: char,
 }
 
 impl State {
@@ -66,22 +33,31 @@ impl State {
             ))
         } else {
 
-            match world.get_fixed_position(passenger_id) {
+            match world.get_fixed_position(destination_id) {
                 None => Err(format!(
-                    "Failed to find passenger location '{}'",
-                    passenger_id
+                    "Failed to find destination location '{}'",
+                    destination_id
                 )),
-                Some(passenger_pos) => {
-                    match world.get_fixed_position(destination_id) {
+                Some(_) => {
+                    match world.get_fixed_position(passenger_id) {
                         None => Err(format!(
-                            "Failed to find destination location '{}'",
-                            destination_id
+                            "Failed to find passenger location '{}'",
+                            passenger_id
                         )),
-                        Some(destination_pos) => {
+                        Some(passenger_pos) => {
+                            let taxi = Position::new(taxi_pos.0, taxi_pos.1);
+                            let passenger =
+                                if *passenger_pos != taxi || passenger_id == destination_id {
+                                    Some(passenger_id)
+                                } else {
+                                    None
+                                };
+                            let destination = destination_id;
+
                             Ok(State {
-                                taxi: Taxi::new(taxi_pos.0, taxi_pos.1),
-                                passenger: Passenger::new(passenger_pos.x, passenger_pos.y),
-                                destination: Destination::new(destination_pos.x, destination_pos.y),
+                                taxi,
+                                passenger,
+                                destination,
                             })
                         }
                     }
@@ -108,16 +84,14 @@ impl State {
         let destination_fp_index = (passenger_fp_index + rng.gen_range(1, num_fixed_positions)) %
             num_fixed_positions;
 
-        let passenger_x = world.fixed_positions[passenger_fp_index].position.x;
-        let passenger_y = world.fixed_positions[passenger_fp_index].position.y;
+        let passenger = Some(world.fixed_positions[passenger_fp_index].id);
 
-        let destination_x = world.fixed_positions[destination_fp_index].position.x;
-        let destination_y = world.fixed_positions[destination_fp_index].position.y;
+        let destination = world.fixed_positions[destination_fp_index].id;
 
         Ok(State {
-            taxi: Taxi::new(taxi_x, taxi_y),
-            passenger: Passenger::new(passenger_x, passenger_y),
-            destination: Destination::new(destination_x, destination_y),
+            taxi: Position::new(taxi_x, taxi_y),
+            passenger,
+            destination,
         })
     }
 
@@ -137,7 +111,7 @@ impl State {
 
                     if i_c % 2 == 1 {
 
-                        result.push(self.calc_character(&current_position));
+                        result.push(self.calc_character(c, &current_position));
 
                         current_position.x += 1;
                     } else {
@@ -158,54 +132,63 @@ impl State {
         result
     }
 
-    fn calc_character(&self, position: &Position) -> char {
+    fn calc_character(&self, id: char, position: &Position) -> char {
 
-        if self.taxi.position == *position {
-            if self.passenger.position == *position {
-                if self.destination.position == *position {
-                    'D'
-                } else {
-                    'T'
-                }
-            } else {
-                't'
+        if id == self.destination {
+            match self.passenger {
+                Some(passenger_id) if passenger_id == self.destination => 'D',
+                _ => 'd',
             }
-        } else if self.passenger.position == *position {
-            if self.destination.position == *position {
-                'D'
-            } else {
-                'p'
-            }
-        } else if self.destination.position == *position {
-            'd'
         } else {
-            '.'
-        }
 
+            match self.passenger {
+
+                Some(passenger_id) => {
+                    if passenger_id == id {
+                        'p'
+                    } else if self.taxi == *position {
+                        't'
+                    } else {
+                        '.'
+                    }
+                }
+                None => if self.taxi == *position { 'T' } else { '.' },
+            }
+
+        }
     }
 
     pub fn apply_action(&self, world: &World, action: Actions) -> State {
 
-        if !world.valid_action(&self.taxi.position, action) {
+        if !world.valid_action(&self.taxi, action) {
             *self
         } else {
 
             let delta = position_delta(action);
 
-            let new_taxi_pos = self.taxi.position + delta;
+            let new_taxi = self.taxi + delta;
 
-            let new_taxi = Taxi {
-                position: new_taxi_pos,
-                ..self.taxi
-            };
-
-            let new_passenger = if self.taxi.position == self.passenger.position {
-                Passenger {
-                    position: new_taxi_pos,
-                    ..self.passenger
+            let new_passenger = match self.passenger {
+                Some(passenger_id) => {
+                    match world.get_fixed_position(passenger_id) {
+                        Some(passenger_pos)
+                            if *passenger_pos == new_taxi && passenger_id != self.destination => {
+                            None
+                        }
+                        _ => self.passenger,
+                    }
                 }
-            } else {
-                self.passenger
+
+                None => {
+                    // passenger is in taxi, should they get out?
+                    match world.get_fixed_position(self.destination) {
+                        Some(destination_pos) if *destination_pos == new_taxi => Some(
+                            self.destination,
+                        ),
+
+                        _ => self.passenger,
+                    }
+                }
             };
 
             State {
@@ -217,7 +200,11 @@ impl State {
     }
 
     pub fn at_destination(&self) -> bool {
-        self.passenger.position == self.destination.position
+        if let Some(passenger_id) = self.passenger {
+            passenger_id == self.destination
+        } else {
+            false
+        }
     }
 }
 
@@ -258,9 +245,9 @@ mod test_state {
             Err(msg) => panic!(msg),
             Ok(w) => {
                 let expected_state = State {
-                    taxi: Taxi::new(1, 3),
-                    passenger: Passenger::new(0, 0),
-                    destination: Destination::new(3, 3),
+                    taxi: Position::new(1, 3),
+                    passenger: Some('R'),
+                    destination: 'B',
                 };
 
                 match State::build(&w, (1, 3), 'R', 'B') {
@@ -389,10 +376,85 @@ mod test_state {
                 match State::build(&w, (1, 3), 'R', 'G') {
                     Err(msg) => panic!(msg),
                     Ok(state) => {
+                        assert_eq!(state.passenger, None);
+
                         let result = state.apply_action(&w, Actions::North);
+                        assert_eq!(result.passenger, None);
+
                         let result_str = result.display(&w);
                         assert_eq!(expected, result_str);
-                        assert_eq!(result.passenger, Passenger::new(1, 2));
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn passenger_stays_at_destination() {
+        let source = "\
+        ┌───┬─────┐\n\
+        │. .│. . .│\n\
+        │   │     │\n\
+        │. .│. . .│\n\
+        │         │\n\
+        │. . . . .│\n\
+        │         │\n\
+        │.│R .│G .│\n\
+        │ │   │   │\n\
+        │.│. .│. .│\n\
+        └─┴───┴───┘\n\
+        ";
+
+        let expected0 = "\
+        ┌───┬─────┐\n\
+        │. .│. . .│\n\
+        │   │     │\n\
+        │. .│. . .│\n\
+        │         │\n\
+        │. . . . .│\n\
+        │         │\n\
+        │.│D .│. .│\n\
+        │ │   │   │\n\
+        │.│. .│. .│\n\
+        └─┴───┴───┘\n\
+        ";
+
+        let expected1 = "\
+        ┌───┬─────┐\n\
+        │. .│. . .│\n\
+        │   │     │\n\
+        │. .│. . .│\n\
+        │         │\n\
+        │. . . . .│\n\
+        │         │\n\
+        │.│D t│. .│\n\
+        │ │   │   │\n\
+        │.│. .│. .│\n\
+        └─┴───┴───┘\n\
+        ";
+
+        match World::build_from_str(source) {
+            Err(msg) => panic!(msg),
+            Ok(w) => {
+                match State::build(&w, (1, 4), 'R', 'R') {
+                    Err(msg) => panic!(msg),
+                    Ok(state) => {
+                        assert_eq!(state.passenger, Some('R'));
+                        assert!(state.at_destination());
+
+                        let result0 = state.apply_action(&w, Actions::North);
+                        assert_eq!(result0.passenger, Some('R'));
+                        assert!(result0.at_destination());
+
+                        let result0_str = result0.display(&w);
+                        assert_eq!(expected0, result0_str);
+
+                        let result1 = result0.apply_action(&w, Actions::East);
+                        assert_eq!(result1.passenger, Some('R'));
+                        assert!(result1.at_destination());
+
+                        let result1_str = result1.display(&w);
+                        assert_eq!(expected1, result1_str);
                     }
                 }
             }
@@ -451,13 +513,181 @@ mod test_state {
                     Ok(state) => {
                         let result0 = state.apply_action(&w, Actions::North);
                         let result0_str = result0.display(&w);
+                        assert_eq!(result0.passenger, None);
                         assert_eq!(expected0, result0_str);
 
                         let result1 = result0.apply_action(&w, Actions::West);
                         let result1_str = result1.display(&w);
+                        assert_eq!(result1.passenger, None);
                         assert_eq!(expected1, result1_str);
+                    }
+                }
+            }
+        }
+    }
 
-                        assert_eq!(result1.passenger, Passenger::new(0, 2));
+    #[test]
+    fn passenger_dropped_destination() {
+        let source = "\
+        ┌───┬─────┐\n\
+        │. .│. . .│\n\
+        │   │     │\n\
+        │. .│. . .│\n\
+        │         │\n\
+        │. . . . .│\n\
+        │         │\n\
+        │.│R .│. .│\n\
+        │ │   │   │\n\
+        │.│G .│. .│\n\
+        └─┴───┴───┘\n\
+        ";
+
+        let expected = "\
+        ┌───┬─────┐\n\
+        │. .│. . .│\n\
+        │   │     │\n\
+        │. .│. . .│\n\
+        │         │\n\
+        │. . . . .│\n\
+        │         │\n\
+        │.│. .│. .│\n\
+        │ │   │   │\n\
+        │.│D .│. .│\n\
+        └─┴───┴───┘\n\
+        ";
+
+        match World::build_from_str(source) {
+            Err(msg) => panic!(msg),
+            Ok(w) => {
+                match State::build(&w, (1, 3), 'R', 'G') {
+                    Err(msg) => panic!(msg),
+                    Ok(state) => {
+                        assert_eq!(state.passenger, None);
+
+                        let result = state.apply_action(&w, Actions::South);
+                        assert_eq!(result.passenger, Some('G'));
+                        assert!(result.at_destination());
+
+                        let result_str = result.display(&w);
+                        assert_eq!(expected, result_str);
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn passenger_not_dropped_other_fixed_position() {
+        let source = "\
+        ┌───┬─────┐\n\
+        │. .│. . .│\n\
+        │   │     │\n\
+        │. .│. . .│\n\
+        │         │\n\
+        │. . . . .│\n\
+        │         │\n\
+        │.│R Y│. .│\n\
+        │ │   │   │\n\
+        │.│G .│. .│\n\
+        └─┴───┴───┘\n\
+        ";
+
+        let expected = "\
+        ┌───┬─────┐\n\
+        │. .│. . .│\n\
+        │   │     │\n\
+        │. .│. . .│\n\
+        │         │\n\
+        │. . . . .│\n\
+        │         │\n\
+        │.│. T│. .│\n\
+        │ │   │   │\n\
+        │.│d .│. .│\n\
+        └─┴───┴───┘\n\
+        ";
+
+        match World::build_from_str(source) {
+            Err(msg) => panic!(msg),
+            Ok(w) => {
+                match State::build(&w, (1, 3), 'R', 'G') {
+                    Err(msg) => panic!(msg),
+                    Ok(state) => {
+                        assert_eq!(state.passenger, None);
+
+                        let result = state.apply_action(&w, Actions::East);
+                        assert_eq!(result.passenger, None);
+                        assert!(!result.at_destination());
+
+                        let result_str = result.display(&w);
+                        assert_eq!(expected, result_str);
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn passenger_picked_up_and_dropped_off() {
+        let source = "\
+        ┌───┬─────┐\n\
+        │. .│. . .│\n\
+        │   │     │\n\
+        │. .│. . .│\n\
+        │         │\n\
+        │. R . . .│\n\
+        │         │\n\
+        │.│G .│. .│\n\
+        │ │   │   │\n\
+        │.│. .│. .│\n\
+        └─┴───┴───┘\n\
+        ";
+
+        let expected0 = "\
+        ┌───┬─────┐\n\
+        │. .│. . .│\n\
+        │   │     │\n\
+        │. .│. . .│\n\
+        │         │\n\
+        │. T . . .│\n\
+        │         │\n\
+        │.│d .│. .│\n\
+        │ │   │   │\n\
+        │.│. .│. .│\n\
+        └─┴───┴───┘\n\
+        ";
+
+        let expected1 = "\
+        ┌───┬─────┐\n\
+        │. .│. . .│\n\
+        │   │     │\n\
+        │. .│. . .│\n\
+        │         │\n\
+        │. . . . .│\n\
+        │         │\n\
+        │.│D .│. .│\n\
+        │ │   │   │\n\
+        │.│. .│. .│\n\
+        └─┴───┴───┘\n\
+        ";
+
+        match World::build_from_str(source) {
+            Err(msg) => panic!(msg),
+            Ok(w) => {
+                match State::build(&w, (2, 2), 'R', 'G') {
+                    Err(msg) => panic!(msg),
+                    Ok(state) => {
+                        assert_eq!(state.passenger, Some('R'));
+
+                        let result0 = state.apply_action(&w, Actions::West);
+                        assert_eq!(result0.passenger, None);
+                        let result0_str = result0.display(&w);
+                        assert_eq!(expected0, result0_str);
+
+                        let result1 = result0.apply_action(&w, Actions::South);
+                        assert_eq!(result1.passenger, Some('G'));
+
+                        let result1_str = result1.display(&w);
+                        assert_eq!(expected1, result1_str);
                     }
                 }
             }
@@ -489,20 +719,22 @@ mod test_state {
             let state = State::build_random(&w, &mut rng).unwrap();
 
             println!("{:?}", state);
-            assert!(state.taxi.position.x >= 0);
-            assert!(state.taxi.position.x < w.width);
-            assert!(state.taxi.position.y >= 0);
-            assert!(state.taxi.position.y < w.height);
+            assert!(state.taxi.x >= 0);
+            assert!(state.taxi.x < w.width);
+            assert!(state.taxi.y >= 0);
+            assert!(state.taxi.y < w.height);
 
-            let passenger_fp_position = w.fixed_positions.iter().position(|fp| {
-                fp.position == state.passenger.position
-            });
+            let passenger_id = state.passenger.unwrap();
+
+            let passenger_fp_position = w.fixed_positions.iter().position(
+                |fp| fp.id == passenger_id,
+            );
 
             assert_ne!(passenger_fp_position, None);
 
-            let destination_fp_position = w.fixed_positions.iter().position(|fp| {
-                fp.position == state.destination.position
-            });
+            let destination_fp_position = w.fixed_positions.iter().position(
+                |fp| fp.id == state.destination,
+            );
 
             assert_ne!(destination_fp_position, None);
 
