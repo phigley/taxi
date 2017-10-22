@@ -43,13 +43,7 @@ impl Default for Configuration {
 
         Configuration {
             world: String::from(world_str),
-            initial_states: vec![
-                InitialState {
-                    taxi_pos: (2, 2),
-                    passenger_loc: 'B',
-                    destination_loc: 'R',
-                },
-            ],
+            initial_states: vec![],
             trials: 1,
             max_steps: 500,
             replay_mode: ReplayMode::First,

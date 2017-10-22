@@ -1,5 +1,7 @@
 
 
+use rand::Rng;
+
 use position::Position;
 use world::World;
 use actions::Actions;
@@ -86,6 +88,37 @@ impl State {
                 }
             }
         }
+    }
+
+    pub fn build_random<R: Rng>(world: &World, rng: &mut R) -> Result<State, String> {
+
+        let taxi_x = rng.gen_range(0, world.width);
+        let taxi_y = rng.gen_range(0, world.height);
+
+        let num_fixed_positions = world.fixed_positions.len();
+
+        if num_fixed_positions < 2 {
+            return Err(format!(
+                "World does not have enough fixed positions. Need at least 2, but only have {}.",
+                num_fixed_positions
+            ));
+        }
+
+        let passenger_fp_index = rng.gen_range(0, num_fixed_positions);
+        let destination_fp_index = (passenger_fp_index + rng.gen_range(1, num_fixed_positions)) %
+            num_fixed_positions;
+
+        let passenger_x = world.fixed_positions[passenger_fp_index].position.x;
+        let passenger_y = world.fixed_positions[passenger_fp_index].position.y;
+
+        let destination_x = world.fixed_positions[destination_fp_index].position.x;
+        let destination_y = world.fixed_positions[destination_fp_index].position.y;
+
+        Ok(State {
+            taxi: Taxi::new(taxi_x, taxi_y),
+            passenger: Passenger::new(passenger_x, passenger_y),
+            destination: Destination::new(destination_x, destination_y),
+        })
     }
 
     pub fn display(&self, world: &World) -> String {
@@ -202,6 +235,7 @@ fn position_delta(action: Actions) -> Position {
 #[cfg(test)]
 mod test_state {
 
+    use rand::thread_rng;
     use super::*;
 
     #[test]
@@ -430,4 +464,49 @@ mod test_state {
         }
     }
 
+    #[test]
+    fn build_random_state() {
+        let source_world = "\
+    ┌───┬─────┐\n\
+    │R .│. . G│\n\
+    │   │     │\n\
+    │. .│. . .│\n\
+    │         │\n\
+    │. . . . .│\n\
+    │         │\n\
+    │.│. .│. .│\n\
+    │ │   │   │\n\
+    │Y│. .│B .│\n\
+    └─┴───┴───┘\n\
+    ";
+
+        let w = World::build_from_str(source_world).unwrap();
+
+        let mut rng = thread_rng();
+
+        for _ in 0..20 {
+
+            let state = State::build_random(&w, &mut rng).unwrap();
+
+            println!("{:?}", state);
+            assert!(state.taxi.position.x >= 0);
+            assert!(state.taxi.position.x < w.width);
+            assert!(state.taxi.position.y >= 0);
+            assert!(state.taxi.position.y < w.height);
+
+            let passenger_fp_position = w.fixed_positions.iter().position(|fp| {
+                fp.position == state.passenger.position
+            });
+
+            assert_ne!(passenger_fp_position, None);
+
+            let destination_fp_position = w.fixed_positions.iter().position(|fp| {
+                fp.position == state.destination.position
+            });
+
+            assert_ne!(destination_fp_position, None);
+
+            assert_ne!(passenger_fp_position, destination_fp_position);
+        }
+    }
 }

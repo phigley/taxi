@@ -50,9 +50,9 @@ impl fmt::Debug for Wall {
 }
 
 #[derive(Debug, PartialEq)]
-struct FixedPosition {
-    id: char,
-    position: Position,
+pub struct FixedPosition {
+    pub id: char,
+    pub position: Position,
 }
 
 #[derive(Debug, PartialEq)]
@@ -60,7 +60,7 @@ pub struct World {
     pub width: i32,
     pub height: i32,
     walls: Vec<Vec<Wall>>,
-    fixed_positions: Vec<FixedPosition>,
+    pub fixed_positions: Vec<FixedPosition>,
 }
 
 impl World {

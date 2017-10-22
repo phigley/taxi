@@ -52,20 +52,25 @@ fn main() {
         }
     };
 
-    if config.initial_states.len() > 0 {
 
-        match World::build_from_str(&config.world) {
-            Err(msg) => {
-                println!("Failed to build world: {}", msg);
-                println!("Using source:");
-                println!("{}", config.world);
-            }
+    match World::build_from_str(&config.world) {
+        Err(msg) => {
+            println!("Failed to build world: {}", msg);
+            println!("Using source:");
+            println!("{}", config.world);
+        }
 
-            Ok(w) => {
+        Ok(w) => {
 
-                let mut initial_states = Vec::new();
+            let mut initial_states = Vec::new();
 
-                for ref initial_state in &config.initial_states {
+            let num_config_initial_states = config.initial_states.len();
+
+            if num_config_initial_states > 0 {
+
+                for i in 0..(config.trials as usize) {
+
+                    let initial_state = &config.initial_states[i % num_config_initial_states];
 
                     match State::build(
                         &w,
@@ -77,21 +82,41 @@ fn main() {
                             println!("Failed to build state: {}", msg);
                             println!("Using state:");
                             println!("{:?}", initial_state);
+                            break;
                         }
 
                         Ok(initial_state) => initial_states.push(initial_state),
                     }
                 }
 
-                if initial_states.len() > 0 {
-                    execute_trials(&config, &w, &initial_states);
-                } else {
-                    println!("Failed to parse any initial_states, cannot execute trials.");
+            } else {
+
+                let mut rng = thread_rng();
+
+                for _ in 0..config.trials {
+
+                    match State::build_random(&w, &mut rng) {
+                        Err(msg) => {
+                            println!("Failed to build a random state:");
+                            println!("{}", msg);
+                            break;
+                        }
+
+                        Ok(initial_state) => initial_states.push(initial_state),
+                    }
                 }
             }
+
+            if initial_states.len() == (config.trials as usize) {
+                execute_trials(&config, &w, &initial_states);
+            } else {
+                println!(
+                    "Failed to build enough initial_states, {} requested, {} built.",
+                    config.trials,
+                    initial_states.len()
+                );
+            }
         }
-    } else {
-        println!("Found no initial_states, cannot run trials.");
     }
 
 
