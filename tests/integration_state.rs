@@ -6,6 +6,70 @@ use taxi::state::*;
 use taxi::world::World;
 use taxi::actions::Actions;
 
+
+#[test]
+#[should_panic(expected = "'C'")]
+fn build_fails_unknown_passenger() {
+    let source_world = "\
+        ┌───┬─────┐\n\
+        │R .│. . .│\n\
+        │   │     │\n\
+        │. .│G . .│\n\
+        │         │\n\
+        │. . . . .│\n\
+        │         │\n\
+        │.│Y .│B .│\n\
+        │ │   │   │\n\
+        │.│. .│. .│\n\
+        └─┴───┴───┘\n\
+        ";
+
+    let w = World::build_from_str(source_world).unwrap();
+    State::build(&w, (1, 3), 'C', 'B').unwrap();
+}
+
+#[test]
+#[should_panic(expected = "'Q'")]
+fn build_fails_unknown_destination() {
+    let source_world = "\
+        ┌───┬─────┐\n\
+        │R .│. . .│\n\
+        │   │     │\n\
+        │. .│G . .│\n\
+        │         │\n\
+        │. . . . .│\n\
+        │         │\n\
+        │.│Y .│B .│\n\
+        │ │   │   │\n\
+        │.│. .│. .│\n\
+        └─┴───┴───┘\n\
+        ";
+
+    let w = World::build_from_str(source_world).unwrap();
+    State::build(&w, (1, 3), 'Y', 'Q').unwrap();
+}
+
+#[test]
+#[should_panic(expected = "(1,6)")]
+fn build_fails_invalid_taxi() {
+    let source_world = "\
+        ┌───┬─────┐\n\
+        │R .│. . .│\n\
+        │   │     │\n\
+        │. .│G . .│\n\
+        │         │\n\
+        │. . . . .│\n\
+        │         │\n\
+        │.│Y .│B .│\n\
+        │ │   │   │\n\
+        │.│. .│. .│\n\
+        └─┴───┴───┘\n\
+        ";
+
+    let w = World::build_from_str(source_world).unwrap();
+    State::build(&w, (1, 6), 'R', 'B').unwrap();
+}
+
 #[test]
 fn output_matches_str_simple() {
     let mut source_world = String::new();

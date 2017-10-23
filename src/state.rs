@@ -1,5 +1,7 @@
 
 
+use std::fmt;
+
 use rand::Rng;
 
 use position::Position;
@@ -13,36 +15,100 @@ pub struct State {
     destination: char,
 }
 
+pub enum Error {
+    InvalidTaxi {
+        taxi_pos: (i32, i32),
+        world_dims: (i32, i32),
+    },
+
+    InvalidDestination { id: char, world: String },
+
+    InvalidPassenger { id: char, world: String },
+
+    TooFewFixedPositions {
+        num_fixed_positions: usize,
+        world: String,
+    },
+}
+
+impl fmt::Debug for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            Error::InvalidTaxi {
+                taxi_pos,
+                world_dims,
+            } => {
+                write!(
+                    f,
+                    "Taxi position ({},{}) is invalid, world (width, height) is ({},{}).",
+                    taxi_pos.0,
+                    taxi_pos.1,
+                    world_dims.0,
+                    world_dims.1
+                )
+            }
+
+            Error::InvalidDestination { id, ref world } => {
+                write!(
+                    f,
+                    "Failed to find destination location '{}' in world:\n{}",
+                    id,
+                    world
+                )
+            }
+
+            Error::InvalidPassenger { id, ref world } => {
+                write!(
+                    f,
+                    "Failed to find passenger location '{}' in world:\n{}",
+                    id,
+                    world
+                )
+            }
+
+            Error::TooFewFixedPositions {
+                num_fixed_positions,
+                ref world,
+            } => {
+                write!(
+                    f,
+                    "World does not have enough fixed positions. \
+                     Need at least 2, but only have {} in world:\n{}",
+                    num_fixed_positions,
+                    world,
+                )
+            }
+        }
+    }
+}
+
 impl State {
     pub fn build(
         world: &World,
         taxi_pos: (i32, i32),
         passenger_id: char,
         destination_id: char,
-    ) -> Result<State, String> {
+    ) -> Result<State, Error> {
 
         if taxi_pos.0 < 0 || taxi_pos.0 >= world.width || taxi_pos.1 < 0 ||
             taxi_pos.1 >= world.height
         {
-            Err(format!(
-                "Taxi position ({},{}) is invalid, world (width, height) is ({},{}).",
-                taxi_pos.0,
-                taxi_pos.1,
-                world.width,
-                world.height
-            ))
+            Err(Error::InvalidTaxi {
+                taxi_pos,
+                world_dims: (world.width, world.height),
+            })
         } else {
 
             if world.get_fixed_position(destination_id) == None {
-                Err(format!(
-                    "Failed to find destination location '{}'",
-                    destination_id
-                ))
+                Err(Error::InvalidDestination {
+                    id: destination_id,
+                    world: world.display(),
+                })
             } else if world.get_fixed_position(passenger_id) == None {
-                Err(format!(
-                    "Failed to find passenger location '{}'",
-                    passenger_id
-                ))
+                Err(Error::InvalidPassenger {
+                    id: passenger_id,
+                    world: world.display(),
+                })
             } else {
                 Ok(State {
                     taxi: Position::new(taxi_pos.0, taxi_pos.1),
@@ -53,7 +119,7 @@ impl State {
         }
     }
 
-    pub fn build_random<R: Rng>(world: &World, rng: &mut R) -> Result<State, String> {
+    pub fn build_random<R: Rng>(world: &World, rng: &mut R) -> Result<State, Error> {
 
         let taxi_x = rng.gen_range(0, world.width);
         let taxi_y = rng.gen_range(0, world.height);
@@ -61,10 +127,10 @@ impl State {
         let num_fixed_positions = world.fixed_positions.len();
 
         if num_fixed_positions < 2 {
-            return Err(format!(
-                "World does not have enough fixed positions. Need at least 2, but only have {}.",
-                num_fixed_positions
-            ));
+            return Err(Error::TooFewFixedPositions {
+                num_fixed_positions,
+                world: world.display(),
+            });
         }
 
         let passenger_fp_index = rng.gen_range(0, num_fixed_positions);
@@ -205,103 +271,15 @@ mod test_state {
         └─┴───┴───┘\n\
         ";
 
-        match World::build_from_str(source_world) {
-            Err(msg) => panic!(msg),
-            Ok(w) => {
-                let expected_state = State {
-                    taxi: Position::new(1, 3),
-                    passenger: Some('R'),
-                    destination: 'B',
-                };
+        let w = World::build_from_str(source_world).unwrap();
+        let expected_state = State {
+            taxi: Position::new(1, 3),
+            passenger: Some('R'),
+            destination: 'B',
+        };
 
-                match State::build(&w, (1, 3), 'R', 'B') {
-                    Err(msg) => panic!(msg),
-                    Ok(res_state) => assert_eq!(res_state, expected_state),
-                }
-
-            }
-        }
-    }
-
-    #[test]
-    fn build_fails_unknown_passenger() {
-        let source_world = "\
-        ┌───┬─────┐\n\
-        │R .│. . .│\n\
-        │   │     │\n\
-        │. .│G . .│\n\
-        │         │\n\
-        │. . . . .│\n\
-        │         │\n\
-        │.│Y .│B .│\n\
-        │ │   │   │\n\
-        │.│. .│. .│\n\
-        └─┴───┴───┘\n\
-        ";
-
-        match World::build_from_str(source_world) {
-            Err(msg) => panic!(msg),
-            Ok(w) => {
-                match State::build(&w, (1, 3), 'C', 'B') {
-                    Err(_) => (), // panic!(msg),
-                    Ok(res_state) => panic!("Found valid passenger: {:?}", res_state.passenger),
-                }
-            }
-        }
-    }
-
-    #[test]
-    fn build_fails_unknown_destination() {
-        let source_world = "\
-        ┌───┬─────┐\n\
-        │R .│. . .│\n\
-        │   │     │\n\
-        │. .│G . .│\n\
-        │         │\n\
-        │. . . . .│\n\
-        │         │\n\
-        │.│Y .│B .│\n\
-        │ │   │   │\n\
-        │.│. .│. .│\n\
-        └─┴───┴───┘\n\
-        ";
-
-        match World::build_from_str(source_world) {
-            Err(msg) => panic!(msg),
-            Ok(w) => {
-                match State::build(&w, (1, 3), 'Y', 'Q') {
-                    Err(_) => (), // panic!(msg),
-                    Ok(res_state) => panic!("Found valid destination: {:?}", res_state.destination),
-                }
-            }
-        }
-    }
-
-    #[test]
-    fn build_fails_invalid_taxi() {
-        let source_world = "\
-        ┌───┬─────┐\n\
-        │R .│. . .│\n\
-        │   │     │\n\
-        │. .│G . .│\n\
-        │         │\n\
-        │. . . . .│\n\
-        │         │\n\
-        │.│Y .│B .│\n\
-        │ │   │   │\n\
-        │.│. .│. .│\n\
-        └─┴───┴───┘\n\
-        ";
-
-        match World::build_from_str(source_world) {
-            Err(msg) => panic!(msg),
-            Ok(w) => {
-                match State::build(&w, (1, 6), 'R', 'B') {
-                    Err(_msg) => (), //panic!(_msg),
-                    Ok(res_state) => panic!("Found valid taxi: {:?}", res_state.taxi),
-                }
-            }
-        }
+        let res_state = State::build(&w, (1, 3), 'R', 'B').unwrap();
+        assert_eq!(res_state, expected_state);
     }
 
     #[test]

@@ -5,6 +5,13 @@ use taxi::position::Position;
 use taxi::actions::Actions;
 
 #[test]
+#[should_panic]
+fn build_fails_on_emptystring() {
+    World::build_from_str("").unwrap();
+}
+
+
+#[test]
 fn build_world() {
     let source = "\
     ┌───┬─────┐\n\
@@ -149,6 +156,7 @@ fn read_fixed_position() {
 }
 
 #[test]
+#[should_panic(expected = "'R'")]
 fn no_duplicate_fixed_position() {
     let source = "\
     ┌───┬─────┐\n\
@@ -164,12 +172,7 @@ fn no_duplicate_fixed_position() {
     └─┴───┴───┘\n\
     ";
 
-    match World::build_from_str(source) {
-        Err(_) => (),
-        Ok(_) => {
-            panic!("Failed to report duplicate.");
-        }
-    }
+    World::build_from_str(source).unwrap();
 }
 
 #[test]
@@ -188,30 +191,27 @@ fn pickup_dropoff_validity() {
     └─┴───┴───┘\n\
     ";
 
-    match World::build_from_str(source) {
-        Err(msg) => panic!(msg),
-        Ok(world) => {
-            assert_eq!(
-                world.determine_affect(&Position::new(0, 0), Actions::PickUp),
-                ActionAffect::PickUp('R')
-            );
+    let world = World::build_from_str(source).unwrap();
 
-            assert_eq!(
-                world.determine_affect(&Position::new(1, 0), Actions::PickUp),
-                ActionAffect::Invalid
-            );
+    assert_eq!(
+        world.determine_affect(&Position::new(0, 0), Actions::PickUp),
+        ActionAffect::PickUp('R')
+    );
 
-            assert_eq!(
-                world.determine_affect(&Position::new(3, 4), Actions::DropOff),
-                ActionAffect::DropOff('B')
-            );
+    assert_eq!(
+        world.determine_affect(&Position::new(1, 0), Actions::PickUp),
+        ActionAffect::Invalid
+    );
 
-            assert_eq!(
-                world.determine_affect(&Position::new(2, 4), Actions::DropOff),
-                ActionAffect::Invalid
-            );
-        }
-    }
+    assert_eq!(
+        world.determine_affect(&Position::new(3, 4), Actions::DropOff),
+        ActionAffect::DropOff('B')
+    );
+
+    assert_eq!(
+        world.determine_affect(&Position::new(2, 4), Actions::DropOff),
+        ActionAffect::Invalid
+    );
 }
 
 #[test]
@@ -230,21 +230,17 @@ fn output_world() {
     └─┴───┴───┘\n\
     ";
 
-    match World::build_from_str(source) {
-        Err(msg) => panic!(msg),
-        Ok(world) => {
-            let strings = world.display_strings();
+    let world = World::build_from_str(source).unwrap();
+    let strings = world.display_strings();
 
-            let mut result = String::new();
+    let mut result = String::new();
 
-            for s in strings {
-                result += &s;
-                result.push('\n');
-            }
-
-            println!("\n{}\n{}", result, source);
-
-            assert_eq!(result, source);
-        }
+    for s in strings {
+        result += &s;
+        result.push('\n');
     }
+
+    println!("\n{}\n{}", result, source);
+
+    assert_eq!(result, source);
 }

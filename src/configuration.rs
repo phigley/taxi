@@ -32,39 +32,44 @@ pub struct Configuration {
 
 impl Configuration {
     pub fn from_file(filename: &str) -> Result<Configuration, Error> {
-        let mut config_file = File::open(filename).or(
-            Err(Error::OpenFailure { filename }),
-        )?;
+        let mut config_file = File::open(filename).or(Err(Error::OpenFailure {
+            filename: String::from(filename),
+        }))?;
 
         let mut config_string = String::new();
         config_file.read_to_string(&mut config_string).or(Err(
-            Error::ReadFailure { filename },
+            Error::ReadFailure { filename: String::from(filename) },
         ))?;
 
-        toml::from_str(&config_string).map_err(|error| Error::ParseFailure { filename, error })
+        toml::from_str(&config_string).map_err(|error| {
+            Error::ParseFailure {
+                filename: String::from(filename),
+                error,
+            }
+        })
     }
 }
 
-pub enum Error<'a> {
-    OpenFailure { filename: &'a str },
-    ReadFailure { filename: &'a str },
+pub enum Error {
+    OpenFailure { filename: String },
+    ReadFailure { filename: String },
     ParseFailure {
-        filename: &'a str,
+        filename: String,
         error: toml::de::Error,
     },
 }
 
-impl<'a> fmt::Debug for Error<'a> {
+impl fmt::Debug for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            Error::OpenFailure { filename } => {
+            Error::OpenFailure { ref filename } => {
                 write!(f, "Configuration - Failed to open file '{}'", filename)
             }
-            Error::ReadFailure { filename } => {
+            Error::ReadFailure { ref filename } => {
                 write!(f, "Configuration - Failed to read file '{}'", filename)
             }
             Error::ParseFailure {
-                filename,
+                ref filename,
                 ref error,
             } => {
                 write!(

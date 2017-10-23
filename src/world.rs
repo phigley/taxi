@@ -71,8 +71,59 @@ pub enum ActionAffect {
     DropOff(char),
 }
 
+pub enum Error {
+    EmptyString,
+    Parse { source: String, error: ParseError },
+}
+
+impl fmt::Debug for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            Error::EmptyString => write!(f, "Attempted to build world from empty string."),
+            Error::Parse {
+                ref source,
+                ref error,
+            } => write!(f, "Parse failure: {:?}\nSource string:\n{}", error, source),
+        }
+    }
+}
+
+pub enum ParseError {
+    LineTooLong {
+        line: usize,
+        num_chars: usize,
+        expected_num_chars: usize,
+    },
+    DuplicateFixedPosition { id: char },
+}
+
+impl fmt::Debug for ParseError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            ParseError::LineTooLong {
+                line,
+                num_chars,
+                expected_num_chars,
+            } => {
+                write!(
+                    f,
+                    "Line {} has width {} which does not match initial width of {}.",
+                    line,
+                    num_chars,
+                    expected_num_chars
+                )
+            }
+
+            ParseError::DuplicateFixedPosition { id } => {
+                write!(f, "Found duplicate fixed position '{}'.", id)
+            }
+
+        }
+    }
+}
+
 impl World {
-    pub fn build_from_str(source: &str) -> Result<World, String> {
+    pub fn build_from_str(source: &str) -> Result<World, Error> {
 
         let mut lines = source.lines();
 
@@ -90,7 +141,13 @@ impl World {
 
             let mut wall_row = Vec::with_capacity(width);
             wall_row.extend(iter::repeat(Wall::new()).take(width));
-            parse_wall_line(first_line, line_count, width, None, Some(&mut wall_row))?;
+            parse_wall_line(first_line, line_count, width, None, Some(&mut wall_row))
+                .map_err(|error| {
+                    Error::Parse {
+                        source: String::from(source),
+                        error,
+                    }
+                })?;
 
             while let (Some(content_line), Some(wall_line)) = (lines.next(), lines.next()) {
 
@@ -104,7 +161,12 @@ impl World {
                     width,
                     &mut wall_row,
                     &mut fixed_positions,
-                )?;
+                ).map_err(|error| {
+                    Error::Parse {
+                        source: String::from(source),
+                        error,
+                    }
+                })?;
 
                 line_count += 1;
                 parse_wall_line(
@@ -113,7 +175,12 @@ impl World {
                     width,
                     Some(&mut wall_row),
                     Some(&mut next_wall_row),
-                )?;
+                ).map_err(|error| {
+                    Error::Parse {
+                        source: String::from(source),
+                        error,
+                    }
+                })?;
 
                 walls.push(wall_row);
                 wall_row = next_wall_row;
@@ -129,7 +196,7 @@ impl World {
             })
 
         } else {
-            Err(String::from("Empty string passed to World::new"))
+            Err(Error::EmptyString)
         }
     }
 
@@ -207,6 +274,17 @@ impl World {
                 }
             }
         }
+    }
+
+    pub fn display(&self) -> String {
+        let mut result = String::new();
+
+        for s in self.display_strings() {
+            result += &s;
+            result.push('\n');
+        }
+
+        result
     }
 
     pub fn display_strings(&self) -> Vec<String> {
@@ -417,7 +495,7 @@ fn parse_wall_line(
     width: usize,
     mut previous_row: Option<&mut [Wall]>,
     mut row: Option<&mut [Wall]>,
-) -> Result<(), String> {
+) -> Result<(), ParseError> {
 
     let mut num_chars_read = 0;
     let expected_num_chars = 2 * width + 1;
@@ -427,11 +505,7 @@ fn parse_wall_line(
         num_chars_read += 1;
 
         if num_chars_read > expected_num_chars {
-            return Err(format!(
-                "Line {} longer than initial width of {}.",
-                line_count,
-                expected_num_chars
-            ));
+            break;
         }
 
         if i % 2 == 1 {
@@ -457,12 +531,11 @@ fn parse_wall_line(
     if num_chars_read == expected_num_chars {
         Ok(())
     } else {
-        Err(format!(
-            "Failed to create world, line {} has width {} expected {}",
-            line_count,
-            num_chars_read,
+        Err(ParseError::LineTooLong {
+            line: line_count,
+            num_chars: line.chars().count(),
             expected_num_chars,
-        ))
+        })
     }
 
 }
@@ -473,7 +546,7 @@ fn parse_content_line(
     width: usize,
     wall_row: &mut Vec<Wall>,
     fixed_positions: &mut Vec<FixedPosition>,
-) -> Result<(), String> {
+) -> Result<(), ParseError> {
 
     let mut num_chars_read = 0;
     let expected_num_chars = 2 * width + 1;
@@ -485,11 +558,7 @@ fn parse_content_line(
         num_chars_read += 1;
 
         if num_chars_read > expected_num_chars {
-            return Err(format!(
-                "Line {} longer than initial width of {}.",
-                line_count,
-                expected_num_chars
-            ));
+            break;
         }
 
         let x = i / 2;
@@ -503,7 +572,7 @@ fn parse_content_line(
                 if c != 't' && c != 'T' && c != 'd' && c != 'D' && c != 'p' {
                     for fp in fixed_positions.iter() {
                         if fp.id == c {
-                            return Err(format!("Found duplicate fixed position '{}'.", c));
+                            return Err(ParseError::DuplicateFixedPosition { id: c });
                         }
                     }
                 }
@@ -531,12 +600,11 @@ fn parse_content_line(
     if num_chars_read == expected_num_chars {
         Ok(())
     } else {
-        Err(format!(
-            "Failed to create world, line {} has width {} expected {}",
-            line_count,
-            num_chars_read,
+        Err(ParseError::LineTooLong {
+            line: line_count,
+            num_chars: line.chars().count(),
             expected_num_chars,
-        ))
+        })
     }
 }
 
@@ -545,13 +613,6 @@ fn parse_content_line(
 mod test_world {
 
     use super::*;
-
-    #[test]
-    fn build_fails_on_emptystring() {
-        let w = World::build_from_str("");
-
-        assert!(w.is_err())
-    }
 
     #[test]
     fn build_correct_height() {

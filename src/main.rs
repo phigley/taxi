@@ -13,6 +13,8 @@ mod random_solver;
 
 use std::env;
 use std::io;
+use std::fmt;
+use std::convert::From;
 
 use rand::thread_rng;
 use rand::distributions::{IndependentSample, Range};
@@ -20,7 +22,7 @@ use rand::distributions::{IndependentSample, Range};
 use termion::event;
 use termion::input::TermRead;
 
-use configuration::{Configuration, ReplayMode};
+use configuration::{Configuration, ReplayMode, InitialState};
 use replay::Replay;
 
 use random_solver::RandomSolver;
@@ -29,80 +31,110 @@ use taxi::state::State;
 use taxi::world::World;
 
 fn main() {
-    let args: Vec<String> = env::args().collect();
-    let config = if args.len() < 2 {
-        Configuration::default()
-    } else {
-        Configuration::from_file(&args[1]).unwrap()
-    };
 
-    match World::build_from_str(&config.world) {
-        Err(msg) => {
-            println!("Failed to build world: {}", msg);
-            println!("Using source:");
-            println!("{}", config.world);
-        }
+    if let Err(error) = run() {
+        println!("{:?}", error);
+    }
+}
 
-        Ok(w) => {
+enum AppError {
+    Configuration(configuration::Error),
+    World(taxi::world::Error),
+    InitialState(taxi::state::Error),
+}
 
-            let mut initial_states = Vec::new();
+impl From<configuration::Error> for AppError {
+    fn from(error: configuration::Error) -> Self {
+        AppError::Configuration(error)
+    }
+}
 
-            let num_config_initial_states = config.initial_states.len();
+impl From<taxi::world::Error> for AppError {
+    fn from(error: taxi::world::Error) -> Self {
+        AppError::World(error)
+    }
+}
 
-            if num_config_initial_states > 0 {
+impl From<taxi::state::Error> for AppError {
+    fn from(error: taxi::state::Error) -> Self {
+        AppError::InitialState(error)
+    }
+}
 
-                for i in 0..(config.trials as usize) {
-
-                    let initial_state = &config.initial_states[i % num_config_initial_states];
-
-                    match State::build(
-                        &w,
-                        initial_state.taxi_pos,
-                        initial_state.passenger_loc,
-                        initial_state.destination_loc,
-                    ) {
-                        Err(msg) => {
-                            println!("Failed to build state: {}", msg);
-                            println!("Using state:");
-                            println!("{:?}", initial_state);
-                            break;
-                        }
-
-                        Ok(initial_state) => initial_states.push(initial_state),
-                    }
-                }
-
-            } else {
-
-                let mut rng = thread_rng();
-
-                for _ in 0..config.trials {
-
-                    match State::build_random(&w, &mut rng) {
-                        Err(msg) => {
-                            println!("Failed to build a random state:");
-                            println!("{}", msg);
-                            break;
-                        }
-
-                        Ok(initial_state) => initial_states.push(initial_state),
-                    }
-                }
+impl fmt::Debug for AppError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            AppError::Configuration(ref config_error) => {
+                write!(f, "Failed to read configuration:\n{:?}", config_error)
             }
-
-            if initial_states.len() == (config.trials as usize) {
-                execute_trials(&config, &w, &initial_states);
-            } else {
-                println!(
-                    "Failed to build enough initial_states, {} requested, {} built.",
-                    config.trials,
-                    initial_states.len()
-                );
+            AppError::World(ref world_error) => {
+                write!(f, "Failed to build world:\n{:?}", world_error)
+            }
+            AppError::InitialState(ref state_error) => {
+                write!(f, "Failed to build initial state:\n{:?}", state_error)
             }
         }
     }
 }
 
+fn run() -> Result<(), AppError> {
+
+    let args: Vec<String> = env::args().collect();
+
+    let config = if args.len() < 2 {
+        Configuration::default()
+    } else {
+        Configuration::from_file(&args[1])?
+    };
+
+    let world = World::build_from_str(&config.world)?;
+    let initial_states =
+        build_initial_states(config.trials as usize, &config.initial_states, &world)?;
+
+    execute_trials(&config, &world, &initial_states);
+
+    Ok(())
+}
+
+fn build_initial_states(
+    trials: usize,
+    config_initial_states: &[InitialState],
+    world: &World,
+) -> Result<Vec<State>, AppError> {
+
+    let mut initial_states = Vec::new();
+
+    let num_config_initial_states = config_initial_states.len();
+
+    if num_config_initial_states > 0 {
+
+        for i in 0..trials {
+
+            let initial_state = &config_initial_states[i % num_config_initial_states];
+
+            let state = State::build(
+                &world,
+                initial_state.taxi_pos,
+                initial_state.passenger_loc,
+                initial_state.destination_loc,
+            )?;
+
+            initial_states.push(state);
+        }
+
+    } else {
+
+        let mut rng = thread_rng();
+
+        for _ in 0..trials {
+
+            let state = State::build_random(&world, &mut rng)?;
+            initial_states.push(state);
+        }
+    }
+
+    Ok(initial_states)
+}
 
 fn execute_trials(config: &Configuration, world: &World, initial_states: &[State]) {
 
