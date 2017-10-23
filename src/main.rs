@@ -12,9 +12,7 @@ mod replay;
 mod random_solver;
 
 use std::env;
-use std::fs::File;
 use std::io;
-use std::io::prelude::*;
 
 use rand::thread_rng;
 use rand::distributions::{IndependentSample, Range};
@@ -31,27 +29,12 @@ use taxi::state::State;
 use taxi::world::World;
 
 fn main() {
-
     let args: Vec<String> = env::args().collect();
-
     let config = if args.len() < 2 {
         Configuration::default()
     } else {
-
-        let mut config_file =
-            File::open(&args[1]).expect(&format!("Failed to open file '{}'", args[1]));
-
-        let mut config_string = String::new();
-        config_file.read_to_string(&mut config_string).expect(
-            &format!("Failed to read file '{}'", args[1],),
-        );
-
-        match toml::from_str(&config_string) {
-            Ok(result) => result,
-            Err(err) => panic!("Failed to parse config file '{}' - {}", args[1], err),
-        }
+        Configuration::from_file(&args[1]).unwrap()
     };
-
 
     match World::build_from_str(&config.world) {
         Err(msg) => {
@@ -118,8 +101,6 @@ fn main() {
             }
         }
     }
-
-
 }
 
 

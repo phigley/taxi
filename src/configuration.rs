@@ -1,4 +1,9 @@
 
+use std::fmt;
+use std::fs::File;
+use std::io::prelude::*;
+
+use toml;
 
 #[derive(Deserialize, Debug)]
 pub enum ReplayMode {
@@ -24,6 +29,55 @@ pub struct Configuration {
     pub trials: u32,
     pub replay_mode: ReplayMode,
 }
+
+impl Configuration {
+    pub fn from_file(filename: &str) -> Result<Configuration, Error> {
+        let mut config_file = File::open(filename).or(
+            Err(Error::OpenFailure { filename }),
+        )?;
+
+        let mut config_string = String::new();
+        config_file.read_to_string(&mut config_string).or(Err(
+            Error::ReadFailure { filename },
+        ))?;
+
+        toml::from_str(&config_string).map_err(|error| Error::ParseFailure { filename, error })
+    }
+}
+
+pub enum Error<'a> {
+    OpenFailure { filename: &'a str },
+    ReadFailure { filename: &'a str },
+    ParseFailure {
+        filename: &'a str,
+        error: toml::de::Error,
+    },
+}
+
+impl<'a> fmt::Debug for Error<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            Error::OpenFailure { filename } => {
+                write!(f, "Configuration - Failed to open file '{}'", filename)
+            }
+            Error::ReadFailure { filename } => {
+                write!(f, "Configuration - Failed to read file '{}'", filename)
+            }
+            Error::ParseFailure {
+                filename,
+                ref error,
+            } => {
+                write!(
+                    f,
+                    "Configuration - Failed to parse config file '{}' - {}",
+                    filename,
+                    error
+                )
+            }
+        }
+    }
+}
+
 
 impl Default for Configuration {
     fn default() -> Configuration {
