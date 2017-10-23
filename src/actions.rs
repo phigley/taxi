@@ -8,6 +8,8 @@ pub enum Actions {
     South,
     East,
     West,
+    PickUp,
+    DropOff,
 }
 
 impl Actions {
@@ -19,6 +21,8 @@ impl Actions {
             Actions::South => 1,
             Actions::East => 2,
             Actions::West => 3,
+            Actions::PickUp => 4,
+            Actions::DropOff => 5,
         }
     }
 
@@ -28,6 +32,8 @@ impl Actions {
             1 => Some(Actions::South),
             2 => Some(Actions::East),
             3 => Some(Actions::West),
+            4 => Some(Actions::PickUp),
+            5 => Some(Actions::DropOff),
             _ => None,
         }
     }
@@ -36,25 +42,16 @@ impl Actions {
 impl Rand for Actions {
     fn rand<R: Rng>(rng: &mut R) -> Actions {
 
-        // let n = rng.gen_range(0, 4);
+        let actions = [
+            Actions::North,
+            Actions::South,
+            Actions::East,
+            Actions::West,
+            Actions::PickUp,
+            Actions::DropOff,
+        ];
 
-        // match n {
-
-        //     0 => Actions::North,
-        //     1 => Actions::South,
-        //     2 => Actions::East,
-        //     _ => Actions::West,
-        // }
-
-        let n: u8 = rng.gen();
-
-        match n {
-
-            0...63 => Actions::North,
-            64...127 => Actions::South,
-            128...191 => Actions::East,
-            _ => Actions::West,
-        }
+        actions[rng.gen_range(0, 6)]
     }
 }
 
@@ -65,6 +62,8 @@ impl fmt::Display for Actions {
             Actions::South => write!(f, "S"),
             Actions::East => write!(f, "E"),
             Actions::West => write!(f, "W"),
+            Actions::PickUp => write!(f, "P"),
+            Actions::DropOff => write!(f, "D"),
         }
     }
 }
@@ -125,6 +124,20 @@ mod test_actions {
         assert!(found_action);
     }
 
+    #[test]
+    fn random_action_pickup() {
+
+        let found_action = find_action(Actions::PickUp, 500);
+        assert!(found_action);
+    }
+
+    #[test]
+    fn random_action_dropoff() {
+
+        let found_action = find_action(Actions::DropOff, 500);
+        assert!(found_action);
+    }
+
     struct MeasureDistribution {
         mean: f64,
         mean_2: f64,
@@ -173,6 +186,8 @@ mod test_actions {
         let mut south_dist = MeasureDistribution::new();
         let mut east_dist = MeasureDistribution::new();
         let mut west_dist = MeasureDistribution::new();
+        let mut pickup_dist = MeasureDistribution::new();
+        let mut dropoff_dist = MeasureDistribution::new();
 
         let mut rng = rand::thread_rng();
         for _ in 0..max_iterations {
@@ -183,43 +198,85 @@ mod test_actions {
             south_dist.add_value(if action == Actions::South { 1.0 } else { 0.0 });
             east_dist.add_value(if action == Actions::East { 1.0 } else { 0.0 });
             west_dist.add_value(if action == Actions::West { 1.0 } else { 0.0 });
+            pickup_dist.add_value(if action == Actions::PickUp { 1.0 } else { 0.0 });
+            dropoff_dist.add_value(if action == Actions::DropOff { 1.0 } else { 0.0 });
         }
 
         let max_avg_dev = 4.0 * expected_std_dev;
+        let expected_avg = 1.0 / 6.0;
 
         println!(
-            "expected std dev = {:?} max_dev = {:?}",
+            "expected avg = {} expected std dev = {} max_dev = {}",
+            expected_avg,
             expected_std_dev,
             max_avg_dev
         );
 
+
         let (north_avg, north_dev) = north_dist.get_distribution();
-        println!("north = {:?}", (north_avg, north_dev));
+        println!(
+            "north = {:?} delta = {}",
+            (north_avg, north_dev),
+            north_avg - expected_avg
+        );
 
         let (south_avg, south_dev) = south_dist.get_distribution();
-        println!("south = {:?}", (south_avg, south_dev));
+        println!(
+            "south = {:?} delta = {}",
+            (south_avg, south_dev),
+            south_avg - expected_avg
+        );
 
         let (east_avg, east_dev) = east_dist.get_distribution();
-        println!("east = {:?}", (east_avg, east_dev));
+        println!(
+            "east = {:?} delta = {}",
+            (east_avg, east_dev),
+            east_avg - expected_avg
+        );
 
         let (west_avg, west_dev) = west_dist.get_distribution();
-        println!("west = {:?}", (west_avg, west_dev));
+        println!(
+            "west = {:?} delta = {}",
+            (west_avg, west_dev),
+            west_avg - expected_avg
+        );
 
-        assert!(north_avg < 0.25 * (1.0 + max_avg_dev));
-        assert!(north_avg > 0.25 * (1.0 - max_avg_dev));
+        let (pickup_avg, pickup_dev) = pickup_dist.get_distribution();
+        println!(
+            "pickup = {:?} delta = {}",
+            (pickup_avg, pickup_dev),
+            pickup_avg - expected_avg
+        );
+
+        let (dropoff_avg, dropoff_dev) = dropoff_dist.get_distribution();
+        println!(
+            "dropoff = {:?} delta = {}",
+            (dropoff_avg, dropoff_dev),
+            dropoff_avg - expected_avg
+        );
+
+        assert!(north_avg - expected_avg < expected_avg * max_avg_dev);
+        assert!(north_avg - expected_avg > -expected_avg * max_avg_dev);
         assert!(north_dev < expected_std_dev * 1.1);
 
-        assert!(south_avg < 0.25 * (1.0 + max_avg_dev));
-        assert!(south_avg > 0.25 * (1.0 - max_avg_dev));
+        assert!(south_avg - expected_avg < expected_avg * max_avg_dev);
+        assert!(south_avg - expected_avg > -expected_avg * max_avg_dev);
         assert!(south_dev < expected_std_dev * 1.1);
 
-        assert!(east_avg < 0.25 * (1.0 + max_avg_dev));
-        assert!(east_avg > 0.25 * (1.0 - max_avg_dev));
+        assert!(east_avg - expected_avg < expected_avg * max_avg_dev);
+        assert!(east_avg - expected_avg > -expected_avg * max_avg_dev);
         assert!(east_dev < expected_std_dev * 1.1);
 
-        assert!(west_avg < 0.25 * (1.0 + max_avg_dev));
-        assert!(west_avg > 0.25 * (1.0 - max_avg_dev));
+        assert!(west_avg - expected_avg < expected_avg * max_avg_dev);
+        assert!(west_avg - expected_avg > -expected_avg * max_avg_dev);
         assert!(west_dev < expected_std_dev * 1.1);
 
+        assert!(pickup_avg - expected_avg < expected_avg * max_avg_dev);
+        assert!(pickup_avg - expected_avg > -expected_avg * max_avg_dev);
+        assert!(pickup_dev < expected_std_dev * 1.1);
+
+        assert!(dropoff_avg - expected_avg < expected_avg * max_avg_dev);
+        assert!(dropoff_avg - expected_avg > -expected_avg * max_avg_dev);
+        assert!(dropoff_dev < expected_std_dev * 1.1);
     }
 }

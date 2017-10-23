@@ -30,7 +30,7 @@ fn build_world() {
 }
 
 #[test]
-fn wall_action_validity() {
+fn wall_move_validity() {
     let source = "\
     ┌───┬─────┐\n\
     │. .│. . .│\n\
@@ -50,39 +50,39 @@ fn wall_action_validity() {
         Ok(world) => {
 
             assert_eq!(
-                world.valid_action(&Position::new(2, 2), Actions::North),
-                true
+                world.determine_affect(&Position::new(2, 2), Actions::North),
+                ActionAffect::Move(Position::new(0, -1))
             );
             assert_eq!(
-                world.valid_action(&Position::new(3, 0), Actions::North),
-                false
-            );
-
-            assert_eq!(
-                world.valid_action(&Position::new(3, 3), Actions::South),
-                true
-            );
-            assert_eq!(
-                world.valid_action(&Position::new(1, 2), Actions::South),
-                false
+                world.determine_affect(&Position::new(3, 0), Actions::North),
+                ActionAffect::Invalid
             );
 
             assert_eq!(
-                world.valid_action(&Position::new(3, 1), Actions::East),
-                true
+                world.determine_affect(&Position::new(3, 3), Actions::South),
+                ActionAffect::Move(Position::new(0, 1))
             );
             assert_eq!(
-                world.valid_action(&Position::new(0, 3), Actions::East),
-                false
+                world.determine_affect(&Position::new(1, 2), Actions::South),
+                ActionAffect::Invalid
             );
 
             assert_eq!(
-                world.valid_action(&Position::new(1, 1), Actions::West),
-                true
+                world.determine_affect(&Position::new(3, 1), Actions::East),
+                ActionAffect::Move(Position::new(1, 0))
             );
             assert_eq!(
-                world.valid_action(&Position::new(3, 3), Actions::West),
-                false
+                world.determine_affect(&Position::new(0, 3), Actions::East),
+                ActionAffect::Invalid
+            );
+
+            assert_eq!(
+                world.determine_affect(&Position::new(1, 1), Actions::West),
+                ActionAffect::Move(Position::new(-1, 0))
+            );
+            assert_eq!(
+                world.determine_affect(&Position::new(3, 3), Actions::West),
+                ActionAffect::Invalid
             );
         }
     }
@@ -97,23 +97,23 @@ fn edge_action_validity() {
         Ok(world) => {
 
             assert_eq!(
-                world.valid_action(&Position::new(1, 0), Actions::North),
-                false
+                world.determine_affect(&Position::new(1, 0), Actions::North),
+                ActionAffect::Invalid
             );
 
             assert_eq!(
-                world.valid_action(&Position::new(1, 2), Actions::South),
-                false
+                world.determine_affect(&Position::new(1, 2), Actions::South),
+                ActionAffect::Invalid
             );
 
             assert_eq!(
-                world.valid_action(&Position::new(2, 1), Actions::East),
-                false
+                world.determine_affect(&Position::new(2, 1), Actions::East),
+                ActionAffect::Invalid
             );
 
             assert_eq!(
-                world.valid_action(&Position::new(0, 1), Actions::West),
-                false
+                world.determine_affect(&Position::new(0, 1), Actions::West),
+                ActionAffect::Invalid
             );
         }
     }
@@ -168,6 +168,48 @@ fn no_duplicate_fixed_position() {
         Err(_) => (),
         Ok(_) => {
             panic!("Failed to report duplicate.");
+        }
+    }
+}
+
+#[test]
+fn pickup_dropoff_validity() {
+    let source = "\
+    ┌───┬─────┐\n\
+    │R .│. . G│\n\
+    │   │     │\n\
+    │. .│. . .│\n\
+    │         │\n\
+    │. . . . .│\n\
+    │         │\n\
+    │.│. .│. .│\n\
+    │ │   │   │\n\
+    │Y│. .│B .│\n\
+    └─┴───┴───┘\n\
+    ";
+
+    match World::build_from_str(source) {
+        Err(msg) => panic!(msg),
+        Ok(world) => {
+            assert_eq!(
+                world.determine_affect(&Position::new(0, 0), Actions::PickUp),
+                ActionAffect::PickUp('R')
+            );
+
+            assert_eq!(
+                world.determine_affect(&Position::new(1, 0), Actions::PickUp),
+                ActionAffect::Invalid
+            );
+
+            assert_eq!(
+                world.determine_affect(&Position::new(3, 4), Actions::DropOff),
+                ActionAffect::DropOff('B')
+            );
+
+            assert_eq!(
+                world.determine_affect(&Position::new(2, 4), Actions::DropOff),
+                ActionAffect::Invalid
+            );
         }
     }
 }

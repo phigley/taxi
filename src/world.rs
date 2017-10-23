@@ -63,6 +63,14 @@ pub struct World {
     pub fixed_positions: Vec<FixedPosition>,
 }
 
+#[derive(Debug, PartialEq)]
+pub enum ActionAffect {
+    Invalid,
+    Move(Position),
+    PickUp(char),
+    DropOff(char),
+}
+
 impl World {
     pub fn build_from_str(source: &str) -> Result<World, String> {
 
@@ -135,16 +143,69 @@ impl World {
         None
     }
 
-    fn get_wall(&self, positon: &Position) -> &Wall {
-        &self.walls[positon.y as usize][positon.x as usize]
+    fn get_fixed_id(&self, position: &Position) -> Option<char> {
+        for fp in &self.fixed_positions {
+            if fp.position == *position {
+                return Some(fp.id);
+            }
+        }
+
+        None
     }
 
-    pub fn valid_action(&self, position: &Position, action: Actions) -> bool {
+    fn get_wall(&self, position: &Position) -> &Wall {
+        &self.walls[position.y as usize][position.x as usize]
+    }
+
+    pub fn determine_affect(&self, position: &Position, action: Actions) -> ActionAffect {
         match action {
-            Actions::North => position.y > 0 && !self.get_wall(&position).north,
-            Actions::South => position.y < (self.height - 1) && !self.get_wall(&position).south,
-            Actions::East => position.x < (self.width - 1) && !self.get_wall(&position).east,
-            Actions::West => position.x > 0 && !self.get_wall(&position).west,
+            Actions::North => {
+                if position.y > 0 && !self.get_wall(&position).north {
+                    ActionAffect::Move(Position::new(0, -1))
+                } else {
+                    ActionAffect::Invalid
+                }
+            }
+
+            Actions::South => {
+                if position.y < (self.height - 1) && !self.get_wall(&position).south {
+                    ActionAffect::Move(Position::new(0, 1))
+                } else {
+                    ActionAffect::Invalid
+                }
+            }
+
+            Actions::East => {
+                if position.x < (self.width - 1) && !self.get_wall(&position).east {
+                    ActionAffect::Move(Position::new(1, 0))
+                } else {
+                    ActionAffect::Invalid
+                }
+            }
+
+            Actions::West => {
+                if position.x > 0 && !self.get_wall(&position).west {
+                    ActionAffect::Move(Position::new(-1, 0))
+                } else {
+                    ActionAffect::Invalid
+                }
+            }
+
+            Actions::PickUp => {
+                if let Some(id) = self.get_fixed_id(&position) {
+                    ActionAffect::PickUp(id)
+                } else {
+                    ActionAffect::Invalid
+                }
+            }
+
+            Actions::DropOff => {
+                if let Some(id) = self.get_fixed_id(&position) {
+                    ActionAffect::DropOff(id)
+                } else {
+                    ActionAffect::Invalid
+                }
+            }
         }
     }
 

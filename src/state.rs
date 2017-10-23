@@ -3,7 +3,7 @@
 use rand::Rng;
 
 use position::Position;
-use world::World;
+use world::{World, ActionAffect};
 use actions::Actions;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -33,35 +33,22 @@ impl State {
             ))
         } else {
 
-            match world.get_fixed_position(destination_id) {
-                None => Err(format!(
+            if world.get_fixed_position(destination_id) == None {
+                Err(format!(
                     "Failed to find destination location '{}'",
                     destination_id
-                )),
-                Some(_) => {
-                    match world.get_fixed_position(passenger_id) {
-                        None => Err(format!(
-                            "Failed to find passenger location '{}'",
-                            passenger_id
-                        )),
-                        Some(passenger_pos) => {
-                            let taxi = Position::new(taxi_pos.0, taxi_pos.1);
-                            let passenger =
-                                if *passenger_pos != taxi || passenger_id == destination_id {
-                                    Some(passenger_id)
-                                } else {
-                                    None
-                                };
-                            let destination = destination_id;
-
-                            Ok(State {
-                                taxi,
-                                passenger,
-                                destination,
-                            })
-                        }
-                    }
-                }
+                ))
+            } else if world.get_fixed_position(passenger_id) == None {
+                Err(format!(
+                    "Failed to find passenger location '{}'",
+                    passenger_id
+                ))
+            } else {
+                Ok(State {
+                    taxi: Position::new(taxi_pos.0, taxi_pos.1),
+                    passenger: Some(passenger_id),
+                    destination: destination_id,
+                })
             }
         }
     }
@@ -84,14 +71,10 @@ impl State {
         let destination_fp_index = (passenger_fp_index + rng.gen_range(1, num_fixed_positions)) %
             num_fixed_positions;
 
-        let passenger = Some(world.fixed_positions[passenger_fp_index].id);
-
-        let destination = world.fixed_positions[destination_fp_index].id;
-
         Ok(State {
             taxi: Position::new(taxi_x, taxi_y),
-            passenger,
-            destination,
+            passenger: Some(world.fixed_positions[passenger_fp_index].id),
+            destination: world.fixed_positions[destination_fp_index].id,
         })
     }
 
@@ -160,41 +143,33 @@ impl State {
 
     pub fn apply_action(&self, world: &World, action: Actions) -> State {
 
-        if !world.valid_action(&self.taxi, action) {
-            *self
-        } else {
-
-            let delta = position_delta(action);
-
-            let new_taxi = self.taxi + delta;
-
-            let new_passenger = match self.passenger {
-                Some(passenger_id) => {
-                    match world.get_fixed_position(passenger_id) {
-                        Some(passenger_pos)
-                            if *passenger_pos == new_taxi && passenger_id != self.destination => {
-                            None
-                        }
-                        _ => self.passenger,
-                    }
-                }
-
-                None => {
-                    // passenger is in taxi, should they get out?
-                    match world.get_fixed_position(self.destination) {
-                        Some(destination_pos) if *destination_pos == new_taxi => Some(
-                            self.destination,
-                        ),
-
-                        _ => self.passenger,
-                    }
-                }
-            };
-
-            State {
-                taxi: new_taxi,
-                passenger: new_passenger,
+        match world.determine_affect(&self.taxi, action) {
+            ActionAffect::Invalid => *self,
+            ActionAffect::Move(delta) => State {
+                taxi: self.taxi + delta,
                 ..*self
+            },
+
+            ActionAffect::PickUp(id) => {
+                if self.passenger == Some(id) {
+                    State {
+                        passenger: None,
+                        ..*self
+                    }
+                } else {
+                    *self
+                }
+            }
+
+            ActionAffect::DropOff(id) => {
+                if self.passenger == None {
+                    State {
+                        passenger: Some(id),
+                        ..*self
+                    }
+                } else {
+                    *self
+                }
             }
         }
     }
@@ -207,17 +182,6 @@ impl State {
         }
     }
 }
-
-
-fn position_delta(action: Actions) -> Position {
-    match action {
-        Actions::North => Position::new(0, -1),
-        Actions::South => Position::new(0, 1),
-        Actions::East => Position::new(1, 0),
-        Actions::West => Position::new(-1, 0),
-    }
-}
-
 
 #[cfg(test)]
 mod test_state {
@@ -341,243 +305,95 @@ mod test_state {
     }
 
     #[test]
-    fn passenger_moves_in_taxi() {
-        let source = "\
+    fn pickup_dropoff_does_nothing_off_fixedpoint() {
+
+        let source_world = "\
         ┌───┬─────┐\n\
-        │. .│. . .│\n\
+        │R .│. . .│\n\
         │   │     │\n\
-        │. .│. . .│\n\
+        │. .│G . .│\n\
         │         │\n\
         │. . . . .│\n\
         │         │\n\
-        │.│R .│G .│\n\
+        │.│Y .│B .│\n\
         │ │   │   │\n\
         │.│. .│. .│\n\
         └─┴───┴───┘\n\
         ";
 
-        let expected = "\
+        let w = World::build_from_str(source_world).unwrap();
+
+        let initial_state = State::build(&w, (2, 2), 'R', 'G').unwrap();
+
+        let expected_initial = "\
         ┌───┬─────┐\n\
-        │. .│. . .│\n\
+        │p .│. . .│\n\
         │   │     │\n\
-        │. .│. . .│\n\
+        │. .│d . .│\n\
         │         │\n\
-        │. T . . .│\n\
+        │. . t . .│\n\
         │         │\n\
-        │.│. .│d .│\n\
+        │.│. .│. .│\n\
         │ │   │   │\n\
         │.│. .│. .│\n\
         └─┴───┴───┘\n\
         ";
 
-        match World::build_from_str(source) {
-            Err(msg) => panic!(msg),
-            Ok(w) => {
-                match State::build(&w, (1, 3), 'R', 'G') {
-                    Err(msg) => panic!(msg),
-                    Ok(state) => {
-                        assert_eq!(state.passenger, None);
+        assert_eq!(expected_initial, initial_state.display(&w));
 
-                        let result = state.apply_action(&w, Actions::North);
-                        assert_eq!(result.passenger, None);
+        let state0 = initial_state.apply_action(&w, Actions::PickUp);
+        assert_eq!(expected_initial, state0.display(&w));
 
-                        let result_str = result.display(&w);
-                        assert_eq!(expected, result_str);
-                    }
-                }
-            }
-        }
+        let state1 = state0.apply_action(&w, Actions::DropOff);
+        assert_eq!(expected_initial, state1.display(&w));
     }
 
     #[test]
-    fn passenger_stays_at_destination() {
-        let source = "\
+    fn pickup_dropoff_does_nothing_on_empty_fixedpoint() {
+
+        let source_world = "\
         ┌───┬─────┐\n\
-        │. .│. . .│\n\
+        │R .│. . .│\n\
         │   │     │\n\
-        │. .│. . .│\n\
+        │. .│G . .│\n\
         │         │\n\
         │. . . . .│\n\
         │         │\n\
-        │.│R .│G .│\n\
+        │.│Y .│B .│\n\
         │ │   │   │\n\
         │.│. .│. .│\n\
         └─┴───┴───┘\n\
         ";
 
-        let expected0 = "\
+        let w = World::build_from_str(source_world).unwrap();
+
+        let initial_state = State::build(&w, (1, 3), 'R', 'G').unwrap();
+
+        let expected_initial = "\
         ┌───┬─────┐\n\
-        │. .│. . .│\n\
+        │p .│. . .│\n\
         │   │     │\n\
-        │. .│. . .│\n\
+        │. .│d . .│\n\
         │         │\n\
         │. . . . .│\n\
         │         │\n\
-        │.│D .│. .│\n\
+        │.│t .│. .│\n\
         │ │   │   │\n\
         │.│. .│. .│\n\
         └─┴───┴───┘\n\
         ";
 
-        let expected1 = "\
-        ┌───┬─────┐\n\
-        │. .│. . .│\n\
-        │   │     │\n\
-        │. .│. . .│\n\
-        │         │\n\
-        │. . . . .│\n\
-        │         │\n\
-        │.│D t│. .│\n\
-        │ │   │   │\n\
-        │.│. .│. .│\n\
-        └─┴───┴───┘\n\
-        ";
+        assert_eq!(expected_initial, initial_state.display(&w));
 
-        match World::build_from_str(source) {
-            Err(msg) => panic!(msg),
-            Ok(w) => {
-                match State::build(&w, (1, 4), 'R', 'R') {
-                    Err(msg) => panic!(msg),
-                    Ok(state) => {
-                        assert_eq!(state.passenger, Some('R'));
-                        assert!(state.at_destination());
+        let state0 = initial_state.apply_action(&w, Actions::PickUp);
+        assert_eq!(expected_initial, state0.display(&w));
 
-                        let result0 = state.apply_action(&w, Actions::North);
-                        assert_eq!(result0.passenger, Some('R'));
-                        assert!(result0.at_destination());
-
-                        let result0_str = result0.display(&w);
-                        assert_eq!(expected0, result0_str);
-
-                        let result1 = result0.apply_action(&w, Actions::East);
-                        assert_eq!(result1.passenger, Some('R'));
-                        assert!(result1.at_destination());
-
-                        let result1_str = result1.display(&w);
-                        assert_eq!(expected1, result1_str);
-                    }
-                }
-            }
-        }
+        let state1 = state0.apply_action(&w, Actions::DropOff);
+        assert_eq!(expected_initial, state1.display(&w));
     }
 
     #[test]
-    fn passenger_picked_up_in_taxi() {
-        let source = "\
-        ┌───┬─────┐\n\
-        │. .│. . .│\n\
-        │   │     │\n\
-        │. .│. . .│\n\
-        │         │\n\
-        │. R . . .│\n\
-        │         │\n\
-        │.│. .│G .│\n\
-        │ │   │   │\n\
-        │.│. .│. .│\n\
-        └─┴───┴───┘\n\
-        ";
-
-        let expected0 = "\
-        ┌───┬─────┐\n\
-        │. .│. . .│\n\
-        │   │     │\n\
-        │. .│. . .│\n\
-        │         │\n\
-        │. T . . .│\n\
-        │         │\n\
-        │.│. .│d .│\n\
-        │ │   │   │\n\
-        │.│. .│. .│\n\
-        └─┴───┴───┘\n\
-        ";
-
-        let expected1 = "\
-        ┌───┬─────┐\n\
-        │. .│. . .│\n\
-        │   │     │\n\
-        │. .│. . .│\n\
-        │         │\n\
-        │T . . . .│\n\
-        │         │\n\
-        │.│. .│d .│\n\
-        │ │   │   │\n\
-        │.│. .│. .│\n\
-        └─┴───┴───┘\n\
-        ";
-
-        match World::build_from_str(source) {
-            Err(msg) => panic!(msg),
-            Ok(w) => {
-                match State::build(&w, (1, 3), 'R', 'G') {
-                    Err(msg) => panic!(msg),
-                    Ok(state) => {
-                        let result0 = state.apply_action(&w, Actions::North);
-                        let result0_str = result0.display(&w);
-                        assert_eq!(result0.passenger, None);
-                        assert_eq!(expected0, result0_str);
-
-                        let result1 = result0.apply_action(&w, Actions::West);
-                        let result1_str = result1.display(&w);
-                        assert_eq!(result1.passenger, None);
-                        assert_eq!(expected1, result1_str);
-                    }
-                }
-            }
-        }
-    }
-
-    #[test]
-    fn passenger_dropped_destination() {
-        let source = "\
-        ┌───┬─────┐\n\
-        │. .│. . .│\n\
-        │   │     │\n\
-        │. .│. . .│\n\
-        │         │\n\
-        │. . . . .│\n\
-        │         │\n\
-        │.│R .│. .│\n\
-        │ │   │   │\n\
-        │.│G .│. .│\n\
-        └─┴───┴───┘\n\
-        ";
-
-        let expected = "\
-        ┌───┬─────┐\n\
-        │. .│. . .│\n\
-        │   │     │\n\
-        │. .│. . .│\n\
-        │         │\n\
-        │. . . . .│\n\
-        │         │\n\
-        │.│. .│. .│\n\
-        │ │   │   │\n\
-        │.│D .│. .│\n\
-        └─┴───┴───┘\n\
-        ";
-
-        match World::build_from_str(source) {
-            Err(msg) => panic!(msg),
-            Ok(w) => {
-                match State::build(&w, (1, 3), 'R', 'G') {
-                    Err(msg) => panic!(msg),
-                    Ok(state) => {
-                        assert_eq!(state.passenger, None);
-
-                        let result = state.apply_action(&w, Actions::South);
-                        assert_eq!(result.passenger, Some('G'));
-                        assert!(result.at_destination());
-
-                        let result_str = result.display(&w);
-                        assert_eq!(expected, result_str);
-                    }
-                }
-            }
-        }
-    }
-
-    #[test]
-    fn passenger_not_dropped_other_fixed_position() {
+    fn passenger_dropoff_at_other_fixed_position() {
         let source = "\
         ┌───┬─────┐\n\
         │. .│. . .│\n\
@@ -592,7 +408,63 @@ mod test_state {
         └─┴───┴───┘\n\
         ";
 
-        let expected = "\
+        let script = [
+            (
+                "\
+        ┌───┬─────┐\n\
+        │. .│. . .│\n\
+        │   │     │\n\
+        │. .│. . .│\n\
+        │         │\n\
+        │. t . . .│\n\
+        │         │\n\
+        │.│p .│. .│\n\
+        │ │   │   │\n\
+        │.│d .│. .│\n\
+        └─┴───┴───┘\n\
+        ",
+                Some('R'),
+                false,
+                Actions::South,
+            ),
+            (
+                "\
+        ┌───┬─────┐\n\
+        │. .│. . .│\n\
+        │   │     │\n\
+        │. .│. . .│\n\
+        │         │\n\
+        │. . . . .│\n\
+        │         │\n\
+        │.│p .│. .│\n\
+        │ │   │   │\n\
+        │.│d .│. .│\n\
+        └─┴───┴───┘\n\
+        ",
+                Some('R'),
+                false,
+                Actions::PickUp,
+            ),
+            (
+                "\
+        ┌───┬─────┐\n\
+        │. .│. . .│\n\
+        │   │     │\n\
+        │. .│. . .│\n\
+        │         │\n\
+        │. . . . .│\n\
+        │         │\n\
+        │.│T .│. .│\n\
+        │ │   │   │\n\
+        │.│d .│. .│\n\
+        └─┴───┴───┘\n\
+        ",
+                None,
+                false,
+                Actions::East,
+            ),
+            (
+                "\
         ┌───┬─────┐\n\
         │. .│. . .│\n\
         │   │     │\n\
@@ -604,30 +476,75 @@ mod test_state {
         │ │   │   │\n\
         │.│d .│. .│\n\
         └─┴───┴───┘\n\
-        ";
+        ",
+                None,
+                false,
+                Actions::DropOff,
+            ),
+            (
+                "\
+        ┌───┬─────┐\n\
+        │. .│. . .│\n\
+        │   │     │\n\
+        │. .│. . .│\n\
+        │         │\n\
+        │. . . . .│\n\
+        │         │\n\
+        │.│. p│. .│\n\
+        │ │   │   │\n\
+        │.│d .│. .│\n\
+        └─┴───┴───┘\n\
+        ",
+                Some('Y'),
+                false,
+                Actions::North,
+            ),
+            (
+                "\
+        ┌───┬─────┐\n\
+        │. .│. . .│\n\
+        │   │     │\n\
+        │. .│. . .│\n\
+        │         │\n\
+        │. . t . .│\n\
+        │         │\n\
+        │.│. p│. .│\n\
+        │ │   │   │\n\
+        │.│d .│. .│\n\
+        └─┴───┴───┘\n\
+        ",
+                Some('Y'),
+                false,
+                Actions::North,
+            ),
+        ];
 
-        match World::build_from_str(source) {
-            Err(msg) => panic!(msg),
-            Ok(w) => {
-                match State::build(&w, (1, 3), 'R', 'G') {
-                    Err(msg) => panic!(msg),
-                    Ok(state) => {
-                        assert_eq!(state.passenger, None);
+        let w = World::build_from_str(source).unwrap();
 
-                        let result = state.apply_action(&w, Actions::East);
-                        assert_eq!(result.passenger, None);
-                        assert!(!result.at_destination());
+        let mut state = State::build(&w, (1, 2), 'R', 'G').unwrap();
+        println!("");
 
-                        let result_str = result.display(&w);
-                        assert_eq!(expected, result_str);
-                    }
-                }
-            }
+        for &(expected_str, expected_passenger, expected_at_destination, next_action) in
+            script.iter()
+        {
+            println!(
+                "{} passenger = {:?} at_destination = {:?} next_action = {}",
+                state.display(&w),
+                state.passenger,
+                state.at_destination(),
+                next_action
+            );
+
+            assert_eq!(expected_passenger, state.passenger);
+            assert_eq!(expected_at_destination, state.at_destination());
+            assert_eq!(expected_str, state.display(&w));
+
+            state = state.apply_action(&w, next_action);
         }
     }
 
     #[test]
-    fn passenger_picked_up_and_dropped_off() {
+    fn taxi_full_cycle() {
         let source = "\
         ┌───┬─────┐\n\
         │. .│. . .│\n\
@@ -636,13 +553,51 @@ mod test_state {
         │         │\n\
         │. R . . .│\n\
         │         │\n\
-        │.│G .│. .│\n\
+        │.│. .│G .│\n\
         │ │   │   │\n\
         │.│. .│. .│\n\
         └─┴───┴───┘\n\
         ";
 
-        let expected0 = "\
+        let script = [
+            (
+                "\
+        ┌───┬─────┐\n\
+        │. .│. . .│\n\
+        │   │     │\n\
+        │. .│. . .│\n\
+        │         │\n\
+        │. p . . .│\n\
+        │         │\n\
+        │.│t .│d .│\n\
+        │ │   │   │\n\
+        │.│. .│. .│\n\
+        └─┴───┴───┘\n\
+        ",
+                Some('R'),
+                false,
+                Actions::North,
+            ),
+            (
+                "\
+        ┌───┬─────┐\n\
+        │. .│. . .│\n\
+        │   │     │\n\
+        │. .│. . .│\n\
+        │         │\n\
+        │. p . . .│\n\
+        │         │\n\
+        │.│. .│d .│\n\
+        │ │   │   │\n\
+        │.│. .│. .│\n\
+        └─┴───┴───┘\n\
+        ",
+                Some('R'),
+                false,
+                Actions::PickUp,
+            ),
+            (
+                "\
         ┌───┬─────┐\n\
         │. .│. . .│\n\
         │   │     │\n\
@@ -650,13 +605,89 @@ mod test_state {
         │         │\n\
         │. T . . .│\n\
         │         │\n\
-        │.│d .│. .│\n\
+        │.│. .│d .│\n\
         │ │   │   │\n\
         │.│. .│. .│\n\
         └─┴───┴───┘\n\
-        ";
-
-        let expected1 = "\
+        ",
+                None,
+                false,
+                Actions::East,
+            ),
+            (
+                "\
+        ┌───┬─────┐\n\
+        │. .│. . .│\n\
+        │   │     │\n\
+        │. .│. . .│\n\
+        │         │\n\
+        │. . T . .│\n\
+        │         │\n\
+        │.│. .│d .│\n\
+        │ │   │   │\n\
+        │.│. .│. .│\n\
+        └─┴───┴───┘\n\
+        ",
+                None,
+                false,
+                Actions::DropOff,
+            ),
+            (
+                "\
+        ┌───┬─────┐\n\
+        │. .│. . .│\n\
+        │   │     │\n\
+        │. .│. . .│\n\
+        │         │\n\
+        │. . T . .│\n\
+        │         │\n\
+        │.│. .│d .│\n\
+        │ │   │   │\n\
+        │.│. .│. .│\n\
+        └─┴───┴───┘\n\
+        ",
+                None,
+                false,
+                Actions::East,
+            ),
+            (
+                "\
+        ┌───┬─────┐\n\
+        │. .│. . .│\n\
+        │   │     │\n\
+        │. .│. . .│\n\
+        │         │\n\
+        │. . . T .│\n\
+        │         │\n\
+        │.│. .│d .│\n\
+        │ │   │   │\n\
+        │.│. .│. .│\n\
+        └─┴───┴───┘\n\
+        ",
+                None,
+                false,
+                Actions::PickUp,
+            ),
+            (
+                "\
+        ┌───┬─────┐\n\
+        │. .│. . .│\n\
+        │   │     │\n\
+        │. .│. . .│\n\
+        │         │\n\
+        │. . . T .│\n\
+        │         │\n\
+        │.│. .│d .│\n\
+        │ │   │   │\n\
+        │.│. .│. .│\n\
+        └─┴───┴───┘\n\
+        ",
+                None,
+                false,
+                Actions::South,
+            ),
+            (
+                "\
         ┌───┬─────┐\n\
         │. .│. . .│\n\
         │   │     │\n\
@@ -664,33 +695,74 @@ mod test_state {
         │         │\n\
         │. . . . .│\n\
         │         │\n\
-        │.│D .│. .│\n\
+        │.│. .│d .│\n\
         │ │   │   │\n\
         │.│. .│. .│\n\
         └─┴───┴───┘\n\
-        ";
+        ",
+                None,
+                false,
+                Actions::DropOff,
+            ),
+            (
+                "\
+        ┌───┬─────┐\n\
+        │. .│. . .│\n\
+        │   │     │\n\
+        │. .│. . .│\n\
+        │         │\n\
+        │. . . . .│\n\
+        │         │\n\
+        │.│. .│D .│\n\
+        │ │   │   │\n\
+        │.│. .│. .│\n\
+        └─┴───┴───┘\n\
+        ",
+                Some('G'),
+                true,
+                Actions::East,
+            ),
+            (
+                "\
+        ┌───┬─────┐\n\
+        │. .│. . .│\n\
+        │   │     │\n\
+        │. .│. . .│\n\
+        │         │\n\
+        │. . . . .│\n\
+        │         │\n\
+        │.│. .│D t│\n\
+        │ │   │   │\n\
+        │.│. .│. .│\n\
+        └─┴───┴───┘\n\
+        ",
+                Some('G'),
+                true,
+                Actions::South,
+            ),
+        ];
 
-        match World::build_from_str(source) {
-            Err(msg) => panic!(msg),
-            Ok(w) => {
-                match State::build(&w, (2, 2), 'R', 'G') {
-                    Err(msg) => panic!(msg),
-                    Ok(state) => {
-                        assert_eq!(state.passenger, Some('R'));
+        let w = World::build_from_str(source).unwrap();
 
-                        let result0 = state.apply_action(&w, Actions::West);
-                        assert_eq!(result0.passenger, None);
-                        let result0_str = result0.display(&w);
-                        assert_eq!(expected0, result0_str);
+        let mut state = State::build(&w, (1, 3), 'R', 'G').unwrap();
+        println!("");
 
-                        let result1 = result0.apply_action(&w, Actions::South);
-                        assert_eq!(result1.passenger, Some('G'));
+        for &(expected_str, expected_passenger, expected_at_destination, next_action) in
+            script.iter()
+        {
+            println!(
+                "{} passenger = {:?} at_destination = {:?} next_action = {}",
+                state.display(&w),
+                state.passenger,
+                state.at_destination(),
+                next_action
+            );
 
-                        let result1_str = result1.display(&w);
-                        assert_eq!(expected1, result1_str);
-                    }
-                }
-            }
+            assert_eq!(expected_passenger, state.passenger);
+            assert_eq!(expected_at_destination, state.at_destination());
+            assert_eq!(expected_str, state.display(&w));
+
+            state = state.apply_action(&w, next_action);
         }
     }
 
