@@ -32,7 +32,7 @@ impl MeasureDistribution {
         } else if self.count < 2.0 {
             (self.mean, f64::NAN)
         } else {
-            let std_dev_sqr = self.mean_2 / (self.count - 1.0);
+            let std_dev_sqr = self.mean_2 / self.count;
             (self.mean, std_dev_sqr.sqrt())
         }
     }

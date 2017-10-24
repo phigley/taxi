@@ -34,15 +34,16 @@ use taxi::distribution::MeasureDistribution;
 fn main() {
 
     if let Err(error) = run() {
-        println!("Failed:\n{:?}", error);
+        println!("{:?}", error);
     }
 }
 
 enum AppError {
     Configuration(configuration::Error),
     World(taxi::world::Error),
-    InitialState(taxi::state::Error),
+    BuildProbes(taxi::state::Error),
     Runner(runner::Error),
+    ReplayState(taxi::state::Error),
     Replay(io::Error),
 }
 
@@ -55,12 +56,6 @@ impl From<configuration::Error> for AppError {
 impl From<taxi::world::Error> for AppError {
     fn from(error: taxi::world::Error) -> Self {
         AppError::World(error)
-    }
-}
-
-impl From<taxi::state::Error> for AppError {
-    fn from(error: taxi::state::Error) -> Self {
-        AppError::InitialState(error)
     }
 }
 
@@ -79,11 +74,14 @@ impl fmt::Debug for AppError {
             AppError::World(ref world_error) => {
                 write!(f, "Failed to build world:\n{:?}", world_error)
             }
-            AppError::InitialState(ref state_error) => {
-                write!(f, "Failed to build initial state:\n{:?}", state_error)
+            AppError::BuildProbes(ref state_error) => {
+                write!(f, "Failed to build probe state:\n{:?}", state_error)
             }
             AppError::Runner(ref runner_error) => {
                 write!(f, "Failed to run trial:\n{:?}", runner_error)
+            }
+            AppError::ReplayState(ref state_error) => {
+                write!(f, "Failed to build replay state:\n{:?}", state_error)
             }
             AppError::Replay(ref replay_error) => {
                 write!(f, "Failed to replay:\n{:?}", replay_error)
@@ -136,7 +134,7 @@ fn run() -> Result<(), AppError> {
                 replay_config.taxi_pos,
                 replay_config.passenger_loc,
                 replay_config.destination_loc,
-            )?;
+            ).map_err(AppError::ReplayState)?;
 
             let attempt = solver.attempt(&world, replay_state, replay_config.max_steps);
 
@@ -162,7 +160,7 @@ fn build_probes(config: &Configuration, world: &World) -> Result<Vec<Probe>, App
             probe_config.taxi_pos,
             probe_config.passenger_loc,
             probe_config.destination_loc,
-        )?;
+        ).map_err(AppError::BuildProbes)?;
 
         probes.push(Probe::new(state, probe_config.max_steps));
     }
