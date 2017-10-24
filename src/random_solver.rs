@@ -1,49 +1,59 @@
 
 use rand::{Rng, thread_rng};
 
+
 use taxi::state::State;
 use taxi::actions::Actions;
 use taxi::world::World;
 
-pub struct RandomSolver {
-    pub iterations: u32,
-    pub solved: bool,
-    pub applied_actions: Vec<Actions>,
-}
+use runner::{Runner, Attempt};
+
+pub struct RandomSolver {}
 
 impl RandomSolver {
-    pub fn new(world: &World, state: State, max_iterations: u32) -> RandomSolver {
+    pub fn new() -> RandomSolver {
+        RandomSolver {}
+    }
+}
+
+impl Runner for RandomSolver {
+    fn learn(&mut self, world: &World, state: State, max_steps: usize) -> Option<usize> {
 
         let mut rng = thread_rng();
 
-        let mut iterations = 0;
-        let mut applied_actions = Vec::new();
 
         let mut current_state = state;
 
-        loop {
+        for step in 0..max_steps {
             if current_state.at_destination() {
-                break RandomSolver {
-                    iterations,
-                    solved: true,
-                    applied_actions,
-                };
+                return Some(step);
             }
-
-            if iterations >= max_iterations {
-                break RandomSolver {
-                    iterations,
-                    solved: false,
-                    applied_actions,
-                };
-            }
-
-            iterations += 1;
 
             let action: Actions = rng.gen();
-
-            applied_actions.push(action);
             current_state = current_state.apply_action(&world, action);
         }
+
+        None
+    }
+
+    fn attempt(&self, world: &World, mut state: State, max_steps: usize) -> Attempt {
+
+        let mut rng = thread_rng();
+
+        let mut attempt = Attempt::new(state.clone(), max_steps);
+
+        for _ in 0..max_steps {
+            if state.at_destination() {
+                attempt.succeeded();
+                break;
+            }
+
+            let action: Actions = rng.gen();
+            attempt.step(action);
+
+            state = state.apply_action(&world, action);
+        }
+
+        attempt
     }
 }

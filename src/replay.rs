@@ -9,9 +9,10 @@ use tui::backend::TermionBackend;
 use tui::widgets::{Widget, Paragraph};
 use tui::layout::{Group, Direction, Size, Rect};
 
-use taxi::state::State;
 use taxi::actions::Actions;
 use taxi::world::World;
+
+use runner::Attempt;
 
 pub struct Replay {
     states: Vec<String>,
@@ -26,22 +27,22 @@ pub struct Replay {
 }
 
 impl Replay {
-    pub fn new(world: &World, mut state: State, solved: bool, actions: &[Actions]) -> Replay {
+    pub fn new(world: &World, attempt: Attempt) -> Replay {
 
-        let mut states = Vec::with_capacity(actions.len() + 1);
-
+        let mut states = Vec::with_capacity(attempt.actions.len() + 1);
+        let mut state = attempt.initial_state.clone();
         states.push(state.display(&world));
 
-        for a in actions {
+        for a in &attempt.actions {
             state = state.apply_action(&world, *a);
             states.push(state.display(&world));
         }
 
         let state_height = (2 * world.height + 1) as u16;
 
-        let num_actions = actions.len();
+        let num_actions = attempt.actions.len();
 
-        let summary = build_summary_string(solved, num_actions);
+        let summary = build_summary_string(attempt.success, num_actions);
 
         let summary_height = summary.lines().count() as u16;
 
@@ -56,12 +57,12 @@ impl Replay {
 
         Replay {
             states,
-            actions: actions.to_vec(),
-            solved,
+            actions: attempt.actions,
+            solved: attempt.success,
             step_height,
             summary,
             summary_height,
-            max_step: actions.len() as isize,
+            max_step: num_actions as isize,
             term_size,
             state_height,
         }

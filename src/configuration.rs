@@ -6,28 +6,30 @@ use std::io::prelude::*;
 use toml;
 
 #[derive(Deserialize, Debug)]
-pub enum ReplayMode {
-    None,
-    First,
-    FirstSuccess,
-    FirstFailure,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct InitialState {
+pub struct Probe {
     pub taxi_pos: (i32, i32),
     pub passenger_loc: char,
     pub destination_loc: char,
+    pub max_steps: usize,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct Replay {
+    pub taxi_pos: (i32, i32),
+    pub passenger_loc: char,
+    pub destination_loc: char,
+    pub max_steps: usize,
 }
 
 #[derive(Deserialize, Debug)]
 #[serde(default)]
 pub struct Configuration {
     pub world: String,
-    pub initial_states: Vec<InitialState>,
-    pub max_steps: u32,
-    pub trials: u32,
-    pub replay_mode: ReplayMode,
+    pub probes: Vec<Probe>,
+    pub max_trials: usize,
+    pub max_trial_steps: usize,
+    pub sessions: usize,
+    pub replay: Option<Replay>,
 }
 
 impl Configuration {
@@ -102,10 +104,11 @@ impl Default for Configuration {
 
         Configuration {
             world: String::from(world_str),
-            initial_states: vec![],
-            trials: 1,
-            max_steps: 500,
-            replay_mode: ReplayMode::First,
+            probes: vec![],
+            max_trials: 1,
+            max_trial_steps: 100,
+            sessions: 1,
+            replay: None,
         }
     }
 }

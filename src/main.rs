@@ -9,6 +9,7 @@ extern crate taxi;
 
 mod configuration;
 mod replay;
+mod runner;
 mod random_solver;
 
 use std::env;
@@ -16,24 +17,24 @@ use std::io;
 use std::fmt;
 use std::convert::From;
 
-use rand::thread_rng;
-use rand::distributions::{IndependentSample, Range};
-
 use termion::event;
 use termion::input::TermRead;
 
-use configuration::{Configuration, ReplayMode, InitialState};
+use configuration::Configuration;
 use replay::Replay;
+
+use runner::{run_training_session, Probe, Runner};
 
 use random_solver::RandomSolver;
 
 use taxi::state::State;
 use taxi::world::World;
+use taxi::distribution::MeasureDistribution;
 
 fn main() {
 
     if let Err(error) = run() {
-        println!("{:?}", error);
+        println!("Failed:\n{:?}", error);
     }
 }
 
@@ -41,6 +42,8 @@ enum AppError {
     Configuration(configuration::Error),
     World(taxi::world::Error),
     InitialState(taxi::state::Error),
+    Runner(runner::Error),
+    Replay(io::Error),
 }
 
 impl From<configuration::Error> for AppError {
@@ -61,6 +64,12 @@ impl From<taxi::state::Error> for AppError {
     }
 }
 
+impl From<runner::Error> for AppError {
+    fn from(error: runner::Error) -> Self {
+        AppError::Runner(error)
+    }
+}
+
 impl fmt::Debug for AppError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
@@ -72,6 +81,12 @@ impl fmt::Debug for AppError {
             }
             AppError::InitialState(ref state_error) => {
                 write!(f, "Failed to build initial state:\n{:?}", state_error)
+            }
+            AppError::Runner(ref runner_error) => {
+                write!(f, "Failed to run trial:\n{:?}", runner_error)
+            }
+            AppError::Replay(ref replay_error) => {
+                write!(f, "Failed to replay:\n{:?}", replay_error)
             }
         }
     }
@@ -88,174 +103,71 @@ fn run() -> Result<(), AppError> {
     };
 
     let world = World::build_from_str(&config.world)?;
-    let initial_states =
-        build_initial_states(config.trials as usize, &config.initial_states, &world)?;
+    let probes = build_probes(&config, &world)?;
 
-    execute_trials(&config, &world, &initial_states);
+    let mut distribution = MeasureDistribution::new();
+    let mut solver = RandomSolver::new();
+
+    for _ in 0..config.sessions {
+        let num_steps = run_training_session(
+            &world,
+            &probes,
+            config.max_trials,
+            config.max_trial_steps,
+            &mut solver,
+        )?;
+
+        distribution.add_value(num_steps as f64);
+    }
+
+    let (avg_steps, stddev_steps) = distribution.get_distribution();
+
+    println!(
+        "Finished {} sessions in {} average steps with stddev of {}.",
+        config.sessions,
+        avg_steps,
+        stddev_steps
+    );
+
+    if let Some(replay_config) = config.replay {
+        if let Some(_) = wait_for_input() {
+            let replay_state = State::build(
+                &world,
+                replay_config.taxi_pos,
+                replay_config.passenger_loc,
+                replay_config.destination_loc,
+            )?;
+
+            let attempt = solver.attempt(&world, replay_state, replay_config.max_steps);
+
+            let replay = Replay::new(&world, attempt);
+
+            if let Err(error) = replay.run() {
+                return Err(AppError::Replay(error));
+            }
+        }
+    }
 
     Ok(())
 }
 
-fn build_initial_states(
-    trials: usize,
-    config_initial_states: &[InitialState],
-    world: &World,
-) -> Result<Vec<State>, AppError> {
 
-    let mut initial_states = Vec::new();
+fn build_probes(config: &Configuration, world: &World) -> Result<Vec<Probe>, AppError> {
 
-    let num_config_initial_states = config_initial_states.len();
+    let mut probes = Vec::new();
 
-    if num_config_initial_states > 0 {
+    for probe_config in &config.probes {
+        let state = State::build(
+            &world,
+            probe_config.taxi_pos,
+            probe_config.passenger_loc,
+            probe_config.destination_loc,
+        )?;
 
-        for i in 0..trials {
-
-            let initial_state = &config_initial_states[i % num_config_initial_states];
-
-            let state = State::build(
-                &world,
-                initial_state.taxi_pos,
-                initial_state.passenger_loc,
-                initial_state.destination_loc,
-            )?;
-
-            initial_states.push(state);
-        }
-
-    } else {
-
-        let mut rng = thread_rng();
-
-        for _ in 0..trials {
-
-            let state = State::build_random(&world, &mut rng)?;
-            initial_states.push(state);
-        }
+        probes.push(Probe::new(state, probe_config.max_steps));
     }
 
-    Ok(initial_states)
-}
-
-fn execute_trials(config: &Configuration, world: &World, initial_states: &[State]) {
-
-    let mut rng = thread_rng();
-    let select_offset = Range::new(0, initial_states.len());
-
-    let mut replay_result = None;
-
-    let mut successes = Vec::new();
-
-    for trial_num in 0..config.trials {
-
-        let initial_state_offset = select_offset.ind_sample(&mut rng);
-        let initial_state = initial_states[initial_state_offset];
-
-        let result = RandomSolver::new(&world, initial_state.clone(), config.max_steps);
-
-        let num_steps = result.applied_actions.len();
-
-        if result.solved {
-
-            successes.push(num_steps as f64);
-
-            println!(
-                "{} - Solved {} after {} steps.",
-                trial_num,
-                initial_state_offset,
-                num_steps
-            );
-        } else {
-            println!(
-                "{} - Failed {} after {} steps.",
-                trial_num,
-                initial_state_offset,
-                num_steps
-            );
-        }
-
-        match config.replay_mode {
-            ReplayMode::None => (),
-            ReplayMode::First => {
-                if let None = replay_result {
-                    replay_result = Some(Replay::new(
-                        &world,
-                        initial_state.clone(),
-                        result.solved,
-                        &result.applied_actions,
-                    ));
-                }
-            }
-
-            ReplayMode::FirstSuccess => {
-                if result.solved {
-                    if let None = replay_result {
-                        replay_result = Some(Replay::new(
-                            &world,
-                            initial_state.clone(),
-                            result.solved,
-                            &result.applied_actions,
-                        ));
-                    }
-                }
-            }
-
-            ReplayMode::FirstFailure => {
-                if !result.solved {
-                    if let None = replay_result {
-                        replay_result = Some(Replay::new(
-                            &world,
-                            initial_state.clone(),
-                            result.solved,
-                            &result.applied_actions,
-                        ));
-                    }
-                }
-            }
-        }
-    }
-
-    if config.trials > 0 {
-
-        let success_percent = (successes.len() as f64) / (config.trials as f64);
-
-        println!(
-            "Averaged {:.1} % success.  Failure at {} steps.",
-            success_percent * 100.0,
-            config.max_steps
-        );
-
-        if successes.len() > 1 {
-
-            let mut average = 0.0f64;
-            let mut variance_sum = 0.0f64;
-            let mut count = 0.0f64;
-
-            for s in successes {
-
-                let old_average = average;
-
-                count += 1.0;
-                average += (s - average) / count;
-
-                variance_sum += (s - old_average) * (s - average);
-            }
-
-            let sample_stddev_sqr = variance_sum / (count - 1.0);
-            let sample_stddev = sample_stddev_sqr.sqrt();
-
-            println!("Avg steps = {:.2}  Std Dev = {:.2}", average, sample_stddev);
-        }
-
-    }
-
-    if let Some(replay) = replay_result {
-
-        if let Some(_) = wait_for_input() {
-            if let Err(error) = replay.run() {
-                println!("IO error : {:?}", error);
-            }
-        }
-    }
+    Ok(probes)
 }
 
 fn wait_for_input() -> Option<()> {

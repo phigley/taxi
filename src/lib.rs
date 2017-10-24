@@ -8,3 +8,4 @@ pub mod position;
 pub mod world;
 pub mod state;
 pub mod actions;
+pub mod distribution;
