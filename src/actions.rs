@@ -2,9 +2,6 @@
 use std::fmt;
 use rand::{Rand, Rng};
 
-#[cfg(test)]
-use distribution::MeasureDistribution;
-
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Actions {
     North,
@@ -16,7 +13,7 @@ pub enum Actions {
 }
 
 impl Actions {
-    pub const NUM_ELEMENTS: usize = 4;
+    pub const NUM_ELEMENTS: usize = 6;
 
     pub fn to_index(&self) -> usize {
         match *self {
@@ -145,103 +142,70 @@ mod test_actions {
     fn distribution() {
 
         let max_iterations = 1000000;
-        let expected_std_dev = 1.0 / (max_iterations as f64).sqrt();
 
-        let mut north_dist = MeasureDistribution::new();
-        let mut south_dist = MeasureDistribution::new();
-        let mut east_dist = MeasureDistribution::new();
-        let mut west_dist = MeasureDistribution::new();
-        let mut pickup_dist = MeasureDistribution::new();
-        let mut dropoff_dist = MeasureDistribution::new();
+        let mut counts = vec![0.0f64, 0.0f64, 0.0f64, 0.0f64, 0.0f64, 0.0f64];
+
+        assert!(counts.len() == Actions::NUM_ELEMENTS);
 
         let mut rng = rand::thread_rng();
         for _ in 0..max_iterations {
 
             let action: Actions = rng.gen();
 
-            north_dist.add_value(if action == Actions::North { 1.0 } else { 0.0 });
-            south_dist.add_value(if action == Actions::South { 1.0 } else { 0.0 });
-            east_dist.add_value(if action == Actions::East { 1.0 } else { 0.0 });
-            west_dist.add_value(if action == Actions::West { 1.0 } else { 0.0 });
-            pickup_dist.add_value(if action == Actions::PickUp { 1.0 } else { 0.0 });
-            dropoff_dist.add_value(if action == Actions::DropOff { 1.0 } else { 0.0 });
+            counts[action.to_index()] += 1.0;
         }
 
-        let max_avg_dev = 4.0 * expected_std_dev;
-        let expected_avg = 1.0 / 6.0;
+        // chi-squared should not exceed this for 95% confidence.
+        let p_05 = 11.07;
+
+        let expected_count = (max_iterations as f64) / (counts.len() as f64);
+
+        let mut chi_sqr = 0.0f64;
+        for count in &counts {
+            let delta = count - expected_count;
+            chi_sqr += (delta * delta) / expected_count;
+        }
+
+        println!("");
+        println!(
+            "north count = {}, ratio = {}",
+            counts[Actions::North.to_index()],
+            counts[Actions::North.to_index()] / expected_count
+        );
 
         println!(
-            "expected avg = {} expected std dev = {} max_dev = {}",
-            expected_avg,
-            expected_std_dev,
-            max_avg_dev
+            "south count = {}, ratio = {}",
+            counts[Actions::South.to_index()],
+            counts[Actions::South.to_index()] / expected_count
+        );
+
+        println!(
+            "east count = {}, ratio = {}",
+            counts[Actions::East.to_index()],
+            counts[Actions::East.to_index()] / expected_count
+        );
+
+        println!(
+            "west count = {}, ratio = {}",
+            counts[Actions::West.to_index()],
+            counts[Actions::West.to_index()] / expected_count
+        );
+
+        println!(
+            "pickup count = {}, ratio = {}",
+            counts[Actions::PickUp.to_index()],
+            counts[Actions::PickUp.to_index()] / expected_count
         );
 
 
-        let (north_avg, north_dev) = north_dist.get_distribution();
         println!(
-            "north = {:?} delta = {}",
-            (north_avg, north_dev),
-            north_avg - expected_avg
+            "dropoff count = {}, ratio = {}",
+            counts[Actions::DropOff.to_index()],
+            counts[Actions::DropOff.to_index()] / expected_count
         );
 
-        let (south_avg, south_dev) = south_dist.get_distribution();
-        println!(
-            "south = {:?} delta = {}",
-            (south_avg, south_dev),
-            south_avg - expected_avg
-        );
+        println!("chi-squared = {}, 95% confidence = {}", chi_sqr, p_05);
 
-        let (east_avg, east_dev) = east_dist.get_distribution();
-        println!(
-            "east = {:?} delta = {}",
-            (east_avg, east_dev),
-            east_avg - expected_avg
-        );
-
-        let (west_avg, west_dev) = west_dist.get_distribution();
-        println!(
-            "west = {:?} delta = {}",
-            (west_avg, west_dev),
-            west_avg - expected_avg
-        );
-
-        let (pickup_avg, pickup_dev) = pickup_dist.get_distribution();
-        println!(
-            "pickup = {:?} delta = {}",
-            (pickup_avg, pickup_dev),
-            pickup_avg - expected_avg
-        );
-
-        let (dropoff_avg, dropoff_dev) = dropoff_dist.get_distribution();
-        println!(
-            "dropoff = {:?} delta = {}",
-            (dropoff_avg, dropoff_dev),
-            dropoff_avg - expected_avg
-        );
-
-        assert!(north_avg - expected_avg < expected_avg * max_avg_dev);
-        assert!(north_avg - expected_avg > -expected_avg * max_avg_dev);
-        assert!(north_dev < expected_std_dev * 1.1);
-
-        assert!(south_avg - expected_avg < expected_avg * max_avg_dev);
-        assert!(south_avg - expected_avg > -expected_avg * max_avg_dev);
-        assert!(south_dev < expected_std_dev * 1.1);
-
-        assert!(east_avg - expected_avg < expected_avg * max_avg_dev);
-        assert!(east_avg - expected_avg > -expected_avg * max_avg_dev);
-        assert!(east_dev < expected_std_dev * 1.1);
-
-        assert!(west_avg - expected_avg < expected_avg * max_avg_dev);
-        assert!(west_avg - expected_avg > -expected_avg * max_avg_dev);
-        assert!(west_dev < expected_std_dev * 1.1);
-
-        assert!(pickup_avg - expected_avg < expected_avg * max_avg_dev);
-        assert!(pickup_avg - expected_avg > -expected_avg * max_avg_dev);
-        assert!(pickup_dev < expected_std_dev * 1.1);
-
-        assert!(dropoff_avg - expected_avg < expected_avg * max_avg_dev);
-        assert!(dropoff_avg - expected_avg > -expected_avg * max_avg_dev);
-        assert!(dropoff_dev < expected_std_dev * 1.1);
+        assert!(chi_sqr < p_05);
     }
 }
