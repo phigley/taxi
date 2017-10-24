@@ -133,7 +133,7 @@ fn output_matches_str_complex() {
         └─┴───┴───┘\n\
         ";
 
-    let expected_str = "\
+    let expected_initial_str = "\
         ┌───┬─────┐\n\
         │p .│. . .│\n\
         │   │     │\n\
@@ -147,18 +147,11 @@ fn output_matches_str_complex() {
         └─┴───┴───┘\n\
         ";
 
-    match World::build_from_str(source_world) {
-        Err(msg) => panic!(msg),
-        Ok(w) => {
-            match State::build(&w, (1, 3), Some('R'), 'B') {
-                Err(msg) => panic!(msg),
-                Ok(state) => {
-                    let state_str = state.display(&w);
-                    assert_eq!(expected_str, state_str);
-                }
-            }
-        }
-    }
+    let world = World::build_from_str(source_world).unwrap();
+    let initial_state = State::build(&world, (1, 3), Some('R'), 'B').unwrap();
+
+    let initial_str = initial_state.display(&world);
+    assert_eq!(expected_initial_str, initial_str);
 }
 
 #[test]
@@ -192,18 +185,11 @@ fn move_allowed_north() {
         ";
 
 
-    match World::build_from_str(source_world) {
-        Err(msg) => panic!(msg),
-        Ok(w) => {
-            match State::build(&w, (1, 3), Some('R'), 'G') {
-                Err(msg) => panic!(msg),
-                Ok(state) => {
-                    let state_north = state.apply_action(&w, Actions::North);
-                    assert_eq!(expected_north, state_north.display(&w));
-                }
-            }
-        }
-    }
+    let world = World::build_from_str(source_world).unwrap();
+    let initial_state = State::build(&world, (1, 3), Some('R'), 'G').unwrap();
+
+    let state_north = initial_state.apply_action(&world, Actions::North);
+    assert_eq!(expected_north, state_north.display(&world));
 }
 
 #[test]
