@@ -6,6 +6,22 @@ use std::io::prelude::*;
 use toml;
 
 #[derive(Deserialize, Debug)]
+pub enum SolverChoice {
+    Random,
+}
+
+impl fmt::Display for SolverChoice {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            SolverChoice::Random => write!(f, "Random"),
+        }
+    }
+}
+
+#[derive(Deserialize, Debug)]
+pub struct RandomSolverConfig {}
+
+#[derive(Deserialize, Debug)]
 pub struct Probe {
     pub taxi_pos: (i32, i32),
     pub passenger_loc: Option<char>,
@@ -15,6 +31,7 @@ pub struct Probe {
 
 #[derive(Deserialize, Debug)]
 pub struct Replay {
+    pub solver: SolverChoice,
     pub taxi_pos: (i32, i32),
     pub passenger_loc: Option<char>,
     pub destination_loc: char,
@@ -29,6 +46,7 @@ pub struct Configuration {
     pub max_trials: usize,
     pub max_trial_steps: usize,
     pub sessions: usize,
+    pub random_solver: Option<RandomSolverConfig>,
     pub replay: Option<Replay>,
 }
 
@@ -108,6 +126,7 @@ impl Default for Configuration {
             max_trials: 1,
             max_trial_steps: 100,
             sessions: 1,
+            random_solver: None,
             replay: None,
         }
     }

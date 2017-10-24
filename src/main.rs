@@ -18,7 +18,7 @@ use std::convert::From;
 use termion::event;
 use termion::input::TermRead;
 
-use configuration::Configuration;
+use configuration::{Configuration, SolverChoice};
 use replay::Replay;
 
 use taxi::state::State;
@@ -41,6 +41,7 @@ enum AppError {
     BuildProbes(taxi::state::Error),
     Runner(taxi::runner::Error),
     ReplayState(taxi::state::Error),
+    ReplaySolverNotTrained(SolverChoice),
     Replay(io::Error),
 }
 
@@ -80,6 +81,13 @@ impl fmt::Debug for AppError {
             AppError::ReplayState(ref state_error) => {
                 write!(f, "Failed to build replay state:\n{:?}", state_error)
             }
+            AppError::ReplaySolverNotTrained(ref solver_choice) => {
+                write!(
+                    f,
+                    "Failed to replay, requested solver {} was not trained.",
+                    solver_choice
+                )
+            }
             AppError::Replay(ref replay_error) => {
                 write!(f, "Failed to replay:\n{:?}", replay_error)
             }
@@ -100,46 +108,45 @@ fn run() -> Result<(), AppError> {
     let world = World::build_from_str(&config.world)?;
     let probes = build_probes(&config, &world)?;
 
-    let mut distribution = MeasureDistribution::new();
-    let mut solver = RandomSolver::new();
-
-    for _ in 0..config.sessions {
-        let num_steps = run_training_session(
+    let random_solver = if let Some(_) = config.random_solver {
+        Some(run_session(
+            RandomSolver::new(),
+            &format!("{}", SolverChoice::Random),
             &world,
             &probes,
+            config.sessions,
             config.max_trials,
             config.max_trial_steps,
-            &mut solver,
-        )?;
-
-        distribution.add_value(num_steps as f64);
-    }
-
-    let (avg_steps, stddev_steps) = distribution.get_distribution();
-
-    println!(
-        "Finished {} sessions in {} average steps with stddev of {}.",
-        config.sessions,
-        avg_steps,
-        stddev_steps
-    );
+        )?)
+    } else {
+        None
+    };
 
     if let Some(replay_config) = config.replay {
-        if let Some(_) = wait_for_input() {
-            let replay_state = State::build(
-                &world,
-                replay_config.taxi_pos,
-                replay_config.passenger_loc,
-                replay_config.destination_loc,
-            ).map_err(AppError::ReplayState)?;
 
-            let attempt = solver.attempt(&world, replay_state, replay_config.max_steps);
+        let replay_solver = match replay_config.solver {
+            SolverChoice::Random => random_solver.as_ref(),
+        };
 
-            let replay = Replay::new(&world, attempt);
+        if let Some(ref replay_solver) = replay_solver {
+            if let Some(_) = wait_for_input() {
+                let replay_state = State::build(
+                    &world,
+                    replay_config.taxi_pos,
+                    replay_config.passenger_loc,
+                    replay_config.destination_loc,
+                ).map_err(AppError::ReplayState)?;
 
-            if let Err(error) = replay.run() {
-                return Err(AppError::Replay(error));
+                let attempt = replay_solver.attempt(&world, replay_state, replay_config.max_steps);
+
+                let replay = Replay::new(&world, attempt);
+
+                if let Err(error) = replay.run() {
+                    return Err(AppError::Replay(error));
+                }
             }
+        } else {
+            return Err(AppError::ReplaySolverNotTrained(replay_config.solver));
         }
     }
 
@@ -163,6 +170,38 @@ fn build_probes(config: &Configuration, world: &World) -> Result<Vec<Probe>, App
     }
 
     Ok(probes)
+}
+
+fn run_session<R: Runner>(
+    mut solver: R,
+    solver_name: &str,
+    world: &World,
+    probes: &[Probe],
+    sessions: usize,
+    max_trials: usize,
+    max_trial_steps: usize,
+) -> Result<R, AppError> {
+
+    let mut distribution = MeasureDistribution::new();
+
+    for _ in 0..sessions {
+        let num_steps =
+            run_training_session(&world, &probes, max_trials, max_trial_steps, &mut solver)?;
+
+        distribution.add_value(num_steps as f64);
+    }
+
+    let (avg_steps, stddev_steps) = distribution.get_distribution();
+
+    println!(
+        "{} - finished {} sessions in {} average steps with stddev of {}.",
+        solver_name,
+        sessions,
+        avg_steps,
+        stddev_steps
+    );
+
+    Ok(solver)
 }
 
 fn wait_for_input() -> Option<()> {
