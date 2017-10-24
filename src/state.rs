@@ -86,37 +86,40 @@ impl State {
     pub fn build(
         world: &World,
         taxi_pos: (i32, i32),
-        passenger_id: char,
-        destination_id: char,
+        passenger: Option<char>,
+        destination: char,
     ) -> Result<State, Error> {
 
         if taxi_pos.0 < 0 || taxi_pos.0 >= world.width || taxi_pos.1 < 0 ||
             taxi_pos.1 >= world.height
         {
-            Err(Error::InvalidTaxi {
+            return Err(Error::InvalidTaxi {
                 taxi_pos,
                 world_dims: (world.width, world.height),
-            })
-        } else {
+            });
+        }
 
-            if world.get_fixed_position(destination_id) == None {
-                Err(Error::InvalidDestination {
-                    id: destination_id,
-                    world: world.display(),
-                })
-            } else if world.get_fixed_position(passenger_id) == None {
-                Err(Error::InvalidPassenger {
+        if world.get_fixed_position(destination) == None {
+            return Err(Error::InvalidDestination {
+                id: destination,
+                world: world.display(),
+            });
+        }
+
+        if let Some(passenger_id) = passenger {
+            if world.get_fixed_position(passenger_id) == None {
+                return Err(Error::InvalidPassenger {
                     id: passenger_id,
                     world: world.display(),
-                })
-            } else {
-                Ok(State {
-                    taxi: Position::new(taxi_pos.0, taxi_pos.1),
-                    passenger: Some(passenger_id),
-                    destination: destination_id,
-                })
+                });
             }
         }
+
+        Ok(State {
+            taxi: Position::new(taxi_pos.0, taxi_pos.1),
+            passenger,
+            destination,
+        })
     }
 
     pub fn build_random<R: Rng>(world: &World, rng: &mut R) -> Result<State, Error> {
@@ -278,7 +281,7 @@ mod test_state {
             destination: 'B',
         };
 
-        let res_state = State::build(&w, (1, 3), 'R', 'B').unwrap();
+        let res_state = State::build(&w, (1, 3), Some('R'), 'B').unwrap();
         assert_eq!(res_state, expected_state);
     }
 
@@ -301,7 +304,7 @@ mod test_state {
 
         let w = World::build_from_str(source_world).unwrap();
 
-        let initial_state = State::build(&w, (2, 2), 'R', 'G').unwrap();
+        let initial_state = State::build(&w, (2, 2), Some('R'), 'G').unwrap();
 
         let expected_initial = "\
         ┌───┬─────┐\n\
@@ -345,7 +348,7 @@ mod test_state {
 
         let w = World::build_from_str(source_world).unwrap();
 
-        let initial_state = State::build(&w, (1, 3), 'R', 'G').unwrap();
+        let initial_state = State::build(&w, (1, 3), Some('R'), 'G').unwrap();
 
         let expected_initial = "\
         ┌───┬─────┐\n\
@@ -499,7 +502,7 @@ mod test_state {
 
         let w = World::build_from_str(source).unwrap();
 
-        let mut state = State::build(&w, (1, 2), 'R', 'G').unwrap();
+        let mut state = State::build(&w, (1, 2), Some('R'), 'G').unwrap();
         println!("");
 
         for &(expected_str, expected_passenger, expected_at_destination, next_action) in
@@ -722,7 +725,7 @@ mod test_state {
 
         let w = World::build_from_str(source).unwrap();
 
-        let mut state = State::build(&w, (1, 3), 'R', 'G').unwrap();
+        let mut state = State::build(&w, (1, 3), Some('R'), 'G').unwrap();
         println!("");
 
         for &(expected_str, expected_passenger, expected_at_destination, next_action) in

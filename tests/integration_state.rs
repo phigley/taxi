@@ -25,7 +25,7 @@ fn build_fails_unknown_passenger() {
         ";
 
     let w = World::build_from_str(source_world).unwrap();
-    State::build(&w, (1, 3), 'C', 'B').unwrap();
+    State::build(&w, (1, 3), Some('C'), 'B').unwrap();
 }
 
 #[test]
@@ -46,7 +46,7 @@ fn build_fails_unknown_destination() {
         ";
 
     let w = World::build_from_str(source_world).unwrap();
-    State::build(&w, (1, 3), 'Y', 'Q').unwrap();
+    State::build(&w, (1, 3), Some('Y'), 'Q').unwrap();
 }
 
 #[test]
@@ -67,7 +67,7 @@ fn build_fails_invalid_taxi() {
         ";
 
     let w = World::build_from_str(source_world).unwrap();
-    State::build(&w, (1, 6), 'R', 'B').unwrap();
+    State::build(&w, (1, 6), Some('R'), 'B').unwrap();
 }
 
 #[test]
@@ -86,21 +86,36 @@ fn output_matches_str_simple() {
     expected_str += " t p \n";
     expected_str += "     \n";
 
-    match World::build_from_str(&source_world) {
-        Err(msg) => panic!(msg),
-        Ok(w) => {
-            match State::build(&w, (0, 1), 'G', 'R') {
-                Err(msg) => panic!(msg),
-                Ok(state) => {
-                    let output = state.display(&w);
-                    assert_eq!(output, expected_str);
-                }
-            }
-        }
-    }
+    let w = World::build_from_str(&source_world).unwrap();
+    let state = State::build(&w, (0, 1), Some('G'), 'R').unwrap();
 
+    let output = state.display(&w);
+    assert_eq!(output, expected_str);
 }
 
+
+#[test]
+fn output_matches_str_passenger_in_taxi() {
+    let mut source_world = String::new();
+    source_world += "     \n";
+    source_world += " R . \n";
+    source_world += "     \n";
+    source_world += " . G \n";
+    source_world += "     \n";
+
+    let mut expected_str = String::new();
+    expected_str += "     \n";
+    expected_str += " d . \n";
+    expected_str += "     \n";
+    expected_str += " T . \n";
+    expected_str += "     \n";
+
+    let w = World::build_from_str(&source_world).unwrap();
+    let state = State::build(&w, (0, 1), None, 'R').unwrap();
+
+    let output = state.display(&w);
+    assert_eq!(output, expected_str);
+}
 
 #[test]
 fn output_matches_str_complex() {
@@ -135,7 +150,7 @@ fn output_matches_str_complex() {
     match World::build_from_str(source_world) {
         Err(msg) => panic!(msg),
         Ok(w) => {
-            match State::build(&w, (1, 3), 'R', 'B') {
+            match State::build(&w, (1, 3), Some('R'), 'B') {
                 Err(msg) => panic!(msg),
                 Ok(state) => {
                     let state_str = state.display(&w);
@@ -180,7 +195,7 @@ fn move_allowed_north() {
     match World::build_from_str(source_world) {
         Err(msg) => panic!(msg),
         Ok(w) => {
-            match State::build(&w, (1, 3), 'R', 'G') {
+            match State::build(&w, (1, 3), Some('R'), 'G') {
                 Err(msg) => panic!(msg),
                 Ok(state) => {
                     let state_north = state.apply_action(&w, Actions::North);
@@ -225,7 +240,7 @@ fn move_top_north() {
     match World::build_from_str(source_world) {
         Err(msg) => panic!(msg),
         Ok(w) => {
-            match State::build(&w, (1, 0), 'R', 'G') {
+            match State::build(&w, (1, 0), Some('R'), 'G') {
                 Err(msg) => panic!(msg),
                 Ok(state) => {
                     let state_north = state.apply_action(&w, Actions::North);
@@ -270,7 +285,7 @@ fn move_wall_north() {
     match World::build_from_str(source_world) {
         Err(msg) => panic!(msg),
         Ok(w) => {
-            match State::build(&w, (1, 3), 'R', 'G') {
+            match State::build(&w, (1, 3), Some('R'), 'G') {
                 Err(msg) => panic!(msg),
                 Ok(state) => {
                     let state_north = state.apply_action(&w, Actions::North);
@@ -315,7 +330,7 @@ fn move_allowed_south() {
     match World::build_from_str(source_world) {
         Err(msg) => panic!(msg),
         Ok(w) => {
-            match State::build(&w, (3, 1), 'R', 'G') {
+            match State::build(&w, (3, 1), Some('R'), 'G') {
                 Err(msg) => panic!(msg),
                 Ok(state) => {
                     let state_south = state.apply_action(&w, Actions::South);
@@ -360,7 +375,7 @@ fn move_bottom_south() {
     match World::build_from_str(source_world) {
         Err(msg) => panic!(msg),
         Ok(w) => {
-            match State::build(&w, (0, 4), 'R', 'G') {
+            match State::build(&w, (0, 4), Some('R'), 'G') {
                 Err(msg) => panic!(msg),
                 Ok(state) => {
                     let state_south = state.apply_action(&w, Actions::South);
@@ -405,7 +420,7 @@ fn move_wall_south() {
     match World::build_from_str(source_world) {
         Err(msg) => panic!(msg),
         Ok(w) => {
-            match State::build(&w, (1, 2), 'R', 'G') {
+            match State::build(&w, (1, 2), Some('R'), 'G') {
                 Err(msg) => panic!(msg),
                 Ok(state) => {
                     let state_south = state.apply_action(&w, Actions::South);
@@ -450,7 +465,7 @@ fn move_allowed_east() {
     match World::build_from_str(source_world) {
         Err(msg) => panic!(msg),
         Ok(w) => {
-            match State::build(&w, (1, 2), 'R', 'G') {
+            match State::build(&w, (1, 2), Some('R'), 'G') {
                 Err(msg) => panic!(msg),
                 Ok(state) => {
                     let state_east = state.apply_action(&w, Actions::East);
@@ -495,7 +510,7 @@ fn move_right_east() {
     match World::build_from_str(source_world) {
         Err(msg) => panic!(msg),
         Ok(w) => {
-            match State::build(&w, (3, 1), 'R', 'G') {
+            match State::build(&w, (3, 1), Some('R'), 'G') {
                 Err(msg) => panic!(msg),
                 Ok(state) => {
                     let state_east = state.apply_action(&w, Actions::East);
@@ -540,7 +555,7 @@ fn move_wall_east() {
     match World::build_from_str(source_world) {
         Err(msg) => panic!(msg),
         Ok(w) => {
-            match State::build(&w, (1, 1), 'R', 'G') {
+            match State::build(&w, (1, 1), Some('R'), 'G') {
                 Err(msg) => panic!(msg),
                 Ok(state) => {
                     let state_east = state.apply_action(&w, Actions::East);
@@ -585,7 +600,7 @@ fn move_allowed_west() {
     match World::build_from_str(source_world) {
         Err(msg) => panic!(msg),
         Ok(w) => {
-            match State::build(&w, (1, 1), 'R', 'G') {
+            match State::build(&w, (1, 1), Some('R'), 'G') {
                 Err(msg) => panic!(msg),
                 Ok(state) => {
                     let state_west = state.apply_action(&w, Actions::West);
@@ -630,7 +645,7 @@ fn move_left_west() {
     match World::build_from_str(source_world) {
         Err(msg) => panic!(msg),
         Ok(w) => {
-            match State::build(&w, (1, 2), 'R', 'G') {
+            match State::build(&w, (1, 2), Some('R'), 'G') {
                 Err(msg) => panic!(msg),
                 Ok(state) => {
                     let state_west = state.apply_action(&w, Actions::West);
@@ -675,7 +690,7 @@ fn move_wall_west() {
     match World::build_from_str(source_world) {
         Err(msg) => panic!(msg),
         Ok(w) => {
-            match State::build(&w, (3, 4), 'R', 'G') {
+            match State::build(&w, (3, 4), Some('R'), 'G') {
                 Err(msg) => panic!(msg),
                 Ok(state) => {
                     let state_west = state.apply_action(&w, Actions::West);
@@ -717,7 +732,7 @@ fn reaches_destination() {
     match World::build_from_str(source_world) {
         Err(msg) => panic!(msg),
         Ok(w) => {
-            match State::build(&w, (2, 1), 'R', 'G') {
+            match State::build(&w, (2, 1), Some('R'), 'G') {
                 Err(msg) => panic!(msg),
                 Ok(state) => {
                     println!("");

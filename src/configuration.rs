@@ -8,7 +8,7 @@ use toml;
 #[derive(Deserialize, Debug)]
 pub struct Probe {
     pub taxi_pos: (i32, i32),
-    pub passenger_loc: char,
+    pub passenger_loc: Option<char>,
     pub destination_loc: char,
     pub max_steps: usize,
 }
@@ -16,7 +16,7 @@ pub struct Probe {
 #[derive(Deserialize, Debug)]
 pub struct Replay {
     pub taxi_pos: (i32, i32),
-    pub passenger_loc: char,
+    pub passenger_loc: Option<char>,
     pub destination_loc: char,
     pub max_steps: usize,
 }
