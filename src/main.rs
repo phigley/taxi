@@ -9,8 +9,6 @@ extern crate taxi;
 
 mod configuration;
 mod replay;
-mod runner;
-mod random_solver;
 
 use std::env;
 use std::io;
@@ -23,13 +21,12 @@ use termion::input::TermRead;
 use configuration::Configuration;
 use replay::Replay;
 
-use runner::{run_training_session, Probe, Runner};
-
-use random_solver::RandomSolver;
-
 use taxi::state::State;
 use taxi::world::World;
 use taxi::distribution::MeasureDistribution;
+
+use taxi::runner::{run_training_session, Probe, Runner};
+use taxi::random_solver::RandomSolver;
 
 fn main() {
 
@@ -42,7 +39,7 @@ enum AppError {
     Configuration(configuration::Error),
     World(taxi::world::Error),
     BuildProbes(taxi::state::Error),
-    Runner(runner::Error),
+    Runner(taxi::runner::Error),
     ReplayState(taxi::state::Error),
     Replay(io::Error),
 }
@@ -59,8 +56,8 @@ impl From<taxi::world::Error> for AppError {
     }
 }
 
-impl From<runner::Error> for AppError {
-    fn from(error: runner::Error) -> Self {
+impl From<taxi::runner::Error> for AppError {
+    fn from(error: taxi::runner::Error) -> Self {
         AppError::Runner(error)
     }
 }

@@ -3,10 +3,10 @@ use std::fmt;
 
 use rand::thread_rng;
 
-use taxi::state;
-use taxi::state::State;
-use taxi::world::World;
-use taxi::actions::Actions;
+use state;
+use state::State;
+use world::World;
+use actions::Actions;
 
 pub struct Probe {
     state: State,

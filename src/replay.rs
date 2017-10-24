@@ -11,8 +11,7 @@ use tui::layout::{Group, Direction, Size, Rect};
 
 use taxi::actions::Actions;
 use taxi::world::World;
-
-use runner::Attempt;
+use taxi::runner::Attempt;
 
 pub struct Replay {
     states: Vec<String>,

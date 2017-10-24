@@ -2,9 +2,9 @@
 use rand::{Rng, thread_rng};
 
 
-use taxi::state::State;
-use taxi::actions::Actions;
-use taxi::world::World;
+use state::State;
+use actions::Actions;
+use world::World;
 
 use runner::{Runner, Attempt};
 
