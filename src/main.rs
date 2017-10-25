@@ -27,6 +27,7 @@ use taxi::distribution::MeasureDistribution;
 
 use taxi::runner::{run_training_session, Probe, Runner};
 use taxi::random_solver::RandomSolver;
+use taxi::qlearner::QLearner;
 
 fn main() {
 
@@ -122,10 +123,25 @@ fn run() -> Result<(), AppError> {
         None
     };
 
+    let qlearner = if let Some(_) = config.q_learner {
+        Some(run_session(
+            QLearner::new(&world),
+            &format!("{}", SolverChoice::QLearner),
+            &world,
+            &probes,
+            config.sessions,
+            config.max_trials,
+            config.max_trial_steps,
+        )?)
+    } else {
+        None
+    };
+
     if let Some(replay_config) = config.replay {
 
         let replay_solver = match replay_config.solver {
-            SolverChoice::Random => random_solver.as_ref(),
+            SolverChoice::Random => random_solver.as_ref().map(|s| s as &Runner),
+            SolverChoice::QLearner => qlearner.as_ref().map(|s| s as &Runner),
         };
 
         if let Some(ref replay_solver) = replay_solver {
@@ -200,6 +216,8 @@ fn run_session<R: Runner>(
         avg_steps,
         stddev_steps
     );
+
+    solver.report_training_result(&world);
 
     Ok(solver)
 }

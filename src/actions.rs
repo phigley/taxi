@@ -143,9 +143,7 @@ mod test_actions {
 
         let max_iterations = 1000000;
 
-        let mut counts = vec![0.0f64, 0.0f64, 0.0f64, 0.0f64, 0.0f64, 0.0f64];
-
-        assert!(counts.len() == Actions::NUM_ELEMENTS);
+        let mut counts = vec![0.0f64; Actions::NUM_ELEMENTS];
 
         let mut rng = rand::thread_rng();
         for _ in 0..max_iterations {

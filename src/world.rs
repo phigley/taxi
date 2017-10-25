@@ -210,6 +210,17 @@ impl World {
         None
     }
 
+    pub fn get_fixed_index(&self, id: char) -> Option<usize> {
+        for (i, fp) in self.fixed_positions.iter().enumerate() {
+            if fp.id == id {
+                return Some(i);
+            }
+        }
+
+        None
+
+    }
+
     fn get_fixed_id(&self, position: &Position) -> Option<char> {
         for fp in &self.fixed_positions {
             if fp.position == *position {
@@ -218,6 +229,18 @@ impl World {
         }
 
         None
+    }
+
+    pub fn num_fixed_positions(&self) -> usize {
+        self.fixed_positions.len()
+    }
+
+    pub fn get_fixed_id_from_index(&self, index: usize) -> Option<char> {
+        if index < self.fixed_positions.len() {
+            Some(self.fixed_positions[index].id)
+        } else {
+            None
+        }
     }
 
     fn get_wall(&self, position: &Position) -> &Wall {

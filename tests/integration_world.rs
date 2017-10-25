@@ -145,14 +145,52 @@ fn read_fixed_position() {
     match World::build_from_str(source) {
         Err(msg) => panic!(msg),
         Ok(world) => {
+            assert_eq!(world.num_fixed_positions(), 4);
+
             assert_eq!(world.get_fixed_position('R'), Some(&Position::new(0, 0)));
             assert_eq!(world.get_fixed_position('G'), Some(&Position::new(4, 0)));
             assert_eq!(world.get_fixed_position('Y'), Some(&Position::new(0, 4)));
             assert_eq!(world.get_fixed_position('B'), Some(&Position::new(3, 4)));
 
             assert_eq!(world.get_fixed_position('?'), None);
+
         }
     }
+}
+
+#[test]
+fn fixed_position_indices() {
+    let source = "\
+    ┌───┬─────┐\n\
+    │R .│. . G│\n\
+    │   │     │\n\
+    │. .│. . .│\n\
+    │         │\n\
+    │. . . . .│\n\
+    │         │\n\
+    │.│. .│. .│\n\
+    │ │   │   │\n\
+    │Y│. .│B .│\n\
+    └─┴───┴───┘\n\
+    ";
+
+    let world = World::build_from_str(source).unwrap();
+
+    let tests = ['R', 'G', 'B', 'Y'];
+
+    for test in &tests {
+        println!("Testing '{}'", *test);
+        if let Some(index) = world.get_fixed_index(*test) {
+            assert_eq!(Some(*test), world.get_fixed_id_from_index(index));
+        } else {
+            panic!("Index is None");
+        }
+    }
+
+    println!("Testing '?'");
+    assert_eq!(None, world.get_fixed_index('?'));
+    assert_eq!(None, world.get_fixed_id_from_index(4));
+    assert_eq!(None, world.get_fixed_id_from_index(12));
 }
 
 #[test]

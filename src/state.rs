@@ -250,6 +250,18 @@ impl State {
             false
         }
     }
+
+    pub fn get_passenger(&self) -> Option<char> {
+        self.passenger
+    }
+
+    pub fn get_destination(&self) -> char {
+        self.destination
+    }
+
+    pub fn get_taxi(&self) -> &Position {
+        &self.taxi
+    }
 }
 
 #[cfg(test)]

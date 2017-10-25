@@ -25,6 +25,8 @@ impl Probe {
 pub trait Runner {
     fn learn(&mut self, world: &World, state: State, max_steps: usize) -> Option<usize>;
     fn attempt(&self, world: &World, state: State, max_steps: usize) -> Attempt;
+
+    fn report_training_result(&self, world: &World) {}
 }
 
 pub struct Attempt {

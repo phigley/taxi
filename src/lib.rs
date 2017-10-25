@@ -11,3 +11,4 @@ pub mod actions;
 pub mod distribution;
 pub mod runner;
 pub mod random_solver;
+pub mod qlearner;
