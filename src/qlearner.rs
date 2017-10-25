@@ -107,27 +107,23 @@ pub struct QLearner {
 }
 
 impl QLearner {
-    pub fn new(world: &World) -> QLearner {
+    pub fn new(world: &World, alpha: f64, gamma: f64, epsilon: f64, show_table: bool) -> QLearner {
 
         let state_indexer = StateIndexer::new(&world);
         let num_states = state_indexer.num_states();
-        let mut qtable = Vec::with_capacity(num_states);
-
-        for _ in 0..num_states {
-            qtable.push([0.0f64; Actions::NUM_ELEMENTS]);
-        }
+        let qtable = vec![[0.0f64; Actions::NUM_ELEMENTS]; num_states];
 
         QLearner {
-            alpha: 1.0,
-            gamma: 1.0,
-            epsilon: 1.0,
+            alpha,
+            gamma,
+            epsilon,
 
             movement_cost: -1.0,
             miss_passenger_cost: -10.0,
 
             state_indexer,
             qtable,
-            show_table: false,
+            show_table,
         }
     }
 
@@ -411,7 +407,7 @@ mod test_qlearner {
 
         assert_eq!(expected_initial_str, initial_state.display(&world));
 
-        let qlearner = QLearner::new(&world);
+        let qlearner = QLearner::new(&world, 1.0, 1.0, 0.0, false);
 
         let north_reward = qlearner.determine_reward(&world, &initial_state, Actions::North);
         assert_eq!(-1.0, north_reward);
@@ -453,7 +449,7 @@ mod test_qlearner {
 
         assert_eq!(expected_initial_str, initial_state.display(&world));
 
-        let qlearner = QLearner::new(&world);
+        let qlearner = QLearner::new(&world, 1.0, 1.0, 0.0, false);
 
         let pickup_reward = qlearner.determine_reward(&world, &initial_state, Actions::PickUp);
         assert_eq!(0.0, pickup_reward);
@@ -472,7 +468,7 @@ mod test_qlearner {
         ";
 
         let world = World::build_from_str(source_world).unwrap();
-        let qlearner = QLearner::new(&world);
+        let qlearner = QLearner::new(&world, 1.0, 1.0, 0.0, false);
 
         let expected_off_passenger_str = "\
         ┌─────┐\n\
@@ -548,7 +544,7 @@ mod test_qlearner {
         ";
 
         let world = World::build_from_str(source_world).unwrap();
-        let qlearner = QLearner::new(&world);
+        let qlearner = QLearner::new(&world, 1.0, 1.0, 0.0, false);
 
         let expected_no_passenger_str = "\
         ┌─────┐\n\
@@ -664,7 +660,7 @@ mod test_qlearner {
         let initial_state = State::build(&world, (0, 1), Some('R'), 'G').unwrap();
         assert_eq!(expected_initial_str, initial_state.display(&world));
 
-        let mut qlearner = QLearner::new(&world);
+        let mut qlearner = QLearner::new(&world, 1.0, 1.0, 0.0, false);
 
         let south_state = initial_state.apply_action(&world, Actions::South);
         assert_eq!(expected_initial_str, south_state.display(&world));
@@ -706,7 +702,7 @@ mod test_qlearner {
 
         let world = World::build_from_str(world_str).unwrap();
 
-        let qlearner = QLearner::new(&world);
+        let qlearner = QLearner::new(&world, 1.0, 1.0, 0.0, false);
 
         let mut counts = vec![0.0f64; Actions::NUM_ELEMENTS];
 
@@ -787,7 +783,7 @@ mod test_qlearner {
 
         let world = World::build_from_str(world_str).unwrap();
 
-        let qlearner = QLearner::new(&world);
+        let qlearner = QLearner::new(&world, 1.0, 1.0, 0.0, false);
 
         let mut counts = vec![0.0f64; Actions::NUM_ELEMENTS];
 

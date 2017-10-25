@@ -112,9 +112,17 @@ fn run() -> Result<(), AppError> {
             );
         };
 
-        if let Some(_) = config.q_learner {
+        if let Some(qlearner_config) = config.q_learner.as_ref() {
             let stats = gather_stats(
-                || QLearner::new(&world),
+                || {
+                    QLearner::new(
+                        &world,
+                        qlearner_config.alpha,
+                        qlearner_config.gamma,
+                        qlearner_config.epsilon,
+                        qlearner_config.show_table,
+                    )
+                },
                 &world,
                 &probes,
                 config.sessions,
@@ -134,7 +142,7 @@ fn run() -> Result<(), AppError> {
         };
     }
 
-    if let Some(replay_config) = config.replay {
+    if let Some(replay_config) = config.replay.as_ref() {
 
         match replay_config.solver {
             SolverChoice::Random => {
@@ -156,9 +164,15 @@ fn run() -> Result<(), AppError> {
                 }
             }
             SolverChoice::QLearner => {
-                if let Some(_) = config.q_learner {
+                if let Some(qlearner_config) = config.q_learner.as_ref() {
                     run_replay(
-                        &mut QLearner::new(&world),
+                        &mut QLearner::new(
+                            &world,
+                            qlearner_config.alpha,
+                            qlearner_config.gamma,
+                            qlearner_config.epsilon,
+                            qlearner_config.show_table,
+                        ),
                         &replay_config,
                         &world,
                         &probes,

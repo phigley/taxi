@@ -24,7 +24,13 @@ impl fmt::Display for SolverChoice {
 pub struct RandomSolverConfig {}
 
 #[derive(Deserialize, Debug)]
-pub struct QLearnerConfig {}
+pub struct QLearnerConfig {
+    pub alpha: f64,
+    pub gamma: f64,
+    pub epsilon: f64,
+
+    pub show_table: bool,
+}
 
 #[derive(Deserialize, Debug)]
 pub struct Probe {
