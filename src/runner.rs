@@ -8,9 +8,10 @@ use state::State;
 use world::World;
 use actions::Actions;
 
+#[derive(Debug)]
 pub struct Probe {
-    state: State,
-    maximum_steps: usize,
+    pub state: State,
+    pub maximum_steps: usize,
 }
 
 impl Probe {
@@ -26,7 +27,7 @@ pub trait Runner {
     fn learn(&mut self, world: &World, state: State, max_steps: usize) -> Option<usize>;
     fn attempt(&self, world: &World, state: State, max_steps: usize) -> Attempt;
 
-    fn report_training_result(&self, world: &World) {}
+    fn report_training_result(&self, _world: &World) {}
 }
 
 pub struct Attempt {
@@ -76,7 +77,7 @@ pub fn run_training_session<R: Runner>(
     max_trials: usize,
     max_steps: usize,
     runner: &mut R,
-) -> Result<usize, Error> {
+) -> Result<Option<usize>, Error> {
 
     let mut rng = thread_rng();
 
@@ -109,9 +110,9 @@ pub fn run_training_session<R: Runner>(
         }
 
         if !failed {
-            return Ok(total_steps);
+            return Ok(Some(total_steps));
         }
     }
 
-    Ok(total_steps)
+    Ok(None)
 }
