@@ -42,7 +42,6 @@ impl Runner for RandomSolver {
 
         for _ in 0..max_steps {
             if state.at_destination() {
-                attempt.succeeded();
                 break;
             }
 
@@ -50,6 +49,10 @@ impl Runner for RandomSolver {
             attempt.step(action);
 
             state = state.apply_action(&world, action);
+        }
+
+        if state.at_destination() {
+            attempt.succeeded();
         }
 
         attempt

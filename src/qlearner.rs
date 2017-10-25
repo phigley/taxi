@@ -237,7 +237,7 @@ impl QLearner {
             let state_values = &mut self.qtable[state_index];
             let action_entry = &mut state_values[next_action.to_index()];
 
-            if self.alpha < 1.0 {
+            if self.alpha > 0.0 {
                 *action_entry *= 1.0 - self.alpha;
             }
 
@@ -283,7 +283,6 @@ impl Runner for QLearner {
 
         for _ in 0..max_steps {
             if state.at_destination() {
-                attempt.succeeded();
                 break;
             }
 
@@ -297,6 +296,10 @@ impl Runner for QLearner {
             } else {
                 break;
             }
+        }
+
+        if state.at_destination() {
+            attempt.succeeded()
         }
 
         attempt
@@ -773,8 +776,6 @@ mod test_qlearner {
 
     #[test]
     fn initial_learning_action_is_random() {
-
-        let mut rng = thread_rng();
 
         let world_str = "\
 		┌───┐\n\
