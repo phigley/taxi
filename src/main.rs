@@ -14,6 +14,8 @@ use std::env;
 use std::io;
 use std::fmt;
 
+use rand::{Rng, thread_rng};
+
 use termion::event;
 use termion::input::TermRead;
 
@@ -85,6 +87,8 @@ fn run() -> Result<(), AppError> {
         )?
     };
 
+    let mut rng = thread_rng();
+
     let world = World::build_from_str(&config.world).map_err(
         AppError::World,
     )?;
@@ -99,6 +103,7 @@ fn run() -> Result<(), AppError> {
                 config.sessions,
                 config.max_trials,
                 config.max_trial_steps,
+                &mut rng,
             )?;
 
             let (avg_steps, stddev_steps) = stats.distribution.get_distribution();
@@ -128,6 +133,7 @@ fn run() -> Result<(), AppError> {
                 config.sessions,
                 config.max_trials,
                 config.max_trial_steps,
+                &mut rng,
             )?;
 
             let (avg_steps, stddev_steps) = stats.distribution.get_distribution();
@@ -154,6 +160,7 @@ fn run() -> Result<(), AppError> {
                         &probes,
                         config.max_trials,
                         config.max_trial_steps,
+                        &mut rng,
                     )?
                 } else {
                     println!(
@@ -178,6 +185,7 @@ fn run() -> Result<(), AppError> {
                         &probes,
                         config.max_trials,
                         config.max_trial_steps,
+                        &mut rng,
                     )?
                 } else {
                     println!(
@@ -218,17 +226,19 @@ struct Stats {
     completed: usize,
 }
 
-fn gather_stats<B, R>(
+fn gather_stats<B, Rnr, R>(
     builder: B,
     world: &World,
     probes: &[Probe],
     sessions: usize,
     max_trials: usize,
     max_trial_steps: usize,
+    mut rng: &mut R,
 ) -> Result<Stats, AppError>
 where
-    B: Fn() -> R,
-    R: Runner,
+    B: Fn() -> Rnr,
+    Rnr: Runner,
+    R: Rng,
 {
     let mut distribution = MeasureDistribution::new();
     let mut completed = 0;
@@ -243,6 +253,7 @@ where
             max_trials,
             max_trial_steps,
             &mut solver,
+            &mut rng,
         ).map_err(AppError::Runner)?
         {
             distribution.add_value(num_steps as f64);
@@ -261,19 +272,27 @@ where
     })
 }
 
-fn run_replay<R>(
-    solver: &mut R,
+fn run_replay<Rnr, R>(
+    solver: &mut Rnr,
     replay_config: &configuration::Replay,
     world: &World,
     probes: &[Probe],
     max_trials: usize,
     max_trial_steps: usize,
+    mut rng: &mut R,
 ) -> Result<(), AppError>
 where
-    R: Runner,
+    Rnr: Runner,
+    R: Rng,
 {
-    run_training_session(&world, &probes, max_trials, max_trial_steps, solver)
-        .map_err(AppError::ReplayTraining)?;
+    run_training_session(
+        &world,
+        &probes,
+        max_trials,
+        max_trial_steps,
+        solver,
+        &mut rng,
+    ).map_err(AppError::ReplayTraining)?;
 
     if let Some(_) = wait_for_input() {
         let replay_state = State::build(
@@ -283,7 +302,7 @@ where
             replay_config.destination_loc,
         ).map_err(AppError::ReplayState)?;
 
-        let attempt = solver.attempt(&world, replay_state, replay_config.max_steps);
+        let attempt = solver.attempt(&world, replay_state, replay_config.max_steps, &mut rng);
 
         let replay = Replay::new(&world, attempt);
 

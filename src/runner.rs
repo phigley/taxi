@@ -1,7 +1,7 @@
 
 use std::fmt;
 
-use rand::thread_rng;
+use rand::Rng;
 
 use state;
 use state::State;
@@ -24,8 +24,20 @@ impl Probe {
 }
 
 pub trait Runner {
-    fn learn(&mut self, world: &World, state: State, max_steps: usize) -> Option<usize>;
-    fn attempt(&self, world: &World, state: State, max_steps: usize) -> Attempt;
+    fn learn<R: Rng>(
+        &mut self,
+        world: &World,
+        state: State,
+        max_steps: usize,
+        rng: &mut R,
+    ) -> Option<usize>;
+    fn attempt<R: Rng>(
+        &self,
+        world: &World,
+        state: State,
+        max_steps: usize,
+        rng: &mut R,
+    ) -> Attempt;
 
     fn report_training_result(&self, _world: &World) {}
 }
@@ -71,15 +83,18 @@ impl fmt::Debug for Error {
 
 
 
-pub fn run_training_session<R: Runner>(
+pub fn run_training_session<Rnr, R>(
     world: &World,
     probes: &[Probe],
     max_trials: usize,
     max_steps: usize,
-    runner: &mut R,
-) -> Result<Option<usize>, Error> {
-
-    let mut rng = thread_rng();
+    runner: &mut Rnr,
+    mut rng: &mut R,
+) -> Result<Option<usize>, Error>
+where
+    Rnr: Runner,
+    R: Rng,
+{
 
     let mut total_steps = 0;
 
@@ -91,7 +106,7 @@ pub fn run_training_session<R: Runner>(
             }
 
             Ok(state) => {
-                if let Some(num_steps) = runner.learn(&world, state, max_steps) {
+                if let Some(num_steps) = runner.learn(&world, state, max_steps, &mut rng) {
                     total_steps += num_steps;
                 } else {
                     total_steps += max_steps;
@@ -102,7 +117,8 @@ pub fn run_training_session<R: Runner>(
         let mut failed = false;
         for probe in probes {
 
-            let attempt = runner.attempt(&world, probe.state.clone(), probe.maximum_steps);
+            let attempt =
+                runner.attempt(&world, probe.state.clone(), probe.maximum_steps, &mut rng);
             if !attempt.success {
                 failed = true;
                 break;

@@ -1,5 +1,5 @@
 
-use rand::{Rng, thread_rng};
+use rand::Rng;
 
 
 use state::State;
@@ -244,9 +244,13 @@ impl QLearner {
 }
 
 impl Runner for QLearner {
-    fn learn(&mut self, world: &World, mut state: State, max_steps: usize) -> Option<usize> {
-
-        let mut rng = thread_rng();
+    fn learn<R: Rng>(
+        &mut self,
+        world: &World,
+        mut state: State,
+        max_steps: usize,
+        mut rng: &mut R,
+    ) -> Option<usize> {
 
         for step in 0..max_steps {
             if state.at_destination() {
@@ -273,8 +277,14 @@ impl Runner for QLearner {
 
     }
 
-    fn attempt(&self, world: &World, mut state: State, max_steps: usize) -> Attempt {
-        let mut rng = thread_rng();
+    fn attempt<R: Rng>(
+        &self,
+        world: &World,
+        mut state: State,
+        max_steps: usize,
+        mut rng: &mut R,
+    ) -> Attempt {
+
         let mut attempt = Attempt::new(state.clone(), max_steps);
 
         for _ in 0..max_steps {
@@ -316,6 +326,8 @@ impl Runner for QLearner {
 
 #[cfg(test)]
 mod test_qlearner {
+
+    use rand::thread_rng;
 
     use super::*;
 
@@ -638,22 +650,22 @@ mod test_qlearner {
     #[test]
     fn learns_go_north() {
         let world_str = "\
-		┌───┐\n\
-		│R .│\n\
-		│   │\n\
-		│. G│\n\
-		└───┘\n\
-		";
+        ┌───┐\n\
+        │R .│\n\
+        │   │\n\
+        │. G│\n\
+        └───┘\n\
+        ";
 
         let world = World::build_from_str(world_str).unwrap();
 
         let expected_initial_str = "\
-		┌───┐\n\
-		│p .│\n\
-		│   │\n\
-		│t d│\n\
-		└───┘\n\
-		";
+        ┌───┐\n\
+        │p .│\n\
+        │   │\n\
+        │t d│\n\
+        └───┘\n\
+        ";
 
         let mut rng = thread_rng();
 
@@ -693,12 +705,12 @@ mod test_qlearner {
     fn initial_greedy_action_is_random() {
 
         let world_str = "\
-		┌───┐\n\
-		│R .│\n\
-		│   │\n\
-		│. G│\n\
-		└───┘\n\
-		";
+        ┌───┐\n\
+        │R .│\n\
+        │   │\n\
+        │. G│\n\
+        └───┘\n\
+        ";
 
         let world = World::build_from_str(world_str).unwrap();
 
@@ -774,12 +786,12 @@ mod test_qlearner {
     fn initial_learning_action_is_random() {
 
         let world_str = "\
-		┌───┐\n\
-		│R .│\n\
-		│   │\n\
-		│. G│\n\
-		└───┘\n\
-		";
+        ┌───┐\n\
+        │R .│\n\
+        │   │\n\
+        │. G│\n\
+        └───┘\n\
+        ";
 
         let world = World::build_from_str(world_str).unwrap();
 

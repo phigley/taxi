@@ -1,5 +1,5 @@
 
-use rand::{Rng, thread_rng};
+use rand::Rng;
 
 
 use state::State;
@@ -17,10 +17,13 @@ impl RandomSolver {
 }
 
 impl Runner for RandomSolver {
-    fn learn(&mut self, world: &World, mut state: State, max_steps: usize) -> Option<usize> {
-
-        let mut rng = thread_rng();
-
+    fn learn<R: Rng>(
+        &mut self,
+        world: &World,
+        mut state: State,
+        max_steps: usize,
+        rng: &mut R,
+    ) -> Option<usize> {
 
         for step in 0..max_steps {
             if state.at_destination() {
@@ -34,9 +37,13 @@ impl Runner for RandomSolver {
         None
     }
 
-    fn attempt(&self, world: &World, mut state: State, max_steps: usize) -> Attempt {
-
-        let mut rng = thread_rng();
+    fn attempt<R: Rng>(
+        &self,
+        world: &World,
+        mut state: State,
+        max_steps: usize,
+        rng: &mut R,
+    ) -> Attempt {
 
         let mut attempt = Attempt::new(state.clone(), max_steps);
 
