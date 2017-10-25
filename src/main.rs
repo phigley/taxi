@@ -13,7 +13,6 @@ mod replay;
 use std::env;
 use std::io;
 use std::fmt;
-use std::convert::From;
 
 use termion::event;
 use termion::input::TermRead;
@@ -41,26 +40,9 @@ enum AppError {
     World(taxi::world::Error),
     BuildProbes(taxi::state::Error),
     Runner(taxi::runner::Error),
+    ReplayTraining(taxi::runner::Error),
     ReplayState(taxi::state::Error),
     Replay(io::Error),
-}
-
-impl From<configuration::Error> for AppError {
-    fn from(error: configuration::Error) -> Self {
-        AppError::Configuration(error)
-    }
-}
-
-impl From<taxi::world::Error> for AppError {
-    fn from(error: taxi::world::Error) -> Self {
-        AppError::World(error)
-    }
-}
-
-impl From<taxi::runner::Error> for AppError {
-    fn from(error: taxi::runner::Error) -> Self {
-        AppError::Runner(error)
-    }
 }
 
 impl fmt::Debug for AppError {
@@ -77,6 +59,9 @@ impl fmt::Debug for AppError {
             }
             AppError::Runner(ref runner_error) => {
                 write!(f, "Failed to run trial:\n{:?}", runner_error)
+            }
+            AppError::ReplayTraining(ref runner_error) => {
+                write!(f, "Failed to run training for replay:\n{:?}", runner_error)
             }
             AppError::ReplayState(ref state_error) => {
                 write!(f, "Failed to build replay state:\n{:?}", state_error)
@@ -95,10 +80,14 @@ fn run() -> Result<(), AppError> {
     let config = if args.len() < 2 {
         Configuration::default()
     } else {
-        Configuration::from_file(&args[1])?
+        Configuration::from_file(&args[1]).map_err(
+            AppError::Configuration,
+        )?
     };
 
-    let world = World::build_from_str(&config.world)?;
+    let world = World::build_from_str(&config.world).map_err(
+        AppError::World,
+    )?;
     let probes = build_probes(&config, &world)?;
 
     if config.sessions > 0 {
@@ -240,7 +229,7 @@ where
             max_trials,
             max_trial_steps,
             &mut solver,
-        )?
+        ).map_err(AppError::Runner)?
         {
             distribution.add_value(num_steps as f64);
             completed += 1;
@@ -269,7 +258,8 @@ fn run_replay<R>(
 where
     R: Runner,
 {
-    run_training_session(&world, &probes, max_trials, max_trial_steps, solver)?;
+    run_training_session(&world, &probes, max_trials, max_trial_steps, solver)
+        .map_err(AppError::ReplayTraining)?;
 
     if let Some(_) = wait_for_input() {
         let replay_state = State::build(
