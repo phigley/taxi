@@ -64,14 +64,16 @@ pub struct Configuration {
 
 impl Configuration {
     pub fn from_file(filename: &str) -> Result<Configuration, Error> {
-        let mut config_file = File::open(filename).or(Err(Error::OpenFailure {
-            filename: String::from(filename),
-        }))?;
+        let mut config_file = File::open(filename).map_err(|_| {
+            Error::OpenFailure { filename: String::from(filename) }
+        })?;
 
         let mut config_string = String::new();
-        config_file.read_to_string(&mut config_string).or(Err(
-            Error::ReadFailure { filename: String::from(filename) },
-        ))?;
+        config_file.read_to_string(&mut config_string).map_err(
+            |_| {
+                Error::ReadFailure { filename: String::from(filename) }
+            },
+        )?;
 
         toml::from_str(&config_string).map_err(|error| {
             Error::ParseFailure {

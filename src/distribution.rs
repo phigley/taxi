@@ -1,5 +1,6 @@
 use std::f64;
 
+#[derive(Default)]
 pub struct MeasureDistribution {
     mean: f64,
     mean_2: f64,
@@ -7,14 +8,6 @@ pub struct MeasureDistribution {
 }
 
 impl MeasureDistribution {
-    pub fn new() -> MeasureDistribution {
-        MeasureDistribution {
-            mean: 0.0,
-            mean_2: 0.0,
-            count: 0.0,
-        }
-    }
-
     pub fn add_value(&mut self, v: f64) {
         self.count += 1.0;
 

@@ -170,7 +170,7 @@ impl World {
 
                 line_count += 1;
                 parse_wall_line(
-                    &wall_line,
+                    wall_line,
                     line_count,
                     width,
                     Some(&mut wall_row),
@@ -250,7 +250,7 @@ impl World {
     pub fn determine_affect(&self, position: &Position, action: Actions) -> ActionAffect {
         match action {
             Actions::North => {
-                if position.y > 0 && !self.get_wall(&position).north {
+                if position.y > 0 && !self.get_wall(position).north {
                     ActionAffect::Move(Position::new(0, -1))
                 } else {
                     ActionAffect::Invalid
@@ -258,7 +258,7 @@ impl World {
             }
 
             Actions::South => {
-                if position.y < (self.height - 1) && !self.get_wall(&position).south {
+                if position.y < (self.height - 1) && !self.get_wall(position).south {
                     ActionAffect::Move(Position::new(0, 1))
                 } else {
                     ActionAffect::Invalid
@@ -266,7 +266,7 @@ impl World {
             }
 
             Actions::East => {
-                if position.x < (self.width - 1) && !self.get_wall(&position).east {
+                if position.x < (self.width - 1) && !self.get_wall(position).east {
                     ActionAffect::Move(Position::new(1, 0))
                 } else {
                     ActionAffect::Invalid
@@ -274,7 +274,7 @@ impl World {
             }
 
             Actions::West => {
-                if position.x > 0 && !self.get_wall(&position).west {
+                if position.x > 0 && !self.get_wall(position).west {
                     ActionAffect::Move(Position::new(-1, 0))
                 } else {
                     ActionAffect::Invalid
@@ -282,7 +282,7 @@ impl World {
             }
 
             Actions::PickUp => {
-                if let Some(id) = self.get_fixed_id(&position) {
+                if let Some(id) = self.get_fixed_id(position) {
                     ActionAffect::PickUp(id)
                 } else {
                     ActionAffect::Invalid
@@ -290,7 +290,7 @@ impl World {
             }
 
             Actions::DropOff => {
-                if let Some(id) = self.get_fixed_id(&position) {
+                if let Some(id) = self.get_fixed_id(position) {
                     ActionAffect::DropOff(id)
                 } else {
                     ActionAffect::Invalid
@@ -503,10 +503,10 @@ fn render_connection(
         (false, true, false, true) => '┐',
         (false, false, true, true) => '─',
 
-        (true, false, false, false) => ' ',
-        (false, true, false, false) => ' ',
-        (false, false, true, false) => ' ',
-        (false, false, false, true) => ' ',
+        (true, false, false, false) |
+        (false, false, true, false) |
+        (false, true, false, false) |
+        (false, false, false, true) |
         (false, false, false, false) => ' ',
     }
 
@@ -605,16 +605,14 @@ fn parse_content_line(
                     position: Position::new(x as i32, y as i32),
                 })
             }
-        } else {
+        } else if c == '│' {
             // even characters can only be walls
-            if c == '│' {
-                if x < width {
-                    wall_row[x].west = true;
-                }
+            if x < width {
+                wall_row[x].west = true;
+            }
 
-                if x > 0 {
-                    wall_row[x - 1].east = true;
-                }
+            if x > 0 {
+                wall_row[x - 1].east = true;
             }
         }
 

@@ -726,23 +726,23 @@ fn reaches_destination() {
 
                     let result0 = state.apply_action(&w, Actions::East);
                     println!("0:\n{}", result0.display(&w));
-                    assert!(result0.at_destination() == false);
+                    assert_eq!(result0.at_destination(), false);
 
                     let result1 = result0.apply_action(&w, Actions::PickUp);
                     println!("1:\n{}", result1.display(&w));
-                    assert!(result1.at_destination() == false);
+                    assert_eq!(result1.at_destination(), false);
 
                     let result2 = result1.apply_action(&w, Actions::South);
                     println!("2:\n{}", result2.display(&w));
-                    assert!(result2.at_destination() == false);
+                    assert_eq!(result2.at_destination(), false);
 
                     let result3 = result2.apply_action(&w, Actions::South);
                     println!("3:\n{}", result3.display(&w));
-                    assert!(result3.at_destination() == false);
+                    assert_eq!(result3.at_destination(), false);
 
                     let result4 = result3.apply_action(&w, Actions::DropOff);
                     println!("4:\n{}", result4.display(&w));
-                    assert!(result4.at_destination() == true);
+                    assert_eq!(result4.at_destination(), true);
                 }
             }
         }

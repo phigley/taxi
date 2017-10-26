@@ -8,6 +8,7 @@ use world::World;
 
 use runner::{Runner, Attempt};
 
+#[derive(Default)]
 pub struct RandomSolver {}
 
 impl RandomSolver {
@@ -31,7 +32,7 @@ impl Runner for RandomSolver {
             }
 
             let action: Actions = rng.gen();
-            state = state.apply_action(&world, action);
+            state = state.apply_action(world, action);
         }
 
         None
@@ -45,7 +46,7 @@ impl Runner for RandomSolver {
         rng: &mut R,
     ) -> Attempt {
 
-        let mut attempt = Attempt::new(state.clone(), max_steps);
+        let mut attempt = Attempt::new(state, max_steps);
 
         for _ in 0..max_steps {
             if state.at_destination() {
@@ -55,7 +56,7 @@ impl Runner for RandomSolver {
             let action: Actions = rng.gen();
             attempt.step(action);
 
-            state = state.apply_action(&world, action);
+            state = state.apply_action(world, action);
         }
 
         if state.at_destination() {

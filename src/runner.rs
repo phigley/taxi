@@ -106,7 +106,7 @@ where
             }
 
             Ok(state) => {
-                if let Some(num_steps) = runner.learn(&world, state, max_steps, &mut rng) {
+                if let Some(num_steps) = runner.learn(world, state, max_steps, &mut rng) {
                     total_steps += num_steps;
                 } else {
                     total_steps += max_steps;
@@ -117,8 +117,7 @@ where
         let mut failed = false;
         for probe in probes {
 
-            let attempt =
-                runner.attempt(&world, probe.state.clone(), probe.maximum_steps, &mut rng);
+            let attempt = runner.attempt(world, probe.state, probe.maximum_steps, &mut rng);
             if !attempt.success {
                 failed = true;
                 break;

@@ -29,12 +29,12 @@ impl Replay {
     pub fn new(world: &World, attempt: Attempt) -> Replay {
 
         let mut states = Vec::with_capacity(attempt.actions.len() + 1);
-        let mut state = attempt.initial_state.clone();
-        states.push(state.display(&world));
+        let mut state = attempt.initial_state;
+        states.push(state.display(world));
 
         for a in &attempt.actions {
-            state = state.apply_action(&world, *a);
-            states.push(state.display(&world));
+            state = state.apply_action(world, *a);
+            states.push(state.display(world));
         }
 
         let state_height = (2 * world.height + 1) as u16;
@@ -166,13 +166,11 @@ fn build_summary_string(solved: bool, num_steps: usize) -> String {
         result += &format!("Failed after {} steps.", num_steps);
     };
 
-    result += &format!(
-        "\n\
+    result += "\n\
          \n\
          Left/Right arrow to advance.\n\
          Escape to exit.\n\
-         "
-    );
+         ";
 
     result
 }
@@ -183,12 +181,10 @@ fn build_step_string(step: usize, solved: bool, actions: &[Actions]) -> String {
 
     if step < actions.len() {
         result += &format!("\nNext action: {}", actions[step]);
+    } else if solved {
+        result += "\nSucceeded";
     } else {
-        if solved {
-            result += "\nSucceeded";
-        } else {
-            result += "\nFailed";
-        }
+        result += "\nFailed";
     }
 
     result

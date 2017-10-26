@@ -95,9 +95,9 @@ fn run() -> Result<(), AppError> {
     let probes = build_probes(&config, &world)?;
 
     if config.sessions > 0 {
-        if let Some(_) = config.random_solver {
+        if config.random_solver.is_some() {
             let stats = gather_stats(
-                || RandomSolver::new(),
+                RandomSolver::new,
                 &world,
                 &probes,
                 config.sessions,
@@ -152,10 +152,10 @@ fn run() -> Result<(), AppError> {
 
         match replay_config.solver {
             SolverChoice::Random => {
-                if let Some(_) = config.random_solver {
+                if config.random_solver.is_some() {
                     run_replay(
                         &mut RandomSolver::new(),
-                        &replay_config,
+                        replay_config,
                         &world,
                         &probes,
                         config.max_trials,
@@ -180,7 +180,7 @@ fn run() -> Result<(), AppError> {
                             qlearner_config.epsilon,
                             qlearner_config.show_table,
                         ),
-                        &replay_config,
+                        replay_config,
                         &world,
                         &probes,
                         config.max_trials,
@@ -209,7 +209,7 @@ fn build_probes(config: &Configuration, world: &World) -> Result<Vec<Probe>, App
 
     for probe_config in &config.probes {
         let state = State::build(
-            &world,
+            world,
             probe_config.taxi_pos,
             probe_config.passenger_loc,
             probe_config.destination_loc,
@@ -240,7 +240,7 @@ where
     Rnr: Runner,
     R: Rng,
 {
-    let mut distribution = MeasureDistribution::new();
+    let mut distribution = MeasureDistribution::default();
     let mut completed = 0;
 
     for s in 0..sessions {
@@ -248,8 +248,8 @@ where
         let mut solver = builder();
 
         if let Some(num_steps) = run_training_session(
-            &world,
-            &probes,
+            world,
+            probes,
             max_trials,
             max_trial_steps,
             &mut solver,
@@ -262,7 +262,7 @@ where
             println!("Failed session {}.", s);
         }
 
-        solver.report_training_result(&world);
+        solver.report_training_result(world);
 
     }
 
@@ -285,26 +285,20 @@ where
     Rnr: Runner,
     R: Rng,
 {
-    run_training_session(
-        &world,
-        &probes,
-        max_trials,
-        max_trial_steps,
-        solver,
-        &mut rng,
-    ).map_err(AppError::ReplayTraining)?;
+    run_training_session(world, probes, max_trials, max_trial_steps, solver, &mut rng)
+        .map_err(AppError::ReplayTraining)?;
 
-    if let Some(_) = wait_for_input() {
+    if wait_for_input().is_some() {
         let replay_state = State::build(
-            &world,
+            world,
             replay_config.taxi_pos,
             replay_config.passenger_loc,
             replay_config.destination_loc,
         ).map_err(AppError::ReplayState)?;
 
-        let attempt = solver.attempt(&world, replay_state, replay_config.max_steps, &mut rng);
+        let attempt = solver.attempt(world, replay_state, replay_config.max_steps, &mut rng);
 
-        let replay = Replay::new(&world, attempt);
+        let replay = Replay::new(world, attempt);
 
         replay.run().map_err(AppError::Replay)?;
 

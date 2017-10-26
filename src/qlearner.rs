@@ -81,7 +81,7 @@ impl StateIndexer {
             };
 
             State::build(
-                &world,
+                world,
                 (taxi_x as i32, taxi_y as i32),
                 passenger,
                 destination,
@@ -109,7 +109,7 @@ pub struct QLearner {
 impl QLearner {
     pub fn new(world: &World, alpha: f64, gamma: f64, epsilon: f64, show_table: bool) -> QLearner {
 
-        let state_indexer = StateIndexer::new(&world);
+        let state_indexer = StateIndexer::new(world);
         let num_states = state_indexer.num_states();
         let qtable = vec![[0.0f64; Actions::NUM_ELEMENTS]; num_states];
 
@@ -257,14 +257,14 @@ impl Runner for QLearner {
                 return Some(step);
             }
 
-            if let Some(state_index) = self.state_indexer.get_index(&world, &state) {
+            if let Some(state_index) = self.state_indexer.get_index(world, &state) {
 
                 let next_action = self.determine_learning_action(state_index, &mut rng);
-                let reward = self.determine_reward(&world, &state, next_action);
+                let reward = self.determine_reward(world, &state, next_action);
 
-                state = state.apply_action(&world, next_action);
+                state = state.apply_action(world, next_action);
 
-                if let Some(next_state_index) = self.state_indexer.get_index(&world, &state) {
+                if let Some(next_state_index) = self.state_indexer.get_index(world, &state) {
                     self.apply_experience(state_index, next_action, next_state_index, reward);
                 }
 
@@ -285,19 +285,19 @@ impl Runner for QLearner {
         mut rng: &mut R,
     ) -> Attempt {
 
-        let mut attempt = Attempt::new(state.clone(), max_steps);
+        let mut attempt = Attempt::new(state, max_steps);
 
         for _ in 0..max_steps {
             if state.at_destination() {
                 break;
             }
 
-            if let Some(state_index) = self.state_indexer.get_index(&world, &state) {
+            if let Some(state_index) = self.state_indexer.get_index(world, &state) {
 
                 let next_action = self.determine_greedy_action(state_index, &mut rng);
                 attempt.step(next_action);
 
-                state = state.apply_action(&world, next_action);
+                state = state.apply_action(world, next_action);
 
             } else {
                 break;
@@ -316,8 +316,8 @@ impl Runner for QLearner {
         if self.show_table {
             println!("");
             for (i, action_values) in self.qtable.iter().enumerate() {
-                let state = self.state_indexer.get_state(&world, i).unwrap();
-                println!("{}", state.display(&world));
+                let state = self.state_indexer.get_state(world, i).unwrap();
+                println!("{}", state.display(world));
                 println!("{:?}", action_values);
             }
         }
