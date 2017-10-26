@@ -119,8 +119,8 @@ where
         let mut failed = false;
         for probe in probes {
 
-            let attempt = runner.attempt(world, probe.state, probe.maximum_steps, &mut rng);
-            if !attempt.success {
+            let attempt = runner.solves(world, probe.state, probe.maximum_steps, &mut rng);
+            if !attempt {
                 failed = true;
                 break;
             }
