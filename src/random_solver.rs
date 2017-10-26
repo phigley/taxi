@@ -82,6 +82,6 @@ impl Runner for RandomSolver {
             state = state.apply_action(world, action);
         }
 
-        false
+        state.at_destination()
     }
 }

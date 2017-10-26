@@ -333,7 +333,7 @@ impl Runner for QLearner {
                 break;
             }
         }
-        false
+        state.at_destination()
     }
 
     fn report_training_result(&self, world: &World) {
