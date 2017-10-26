@@ -39,6 +39,8 @@ pub trait Runner {
         rng: &mut R,
     ) -> Attempt;
 
+    fn solves<R: Rng>(&self, world: &World, state: State, max_steps: usize, rng: &mut R) -> bool;
+
     fn report_training_result(&self, _world: &World) {}
 }
 

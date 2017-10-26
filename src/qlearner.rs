@@ -311,6 +311,31 @@ impl Runner for QLearner {
         attempt
     }
 
+    fn solves<R: Rng>(
+        &self,
+        world: &World,
+        mut state: State,
+        max_steps: usize,
+        mut rng: &mut R,
+    ) -> bool {
+        for _ in 0..max_steps {
+            if state.at_destination() {
+                return true;
+            }
+
+            if let Some(state_index) = self.state_indexer.get_index(world, &state) {
+
+                let next_action = self.determine_greedy_action(state_index, &mut rng);
+
+                state = state.apply_action(world, next_action);
+
+            } else {
+                break;
+            }
+        }
+        false
+    }
+
     fn report_training_result(&self, world: &World) {
 
         if self.show_table {

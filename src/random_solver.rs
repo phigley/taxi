@@ -65,4 +65,23 @@ impl Runner for RandomSolver {
 
         attempt
     }
+
+    fn solves<R: Rng>(
+        &self,
+        world: &World,
+        mut state: State,
+        max_steps: usize,
+        rng: &mut R,
+    ) -> bool {
+        for _ in 0..max_steps {
+            if state.at_destination() {
+                return true;
+            }
+
+            let action: Actions = rng.gen();
+            state = state.apply_action(world, action);
+        }
+
+        false
+    }
 }
