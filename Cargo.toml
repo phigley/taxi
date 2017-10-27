@@ -17,6 +17,7 @@ rayon = "0.8"
 
 [dev-dependencies]
 assert_matches = "1.1"
+float-cmp = "0.2"
 
 [[bin]]
 name = "taxi"

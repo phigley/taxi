@@ -172,11 +172,11 @@ impl QLearner {
             } else {
                 let value_diff = value - best_value;
 
-                if value_diff > 1e-10f64 {
+                if value_diff > 1.0e-10 {
                     best_action = Actions::from_index(i);
                     best_value = *value;
                     num_found = 1;
-                } else if value_diff > -1e-10f64 {
+                } else if value_diff > -1.0e-10 {
 
                     num_found += 1;
 

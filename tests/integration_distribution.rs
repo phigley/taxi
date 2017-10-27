@@ -1,14 +1,16 @@
-#[cfg(test)]
 
+extern crate float_cmp;
 extern crate rand;
 extern crate taxi;
+
+use float_cmp::ApproxEqUlps;
 
 use taxi::distribution::MeasureDistribution;
 
 #[test]
 fn measures_simple() {
 
-    let samples: Vec<i32> = (0..101).collect();
+    let samples: Vec<usize> = (0..101).collect();
 
     let mut measurement = MeasureDistribution::default();
 
@@ -40,15 +42,15 @@ fn measures_simple() {
         naive_std_dev,
     );
 
-    assert_eq!(measurement.get_count(), total_count);
-    assert_eq!(mean, 50.0);
-    assert_eq!(std_dev, naive_std_dev);
+    assert!(measurement.get_count().approx_eq_ulps(&total_count, 1));
+    assert!(mean.approx_eq_ulps(&50.0, 1));
+    assert!(std_dev.approx_eq_ulps(&naive_std_dev, 3));
 }
 
 #[test]
 fn measure_combines_with_empty() {
 
-    let samples: Vec<i32> = (0..101).collect();
+    let samples: Vec<usize> = (0..101).collect();
 
     let mut measurement = MeasureDistribution::default();
 
@@ -63,14 +65,14 @@ fn measure_combines_with_empty() {
 
     let (mean, std_dev) = measurement.get_distribution();
 
-    assert_eq!(mean, expected_mean);
-    assert_eq!(std_dev, expected_std_dev);
+    assert!(mean.approx_eq_ulps(&expected_mean, 1));
+    assert!(std_dev.approx_eq_ulps(&expected_std_dev, 3));
 }
 
 #[test]
 fn measure_empty_combines_with_nonempty() {
 
-    let samples: Vec<i32> = (0..101).collect();
+    let samples: Vec<usize> = (0..101).collect();
 
     let mut measurement = MeasureDistribution::default();
 
@@ -85,21 +87,23 @@ fn measure_empty_combines_with_nonempty() {
 
     let (mean, std_dev) = empty_measurement.get_distribution();
 
-    assert_eq!(mean, expected_mean);
-    assert_eq!(std_dev, expected_std_dev);
+    assert!(mean.approx_eq_ulps(&expected_mean, 1));
+    assert!(std_dev.approx_eq_ulps(&expected_std_dev, 3));
 }
 
 
 #[test]
 fn measures_combine() {
 
-    let samples: Vec<i32> = (0..101).collect();
+    let samples: Vec<usize> = (0..101).collect();
 
     let mut base_line = MeasureDistribution::default();
 
     for s in &samples {
         base_line.add_value(*s as f64);
     }
+
+    let (base_line_mean, base_line_std_dev) = base_line.get_distribution();
 
     let combos = [
     	vec![ 50, 50 ],
@@ -142,7 +146,10 @@ fn measures_combine() {
             result.add_value(*s as f64);
         }
 
-        assert_eq!(result.get_distribution(), base_line.get_distribution());
+        let (result_mean, result_std_dev) = result.get_distribution();
+
+        assert!(result_mean.approx_eq_ulps(&base_line_mean, 1));
+        assert!(result_std_dev.approx_eq_ulps(&base_line_std_dev, 3));
 
     }
 }
