@@ -8,6 +8,7 @@ use world::{World, ActionAffect};
 
 use runner::{Runner, Attempt};
 
+#[derive(Debug, Clone, Copy)]
 struct StateIndexer {
     num_taxi_states: usize,
     num_passenger_states: usize,
@@ -93,6 +94,7 @@ impl StateIndexer {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct QLearner {
     alpha: f64,
     gamma: f64,

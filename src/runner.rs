@@ -116,17 +116,11 @@ where
             }
         }
 
-        let mut failed = false;
-        for probe in probes {
+        let probes_passed = probes.iter().all(|probe| {
+            runner.solves(world, probe.state, probe.maximum_steps, &mut rng)
+        });
 
-            let attempt = runner.solves(world, probe.state, probe.maximum_steps, &mut rng);
-            if !attempt {
-                failed = true;
-                break;
-            }
-        }
-
-        if !failed {
+        if probes_passed {
             return Ok(Some(total_steps));
         }
     }

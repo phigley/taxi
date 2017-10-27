@@ -5,6 +5,8 @@ extern crate rand;
 extern crate tui;
 extern crate termion;
 extern crate toml;
+extern crate rayon;
+
 extern crate taxi;
 
 mod configuration;
@@ -18,6 +20,8 @@ use rand::{Rng, thread_rng};
 
 use termion::event;
 use termion::input::TermRead;
+
+use rayon::prelude::*;
 
 use configuration::{Configuration, SolverChoice};
 use replay::Replay;
@@ -95,6 +99,7 @@ fn run() -> Result<(), AppError> {
     let probes = build_probes(&config, &world)?;
 
     if config.sessions > 0 {
+
         if config.random_solver.is_some() {
             let stats = gather_stats(
                 RandomSolver::new,
@@ -103,7 +108,6 @@ fn run() -> Result<(), AppError> {
                 config.sessions,
                 config.max_trials,
                 config.max_trial_steps,
-                &mut rng,
             )?;
 
             let (avg_steps, stddev_steps) = stats.distribution.get_distribution();
@@ -111,7 +115,7 @@ fn run() -> Result<(), AppError> {
             println!(
                 "{:?} - finished {} sessions in {} average steps with stddev of {}.",
                 SolverChoice::Random,
-                stats.completed,
+                stats.distribution.get_count() as usize,
                 avg_steps,
                 stddev_steps
             );
@@ -133,15 +137,13 @@ fn run() -> Result<(), AppError> {
                 config.sessions,
                 config.max_trials,
                 config.max_trial_steps,
-                &mut rng,
             )?;
 
             let (avg_steps, stddev_steps) = stats.distribution.get_distribution();
-
             println!(
                 "{:?} - finished {} sessions in {} average steps with stddev of {}.",
                 SolverChoice::QLearner,
-                stats.completed,
+                stats.distribution.get_count() as usize,
                 avg_steps,
                 stddev_steps
             );
@@ -221,55 +223,78 @@ fn build_probes(config: &Configuration, world: &World) -> Result<Vec<Probe>, App
     Ok(probes)
 }
 
+#[derive(Default)]
 struct Stats {
     distribution: MeasureDistribution,
-    completed: usize,
 }
 
-fn gather_stats<B, Rnr, R>(
+fn gather_stats<B, Rnr>(
     builder: B,
     world: &World,
     probes: &[Probe],
     sessions: usize,
     max_trials: usize,
     max_trial_steps: usize,
-    mut rng: &mut R,
 ) -> Result<Stats, AppError>
 where
-    B: Fn() -> Rnr,
-    Rnr: Runner,
-    R: Rng,
+    B: Fn() -> Rnr + Sync,
+    Rnr: Runner + Sync,
 {
-    let mut distribution = MeasureDistribution::default();
-    let mut completed = 0;
+    let session_ids: Vec<usize> = (0..sessions).collect();
 
-    for s in 0..sessions {
+    session_ids
+        .par_iter()
+        .fold(|| Ok(Stats::default()), |current_result,
+         session_number|
+         -> Result<Stats, AppError> {
 
-        let mut solver = builder();
+            current_result.and_then(|mut stats| {
 
-        if let Some(num_steps) = run_training_session(
-            world,
-            probes,
-            max_trials,
-            max_trial_steps,
-            &mut solver,
-            &mut rng,
-        ).map_err(AppError::Runner)?
-        {
-            distribution.add_value(num_steps as f64);
-            completed += 1;
-        } else {
-            println!("Failed session {}.", s);
-        }
+                let mut solver = builder();
+                let mut rng = thread_rng();
 
-        solver.report_training_result(world);
+                let training_step_count = run_training_session(
+                    world,
+                    probes,
+                    max_trials,
+                    max_trial_steps,
+                    &mut solver,
+                    &mut rng,
+                ).map_err(AppError::Runner)?;
 
-    }
+                match training_step_count {
+                    Some(num_steps) => {
+                        stats.distribution.add_value(num_steps as f64);
+                    }
+                    None => {
+                        println!("Failed session {}.", session_number);
+                    }
+                };
 
-    Ok(Stats {
-        distribution,
-        completed,
-    })
+                // This may overlap with other reports, should we guard with a mutex?
+                solver.report_training_result(world);
+
+                Ok(stats)
+            })
+        })
+        .reduce(|| Ok(Stats::default()), |result_a: Result<
+            Stats,
+            AppError,
+        >,
+         result_b: Result<
+            Stats,
+            AppError,
+        >|
+         -> Result<Stats, AppError> {
+
+            result_a.and_then(|mut stats_a| {
+                result_b.and_then(|stats_b| {
+                    stats_a.distribution.add_distribution(&stats_b.distribution);
+                    Ok(stats_a)
+                })
+            })
+
+        })
 }
 
 fn run_replay<Rnr, R>(
