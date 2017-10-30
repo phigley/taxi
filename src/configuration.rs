@@ -9,6 +9,7 @@ use toml;
 pub enum SolverChoice {
     Random,
     QLearner,
+    RMax,
 }
 
 impl fmt::Display for SolverChoice {
@@ -16,6 +17,7 @@ impl fmt::Display for SolverChoice {
         match *self {
             SolverChoice::Random => write!(f, "Random"),
             SolverChoice::QLearner => write!(f, "Q-Learner"),
+            SolverChoice::RMax => write!(f, "RMax"),
         }
     }
 }
@@ -31,6 +33,9 @@ pub struct QLearnerConfig {
 
     pub show_table: bool,
 }
+
+#[derive(Deserialize, Debug)]
+pub struct RMaxConfig {}
 
 #[derive(Deserialize, Debug)]
 pub struct Probe {
@@ -59,6 +64,7 @@ pub struct Configuration {
     pub sessions: usize,
     pub random_solver: Option<RandomSolverConfig>,
     pub q_learner: Option<QLearnerConfig>,
+    pub r_max: Option<RMaxConfig>,
     pub replay: Option<Replay>,
 }
 
@@ -142,6 +148,7 @@ impl Default for Configuration {
             sessions: 1,
             random_solver: None,
             q_learner: None,
+            r_max: None,
             replay: None,
         }
     }

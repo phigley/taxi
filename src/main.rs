@@ -33,6 +33,7 @@ use taxi::distribution::MeasureDistribution;
 use taxi::runner::{run_training_session, Probe, Runner};
 use taxi::random_solver::RandomSolver;
 use taxi::qlearner::QLearner;
+use taxi::rmax::RMax;
 
 fn main() {
 
@@ -148,6 +149,27 @@ fn run() -> Result<(), AppError> {
                 stddev_steps
             );
         };
+
+        if config.r_max.is_some() {
+            let stats = gather_stats(
+                RMax::new,
+                &world,
+                &probes,
+                config.sessions,
+                config.max_trials,
+                config.max_trial_steps,
+            )?;
+
+            let (avg_steps, stddev_steps) = stats.distribution.get_distribution();
+
+            println!(
+                "{:?} - finished {} sessions in {} average steps with stddev of {}.",
+                SolverChoice::Random,
+                stats.distribution.get_count() as usize,
+                avg_steps,
+                stddev_steps
+            );
+        };
     }
 
     if let Some(replay_config) = config.replay.as_ref() {
@@ -182,6 +204,25 @@ fn run() -> Result<(), AppError> {
                             qlearner_config.epsilon,
                             qlearner_config.show_table,
                         ),
+                        replay_config,
+                        &world,
+                        &probes,
+                        config.max_trials,
+                        config.max_trial_steps,
+                        &mut rng,
+                    )?
+                } else {
+                    println!(
+                        "Attempting to replay {:?} solver with out a valid configuration \
+                        for that solver.",
+                        replay_config.solver
+                    );
+                }
+            }
+            SolverChoice::RMax => {
+                if config.r_max.is_some() {
+                    run_replay(
+                        &mut RMax::new(),
                         replay_config,
                         &world,
                         &probes,
