@@ -210,34 +210,42 @@ impl State {
         }
     }
 
-    pub fn apply_action(&self, world: &World, action: Actions) -> State {
+    pub fn apply_action(&mut self, world: &World, action: Actions) -> f64 {
 
         match world.determine_affect(&self.taxi, action) {
-            ActionAffect::Invalid => *self,
-            ActionAffect::Move(delta) => State {
-                taxi: self.taxi + delta,
-                ..*self
-            },
+            ActionAffect::Invalid => {
+                match action {
+                    Actions::North | Actions::South | Actions::East | Actions::West => {
+                        world.movement_cost
+                    }
+                    Actions::PickUp | Actions::DropOff => world.miss_passenger_cost,
+                }
+            }
+            ActionAffect::Move(delta) => {
+                self.taxi = self.taxi + delta;
+                world.movement_cost
+            }
 
             ActionAffect::PickUp(id) => {
                 if self.passenger == Some(id) {
-                    State {
-                        passenger: None,
-                        ..*self
-                    }
+                    self.passenger = None;
+                    0.0
                 } else {
-                    *self
+                    world.miss_passenger_cost
                 }
             }
 
             ActionAffect::DropOff(id) => {
                 if self.passenger == None {
-                    State {
-                        passenger: Some(id),
-                        ..*self
+                    self.passenger = Some(id);
+
+                    if id == self.destination {
+                        0.0
+                    } else {
+                        world.miss_passenger_cost
                     }
                 } else {
-                    *self
+                    world.miss_passenger_cost
                 }
             }
         }
@@ -334,10 +342,12 @@ mod test_state {
 
         assert_eq!(expected_initial, initial_state.display(&w));
 
-        let state0 = initial_state.apply_action(&w, Actions::PickUp);
+        let mut state0 = initial_state;
+        state0.apply_action(&w, Actions::PickUp);
         assert_eq!(expected_initial, state0.display(&w));
 
-        let state1 = state0.apply_action(&w, Actions::DropOff);
+        let mut state1 = state0;
+        state1.apply_action(&w, Actions::DropOff);
         assert_eq!(expected_initial, state1.display(&w));
     }
 
@@ -378,10 +388,12 @@ mod test_state {
 
         assert_eq!(expected_initial, initial_state.display(&w));
 
-        let state0 = initial_state.apply_action(&w, Actions::PickUp);
+        let mut state0 = initial_state;
+        state0.apply_action(&w, Actions::PickUp);
         assert_eq!(expected_initial, state0.display(&w));
 
-        let state1 = state0.apply_action(&w, Actions::DropOff);
+        let mut state1 = state0;
+        state1.apply_action(&w, Actions::DropOff);
         assert_eq!(expected_initial, state1.display(&w));
     }
 
@@ -532,7 +544,7 @@ mod test_state {
             assert_eq!(expected_at_destination, state.at_destination());
             assert_eq!(expected_str, state.display(&w));
 
-            state = state.apply_action(&w, next_action);
+            state.apply_action(&w, next_action);
         }
     }
 
@@ -755,7 +767,7 @@ mod test_state {
             assert_eq!(expected_at_destination, state.at_destination());
             assert_eq!(expected_str, state.display(&w));
 
-            state = state.apply_action(&w, next_action);
+            state.apply_action(&w, next_action);
         }
     }
 

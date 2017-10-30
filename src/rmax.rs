@@ -2,8 +2,8 @@ use rand::Rng;
 
 
 use state::State;
-use actions::Actions;
-use world::{World, ActionAffect};
+//use actions::Actions;
+use world::World;
 
 use runner::{Runner, Attempt};
 
@@ -23,33 +23,6 @@ impl RMax {
             miss_passenger_cost: -10.0,
         }
     }
-
-    fn determine_reward(&self, world: &World, state: &State, next_action: Actions) -> f64 {
-        match world.determine_affect(state.get_taxi(), next_action) {
-            ActionAffect::Move(_) => self.movement_cost,
-            ActionAffect::Invalid => {
-                match next_action {
-                    Actions::North | Actions::South | Actions::East | Actions::West => {
-                        self.movement_cost
-                    }
-                    Actions::PickUp | Actions::DropOff => self.miss_passenger_cost,
-                }
-            }
-            ActionAffect::PickUp(id) => {
-                match state.get_passenger() {
-                    Some(passenger_id) if passenger_id == id => 0.0,
-                    _ => self.miss_passenger_cost,
-                }
-            }
-            ActionAffect::DropOff(id) => {
-                if state.get_passenger() == None && id == state.get_destination() {
-                    0.0
-                } else {
-                    self.miss_passenger_cost
-                }
-            }
-        }
-    }
 }
 
 
@@ -59,7 +32,7 @@ impl Runner for RMax {
         world: &World,
         mut state: State,
         max_steps: usize,
-        mut rng: &mut R,
+        rng: &mut R,
     ) -> Option<usize> {
 
         for step in 0..max_steps {
@@ -68,9 +41,7 @@ impl Runner for RMax {
             }
 
             let next_action = rng.gen();
-            let _reward = self.determine_reward(world, &state, next_action);
-
-            state = state.apply_action(world, next_action);
+            state.apply_action(world, next_action);
         }
 
         None
@@ -81,7 +52,7 @@ impl Runner for RMax {
         world: &World,
         mut state: State,
         max_steps: usize,
-        mut rng: &mut R,
+        rng: &mut R,
     ) -> Attempt {
 
         let mut attempt = Attempt::new(state, max_steps);
@@ -93,7 +64,7 @@ impl Runner for RMax {
 
             let next_action = rng.gen();
             attempt.step(next_action);
-            state = state.apply_action(world, next_action);
+            state.apply_action(world, next_action);
         }
 
         if state.at_destination() {
@@ -108,7 +79,7 @@ impl Runner for RMax {
         world: &World,
         mut state: State,
         max_steps: usize,
-        mut rng: &mut R,
+        rng: &mut R,
     ) -> bool {
         for _ in 0..max_steps {
             if state.at_destination() {
@@ -116,10 +87,10 @@ impl Runner for RMax {
             }
 
             let next_action = rng.gen();
-            state = state.apply_action(world, next_action);
+            state.apply_action(world, next_action);
         }
         state.at_destination()
     }
 
-    fn report_training_result(&self, world: &World) {}
+    fn report_training_result(&self, _world: &World) {}
 }

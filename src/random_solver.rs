@@ -32,7 +32,7 @@ impl Runner for RandomSolver {
             }
 
             let action: Actions = rng.gen();
-            state = state.apply_action(world, action);
+            state.apply_action(world, action);
         }
 
         None
@@ -55,8 +55,7 @@ impl Runner for RandomSolver {
 
             let action: Actions = rng.gen();
             attempt.step(action);
-
-            state = state.apply_action(world, action);
+            state.apply_action(world, action);
         }
 
         if state.at_destination() {
@@ -79,7 +78,7 @@ impl Runner for RandomSolver {
             }
 
             let action: Actions = rng.gen();
-            state = state.apply_action(world, action);
+            state.apply_action(world, action);
         }
 
         state.at_destination()

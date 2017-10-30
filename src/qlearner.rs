@@ -4,7 +4,7 @@ use rand::Rng;
 
 use state::State;
 use actions::Actions;
-use world::{World, ActionAffect};
+use world::World;
 
 use runner::{Runner, Attempt};
 
@@ -129,33 +129,6 @@ impl QLearner {
         }
     }
 
-    fn determine_reward(&self, world: &World, state: &State, next_action: Actions) -> f64 {
-        match world.determine_affect(state.get_taxi(), next_action) {
-            ActionAffect::Move(_) => self.movement_cost,
-            ActionAffect::Invalid => {
-                match next_action {
-                    Actions::North | Actions::South | Actions::East | Actions::West => {
-                        self.movement_cost
-                    }
-                    Actions::PickUp | Actions::DropOff => self.miss_passenger_cost,
-                }
-            }
-            ActionAffect::PickUp(id) => {
-                match state.get_passenger() {
-                    Some(passenger_id) if passenger_id == id => 0.0,
-                    _ => self.miss_passenger_cost,
-                }
-            }
-            ActionAffect::DropOff(id) => {
-                if state.get_passenger() == None && id == state.get_destination() {
-                    0.0
-                } else {
-                    self.miss_passenger_cost
-                }
-            }
-        }
-    }
-
     fn determine_greedy_action<R: Rng>(&self, state_index: usize, rng: &mut R) -> Actions {
         let mut num_found = 0;
         let mut best_action = None;
@@ -262,9 +235,7 @@ impl Runner for QLearner {
             if let Some(state_index) = self.state_indexer.get_index(world, &state) {
 
                 let next_action = self.determine_learning_action(state_index, &mut rng);
-                let reward = self.determine_reward(world, &state, next_action);
-
-                state = state.apply_action(world, next_action);
+                let reward = state.apply_action(world, next_action);
 
                 if let Some(next_state_index) = self.state_indexer.get_index(world, &state) {
                     self.apply_experience(state_index, next_action, next_state_index, reward);
@@ -299,7 +270,7 @@ impl Runner for QLearner {
                 let next_action = self.determine_greedy_action(state_index, &mut rng);
                 attempt.step(next_action);
 
-                state = state.apply_action(world, next_action);
+                state.apply_action(world, next_action);
 
             } else {
                 break;
@@ -326,15 +297,13 @@ impl Runner for QLearner {
             }
 
             if let Some(state_index) = self.state_indexer.get_index(world, &state) {
-
                 let next_action = self.determine_greedy_action(state_index, &mut rng);
-
-                state = state.apply_action(world, next_action);
-
+                state.apply_action(world, next_action);
             } else {
                 break;
             }
         }
+
         state.at_destination()
     }
 
@@ -420,261 +389,6 @@ mod test_qlearner {
     }
 
     #[test]
-    fn movement_reward() {
-        let source_world = "\
-        ┌─────┐\n\
-        │R . G│\n\
-        │     │\n\
-        │. . .│\n\
-        │     │\n\
-        │. Y .│\n\
-        └─────┘\n\
-        ";
-
-        let expected_initial_str = "\
-        ┌─────┐\n\
-        │p . d│\n\
-        │     │\n\
-        │. . .│\n\
-        │     │\n\
-        │. t .│\n\
-        └─────┘\n\
-        ";
-
-        let world = World::build_from_str(source_world).unwrap();
-        let initial_state = State::build(&world, (1, 2), Some('R'), 'G').unwrap();
-
-        assert_eq!(expected_initial_str, initial_state.display(&world));
-
-        let qlearner = QLearner::new(&world, 1.0, 1.0, 0.0, false);
-
-        let north_reward = qlearner.determine_reward(&world, &initial_state, Actions::North);
-        assert_eq!(-1.0, north_reward);
-
-        let south_reward = qlearner.determine_reward(&world, &initial_state, Actions::South);
-        assert_eq!(-1.0, south_reward);
-
-        let east_reward = qlearner.determine_reward(&world, &initial_state, Actions::East);
-        assert_eq!(-1.0, east_reward);
-
-        let west_reward = qlearner.determine_reward(&world, &initial_state, Actions::West);
-        assert_eq!(-1.0, west_reward);
-    }
-
-    #[test]
-    fn correct_pickup_reward() {
-        let source_world = "\
-        ┌─────┐\n\
-        │R . G│\n\
-        │     │\n\
-        │. . .│\n\
-        │     │\n\
-        │. Y .│\n\
-        └─────┘\n\
-        ";
-
-        let expected_initial_str = "\
-        ┌─────┐\n\
-        │p . d│\n\
-        │     │\n\
-        │. . .│\n\
-        │     │\n\
-        │. . .│\n\
-        └─────┘\n\
-        ";
-
-        let world = World::build_from_str(source_world).unwrap();
-        let initial_state = State::build(&world, (0, 0), Some('R'), 'G').unwrap();
-
-        assert_eq!(expected_initial_str, initial_state.display(&world));
-
-        let qlearner = QLearner::new(&world, 1.0, 1.0, 0.0, false);
-
-        let pickup_reward = qlearner.determine_reward(&world, &initial_state, Actions::PickUp);
-        assert_eq!(0.0, pickup_reward);
-    }
-
-    #[test]
-    fn incorrect_pickup_reward() {
-        let source_world = "\
-        ┌─────┐\n\
-        │R . G│\n\
-        │     │\n\
-        │. . .│\n\
-        │     │\n\
-        │. Y .│\n\
-        └─────┘\n\
-        ";
-
-        let world = World::build_from_str(source_world).unwrap();
-        let qlearner = QLearner::new(&world, 1.0, 1.0, 0.0, false);
-
-        let expected_off_passenger_str = "\
-        ┌─────┐\n\
-        │p . d│\n\
-        │     │\n\
-        │. t .│\n\
-        │     │\n\
-        │. . .│\n\
-        └─────┘\n\
-        ";
-
-        let off_passenger_state = State::build(&world, (1, 1), Some('R'), 'G').unwrap();
-
-        assert_eq!(
-            expected_off_passenger_str,
-            off_passenger_state.display(&world)
-        );
-        assert_eq!(
-            -10.0,
-            qlearner.determine_reward(&world, &off_passenger_state, Actions::PickUp)
-        );
-
-        let expected_has_passenger_str = "\
-        ┌─────┐\n\
-        │. . d│\n\
-        │     │\n\
-        │. T .│\n\
-        │     │\n\
-        │. . .│\n\
-        └─────┘\n\
-        ";
-
-        let has_passenger_state = State::build(&world, (1, 1), None, 'G').unwrap();
-
-        assert_eq!(
-            expected_has_passenger_str,
-            has_passenger_state.display(&world)
-        );
-        assert_eq!(
-            -10.0,
-            qlearner.determine_reward(&world, &has_passenger_state, Actions::PickUp)
-        );
-
-        let expected_wrong_fp_str = "\
-        ┌─────┐\n\
-        │p . d│\n\
-        │     │\n\
-        │. . .│\n\
-        │     │\n\
-        │. t .│\n\
-        └─────┘\n\
-        ";
-
-        let wrong_fp_state = State::build(&world, (1, 2), Some('R'), 'G').unwrap();
-
-        assert_eq!(expected_wrong_fp_str, wrong_fp_state.display(&world));
-        assert_eq!(
-            -10.0,
-            qlearner.determine_reward(&world, &wrong_fp_state, Actions::PickUp)
-        );
-    }
-
-    #[test]
-    fn incorrect_dropoff_reward() {
-        let source_world = "\
-        ┌─────┐\n\
-        │R . G│\n\
-        │     │\n\
-        │. . .│\n\
-        │     │\n\
-        │. Y .│\n\
-        └─────┘\n\
-        ";
-
-        let world = World::build_from_str(source_world).unwrap();
-        let qlearner = QLearner::new(&world, 1.0, 1.0, 0.0, false);
-
-        let expected_no_passenger_str = "\
-        ┌─────┐\n\
-        │p . d│\n\
-        │     │\n\
-        │. t .│\n\
-        │     │\n\
-        │. . .│\n\
-        └─────┘\n\
-        ";
-
-        let no_passenger_state = State::build(&world, (1, 1), Some('R'), 'G').unwrap();
-
-        assert_eq!(
-            expected_no_passenger_str,
-            no_passenger_state.display(&world)
-        );
-
-        assert_eq!(
-            -10.0,
-            qlearner.determine_reward(&world, &no_passenger_state, Actions::DropOff)
-        );
-
-        let expected_no_passenger_on_dest_str = "\
-        ┌─────┐\n\
-        │p . d│\n\
-        │     │\n\
-        │. . .│\n\
-        │     │\n\
-        │. . .│\n\
-        └─────┘\n\
-        ";
-
-        let no_passenger_on_deststate = State::build(&world, (2, 0), Some('R'), 'G').unwrap();
-
-        assert_eq!(
-            expected_no_passenger_on_dest_str,
-            no_passenger_on_deststate.display(&world)
-        );
-
-        assert_eq!(
-            -10.0,
-            qlearner.determine_reward(&world, &no_passenger_on_deststate, Actions::DropOff)
-        );
-
-        let expected_passenger_off_fp_str = "\
-        ┌─────┐\n\
-        │. . d│\n\
-        │     │\n\
-        │. T .│\n\
-        │     │\n\
-        │. . .│\n\
-        └─────┘\n\
-        ";
-
-        let passenger_off_fp_state = State::build(&world, (1, 1), None, 'G').unwrap();
-
-        assert_eq!(
-            expected_passenger_off_fp_str,
-            passenger_off_fp_state.display(&world)
-        );
-
-        assert_eq!(
-            -10.0,
-            qlearner.determine_reward(&world, &passenger_off_fp_state, Actions::DropOff)
-        );
-
-        let expected_passenger_wrong_fp_str = "\
-        ┌─────┐\n\
-        │. . d│\n\
-        │     │\n\
-        │. . .│\n\
-        │     │\n\
-        │. T .│\n\
-        └─────┘\n\
-        ";
-
-        let passenger_wrong_fp_state = State::build(&world, (1, 2), None, 'G').unwrap();
-
-        assert_eq!(
-            expected_passenger_wrong_fp_str,
-            passenger_wrong_fp_state.display(&world)
-        );
-
-        assert_eq!(
-            -10.0,
-            qlearner.determine_reward(&world, &passenger_wrong_fp_state, Actions::DropOff)
-        );
-    }
-
-    #[test]
     fn learns_go_north() {
         let world_str = "\
         ┌───┐\n\
@@ -701,14 +415,15 @@ mod test_qlearner {
 
         let mut qlearner = QLearner::new(&world, 1.0, 1.0, 0.0, false);
 
-        let south_state = initial_state.apply_action(&world, Actions::South);
-        assert_eq!(expected_initial_str, south_state.display(&world));
-
         let initial_index = qlearner
             .state_indexer
             .get_index(&world, &initial_state)
             .unwrap();
-        let reward = qlearner.determine_reward(&world, &initial_state, Actions::South);
+
+        let mut south_state = initial_state;
+        let reward = south_state.apply_action(&world, Actions::South);
+        assert_eq!(expected_initial_str, south_state.display(&world));
+
         let south_index = qlearner
             .state_indexer
             .get_index(&world, &south_state)

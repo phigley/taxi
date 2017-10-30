@@ -61,6 +61,9 @@ pub struct World {
     pub height: i32,
     walls: Vec<Vec<Wall>>,
     pub fixed_positions: Vec<FixedPosition>,
+
+    pub movement_cost: f64,
+    pub miss_passenger_cost: f64,
 }
 
 #[derive(Debug, PartialEq)]
@@ -193,6 +196,9 @@ impl World {
                 height: height as i32,
                 walls,
                 fixed_positions,
+
+                movement_cost: -1.0,
+                miss_passenger_cost: -10.0,
             })
 
         } else {
@@ -798,6 +804,9 @@ mod test_world {
             height: 0,
             walls: vec![],
             fixed_positions: vec![],
+
+            movement_cost: -1.0,
+            miss_passenger_cost: -10.0,
         }
 
     }

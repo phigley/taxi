@@ -33,7 +33,7 @@ impl Replay {
         states.push(state.display(world));
 
         for a in &attempt.actions {
-            state = state.apply_action(world, *a);
+            state.apply_action(world, *a);
             states.push(state.display(world));
         }
 
