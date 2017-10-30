@@ -3,6 +3,7 @@
 extern crate assert_matches;
 
 extern crate rand;
+extern crate float_cmp;
 
 pub mod position;
 pub mod world;

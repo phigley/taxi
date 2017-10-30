@@ -14,10 +14,10 @@ serde = "1.0"
 serde_derive = "1.0"
 toml = "0.4"
 rayon = "0.8"
+float-cmp = "0.2"
 
 [dev-dependencies]
 assert_matches = "1.1"
-float-cmp = "0.2"
 
 [[bin]]
 name = "taxi"
