@@ -310,7 +310,7 @@ impl Runner for QLearner {
     fn report_training_result(&self, world: &World) {
 
         if self.show_table {
-            println!("");
+            println!();
             for (i, action_values) in self.qtable.iter().enumerate() {
                 let state = self.state_indexer.get_state(world, i).unwrap();
                 println!("{}", state.display(world));
