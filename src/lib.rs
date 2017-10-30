@@ -9,6 +9,7 @@ pub mod world;
 pub mod state;
 pub mod actions;
 pub mod distribution;
+pub mod state_indexer;
 pub mod runner;
 pub mod random_solver;
 pub mod qlearner;
