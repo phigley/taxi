@@ -237,6 +237,10 @@ impl World {
         None
     }
 
+    pub fn max_reward(&self) -> f64 {
+        0.0
+    }
+
     pub fn num_fixed_positions(&self) -> usize {
         self.fixed_positions.len()
     }

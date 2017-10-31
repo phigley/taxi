@@ -19,9 +19,6 @@ pub struct QLearner {
     gamma: f64,
     epsilon: f64,
 
-    movement_cost: f64,
-    miss_passenger_cost: f64,
-
     state_indexer: StateIndexer,
     qtable: Vec<[f64; Actions::NUM_ELEMENTS]>,
     show_table: bool,
@@ -30,17 +27,16 @@ pub struct QLearner {
 impl QLearner {
     pub fn new(world: &World, alpha: f64, gamma: f64, epsilon: f64, show_table: bool) -> QLearner {
 
+        let initial_q_value = world.max_reward() / (1.0 - gamma);
+
         let state_indexer = StateIndexer::new(world);
         let num_states = state_indexer.num_states();
-        let qtable = vec![[0.0f64; Actions::NUM_ELEMENTS]; num_states];
+        let qtable = vec![[initial_q_value; Actions::NUM_ELEMENTS]; num_states];
 
         QLearner {
             alpha,
             gamma,
             epsilon,
-
-            movement_cost: -1.0,
-            miss_passenger_cost: -10.0,
 
             state_indexer,
             qtable,

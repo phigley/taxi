@@ -152,7 +152,7 @@ fn run() -> Result<(), AppError> {
 
         if config.r_max.is_some() {
             let stats = gather_stats(
-                RMax::new,
+                || RMax::new(&world),
                 &world,
                 &probes,
                 config.sessions,
@@ -222,7 +222,7 @@ fn run() -> Result<(), AppError> {
             SolverChoice::RMax => {
                 if config.r_max.is_some() {
                     run_replay(
-                        &mut RMax::new(),
+                        &mut RMax::new(&world),
                         replay_config,
                         &world,
                         &probes,
