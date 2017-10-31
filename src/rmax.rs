@@ -51,7 +51,7 @@ pub struct RMax {
 }
 
 impl RMax {
-    pub fn new(world: &World) -> RMax {
+    pub fn new(world: &World, gamma: f64, known_count: f64, error_delta: f64) -> RMax {
 
         let state_indexer = StateIndexer::new(world);
         let num_states = state_indexer.num_states();
@@ -71,9 +71,9 @@ impl RMax {
 
             value_table,
 
-            gamma: 0.3,
-            error_delta: 1.0e-1,
-            known_count: 1.0,
+            gamma,
+            known_count,
+            error_delta,
         }
     }
 

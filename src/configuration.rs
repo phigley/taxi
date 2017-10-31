@@ -35,7 +35,11 @@ pub struct QLearnerConfig {
 }
 
 #[derive(Deserialize, Debug)]
-pub struct RMaxConfig {}
+pub struct RMaxConfig {
+    pub gamma: f64,
+    pub known_count: f64,
+    pub error_delta: f64,
+}
 
 #[derive(Deserialize, Debug)]
 pub struct Probe {

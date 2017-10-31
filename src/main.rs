@@ -150,9 +150,16 @@ fn run() -> Result<(), AppError> {
             );
         };
 
-        if config.r_max.is_some() {
+        if let Some(rmax_config) = config.r_max.as_ref() {
             let stats = gather_stats(
-                || RMax::new(&world),
+                || {
+                    RMax::new(
+                        &world,
+                        rmax_config.gamma,
+                        rmax_config.known_count,
+                        rmax_config.error_delta,
+                    )
+                },
                 &world,
                 &probes,
                 config.sessions,
@@ -220,9 +227,14 @@ fn run() -> Result<(), AppError> {
                 }
             }
             SolverChoice::RMax => {
-                if config.r_max.is_some() {
+                if let Some(rmax_config) = config.r_max.as_ref() {
                     run_replay(
-                        &mut RMax::new(&world),
+                        &mut RMax::new(
+                            &world,
+                            rmax_config.gamma,
+                            rmax_config.known_count,
+                            rmax_config.error_delta,
+                        ),
                         replay_config,
                         &world,
                         &probes,
