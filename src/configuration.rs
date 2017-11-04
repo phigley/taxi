@@ -5,11 +5,12 @@ use std::io::prelude::*;
 
 use toml;
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone, Copy)]
 pub enum SolverChoice {
     Random,
     QLearner,
     RMax,
+    FactoredRMax,
 }
 
 impl fmt::Display for SolverChoice {
@@ -18,6 +19,7 @@ impl fmt::Display for SolverChoice {
             SolverChoice::Random => write!(f, "Random"),
             SolverChoice::QLearner => write!(f, "Q-Learner"),
             SolverChoice::RMax => write!(f, "RMax"),
+            SolverChoice::FactoredRMax => write!(f, "FactoredRMax"),
         }
     }
 }
@@ -36,6 +38,13 @@ pub struct QLearnerConfig {
 
 #[derive(Deserialize, Debug)]
 pub struct RMaxConfig {
+    pub gamma: f64,
+    pub known_count: f64,
+    pub error_delta: f64,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct FactoredRMaxConfig {
     pub gamma: f64,
     pub known_count: f64,
     pub error_delta: f64,
@@ -69,6 +78,7 @@ pub struct Configuration {
     pub random_solver: Option<RandomSolverConfig>,
     pub q_learner: Option<QLearnerConfig>,
     pub r_max: Option<RMaxConfig>,
+    pub factored_r_max: Option<FactoredRMaxConfig>,
     pub replay: Option<Replay>,
 }
 
@@ -153,6 +163,7 @@ impl Default for Configuration {
             random_solver: None,
             q_learner: None,
             r_max: None,
+            factored_r_max: None,
             replay: None,
         }
     }

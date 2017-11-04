@@ -34,6 +34,7 @@ use taxi::runner::{run_training_session, Probe, Runner};
 use taxi::random_solver::RandomSolver;
 use taxi::qlearner::QLearner;
 use taxi::rmax::RMax;
+use taxi::factoredrmax::FactoredRMax;
 
 fn main() {
 
@@ -47,6 +48,7 @@ enum AppError {
     World(taxi::world::Error),
     BuildProbes(taxi::state::Error),
     Runner(taxi::runner::Error),
+    ReplayRunnerNotConfigured(SolverChoice),
     ReplayTraining(taxi::runner::Error),
     ReplayState(taxi::state::Error),
     Replay(io::Error),
@@ -66,6 +68,14 @@ impl fmt::Debug for AppError {
             }
             AppError::Runner(ref runner_error) => {
                 write!(f, "Failed to run trial:\n{:?}", runner_error)
+            }
+            AppError::ReplayRunnerNotConfigured(ref runner_type) => {
+                write!(
+                    f,
+                    "Attempting to replay {:?} solver with out a valid configuration \
+                        for that solver.",
+                    runner_type
+                )
             }
             AppError::ReplayTraining(ref runner_error) => {
                 write!(f, "Failed to run training for replay:\n{:?}", runner_error)
@@ -102,28 +112,17 @@ fn run() -> Result<(), AppError> {
     if config.sessions > 0 {
 
         if config.random_solver.is_some() {
-            let stats = gather_stats(
+            gather_and_report_stats(
                 RandomSolver::new,
+                SolverChoice::Random,
                 &world,
                 &probes,
-                config.sessions,
-                config.max_trials,
-                config.max_trial_steps,
+                &config,
             )?;
-
-            let (avg_steps, stddev_steps) = stats.distribution.get_distribution();
-
-            println!(
-                "{:?} - finished {} sessions in {} average steps with stddev of {}.",
-                SolverChoice::Random,
-                stats.distribution.get_count() as usize,
-                avg_steps,
-                stddev_steps
-            );
         };
 
         if let Some(qlearner_config) = config.q_learner.as_ref() {
-            let stats = gather_stats(
+            gather_and_report_stats(
                 || {
                     QLearner::new(
                         &world,
@@ -133,25 +132,15 @@ fn run() -> Result<(), AppError> {
                         qlearner_config.show_table,
                     )
                 },
+                SolverChoice::QLearner,
                 &world,
                 &probes,
-                config.sessions,
-                config.max_trials,
-                config.max_trial_steps,
+                &config,
             )?;
-
-            let (avg_steps, stddev_steps) = stats.distribution.get_distribution();
-            println!(
-                "{:?} - finished {} sessions in {} average steps with stddev of {}.",
-                SolverChoice::QLearner,
-                stats.distribution.get_count() as usize,
-                avg_steps,
-                stddev_steps
-            );
         };
 
         if let Some(rmax_config) = config.r_max.as_ref() {
-            let stats = gather_stats(
+            gather_and_report_stats(
                 || {
                     RMax::new(
                         &world,
@@ -160,22 +149,28 @@ fn run() -> Result<(), AppError> {
                         rmax_config.error_delta,
                     )
                 },
+                SolverChoice::RMax,
                 &world,
                 &probes,
-                config.sessions,
-                config.max_trials,
-                config.max_trial_steps,
+                &config,
             )?;
+        };
 
-            let (avg_steps, stddev_steps) = stats.distribution.get_distribution();
-
-            println!(
-                "{:?} - finished {} sessions in {} average steps with stddev of {}.",
-                SolverChoice::Random,
-                stats.distribution.get_count() as usize,
-                avg_steps,
-                stddev_steps
-            );
+        if let Some(factored_rmax_config) = config.factored_r_max.as_ref() {
+            gather_and_report_stats(
+                || {
+                    FactoredRMax::new(
+                        &world,
+                        factored_rmax_config.gamma,
+                        factored_rmax_config.known_count,
+                        factored_rmax_config.error_delta,
+                    )
+                },
+                SolverChoice::FactoredRMax,
+                &world,
+                &probes,
+                &config,
+            )?;
         };
     }
 
@@ -194,11 +189,7 @@ fn run() -> Result<(), AppError> {
                         &mut rng,
                     )?
                 } else {
-                    println!(
-                        "Attempting to replay {:?} solver with out a valid configuration \
-                        for that solver.",
-                        replay_config.solver
-                    );
+                    return Err(AppError::ReplayRunnerNotConfigured(replay_config.solver));
                 }
             }
             SolverChoice::QLearner => {
@@ -219,13 +210,10 @@ fn run() -> Result<(), AppError> {
                         &mut rng,
                     )?
                 } else {
-                    println!(
-                        "Attempting to replay {:?} solver with out a valid configuration \
-                        for that solver.",
-                        replay_config.solver
-                    );
+                    return Err(AppError::ReplayRunnerNotConfigured(replay_config.solver));
                 }
             }
+
             SolverChoice::RMax => {
                 if let Some(rmax_config) = config.r_max.as_ref() {
                     run_replay(
@@ -243,19 +231,35 @@ fn run() -> Result<(), AppError> {
                         &mut rng,
                     )?
                 } else {
-                    println!(
-                        "Attempting to replay {:?} solver with out a valid configuration \
-                        for that solver.",
-                        replay_config.solver
-                    );
+                    return Err(AppError::ReplayRunnerNotConfigured(replay_config.solver));
+                }
+            }
+            SolverChoice::FactoredRMax => {
+                if let Some(factored_rmax_config) = config.factored_r_max.as_ref() {
+                    run_replay(
+                        &mut FactoredRMax::new(
+                            &world,
+                            factored_rmax_config.gamma,
+                            factored_rmax_config.known_count,
+                            factored_rmax_config.error_delta,
+                        ),
+                        replay_config,
+                        &world,
+                        &probes,
+                        config.max_trials,
+                        config.max_trial_steps,
+                        &mut rng,
+                    )?
+                } else {
+                    return Err(AppError::ReplayRunnerNotConfigured(replay_config.solver));
                 }
             }
         };
-
     }
 
     Ok(())
 }
+
 
 
 fn build_probes(config: &Configuration, world: &World) -> Result<Vec<Probe>, AppError> {
@@ -276,9 +280,43 @@ fn build_probes(config: &Configuration, world: &World) -> Result<Vec<Probe>, App
     Ok(probes)
 }
 
+
 #[derive(Default)]
 struct Stats {
     distribution: MeasureDistribution,
+}
+
+fn gather_and_report_stats<B, Rnr>(
+    builder: B,
+    solver_choice: SolverChoice,
+    world: &World,
+    probes: &[Probe],
+    config: &Configuration,
+) -> Result<(), AppError>
+where
+    B: Fn() -> Rnr + Sync,
+    Rnr: Runner + Sync,
+{
+    let stats = gather_stats(
+        builder,
+        &world,
+        &probes,
+        config.sessions,
+        config.max_trials,
+        config.max_trial_steps,
+    )?;
+
+    let (avg_steps, stddev_steps) = stats.distribution.get_distribution();
+
+    println!(
+        "{:?} - finished {} sessions in {} average steps with stddev of {}.",
+        solver_choice,
+        stats.distribution.get_count() as usize,
+        avg_steps,
+        stddev_steps
+    );
+
+    Ok(())
 }
 
 fn gather_stats<B, Rnr>(

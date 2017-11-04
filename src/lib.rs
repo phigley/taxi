@@ -15,3 +15,4 @@ pub mod runner;
 pub mod random_solver;
 pub mod qlearner;
 pub mod rmax;
+pub mod factoredrmax;
