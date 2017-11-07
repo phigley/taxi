@@ -143,7 +143,16 @@ impl RMax {
         let mut best_value = -f64::MAX;
 
         for action_index in 0..Actions::NUM_ELEMENTS {
-            let mut action_value = 0.0;
+
+            let state_action_index = state_index * Actions::NUM_ELEMENTS + action_index;
+
+            let reward_entry = &self.reward_table[state_action_index];
+
+            let mut action_value = if reward_entry.count >= self.known_count {
+                reward_entry.mean
+            } else {
+                self.rmax
+            };
 
             for next_state_index in 0..self.state_indexer.num_states() {
                 let (transition, reward) =
@@ -167,7 +176,15 @@ impl RMax {
         let mut num_found = 0;
 
         for action_index in 0..Actions::NUM_ELEMENTS {
-            let mut action_value = 0.0;
+            let state_action_index = state_index * Actions::NUM_ELEMENTS + action_index;
+
+            let reward_entry = &self.reward_table[state_action_index];
+
+            let mut action_value = if reward_entry.count >= self.known_count {
+                reward_entry.mean
+            } else {
+                self.rmax
+            };
 
             for next_state_index in 0..self.state_indexer.num_states() {
                 let (transition, reward) =
