@@ -12,22 +12,6 @@ use world::World;
 use runner::{Runner, Attempt};
 use state_indexer::StateIndexer;
 
-#[derive(Debug, Clone)]
-struct TransitionEntry {
-    destination_count: Vec<f64>,
-    count: f64,
-}
-
-impl TransitionEntry {
-    fn new(num_states: usize) -> TransitionEntry {
-
-        TransitionEntry {
-            destination_count: vec![0.0; num_states],
-            count: 0.0,
-        }
-    }
-}
-
 #[derive(Debug, Clone, Copy, Default)]
 struct RewardEntry {
     mean: f64,
@@ -40,8 +24,10 @@ pub struct FactoredRMax {
     state_indexer: StateIndexer,
     rmax: f64,
 
-    transition_table: Vec<TransitionEntry>,
-    reward_table: Vec<RewardEntry>,
+    transition_occurences: Vec<Vec<Vec<f64>>>, // [Action][variable][parent_values]
+    transitions: Vec<Vec<Vec<Vec<f64>>>>, // [Action][variable][parent_values][destination_value]
+
+    reward_table: Vec<Vec<RewardEntry>>, // [Action][state_id]
 
     value_table: Vec<f64>,
 
@@ -57,16 +43,48 @@ impl FactoredRMax {
         let num_states = state_indexer.num_states();
         let value_table = vec![0.0; num_states];
 
-        let transition_table =
-            vec![TransitionEntry::new(num_states); num_states * Actions::NUM_ELEMENTS];
+        let num_x_states = world.width as usize;
+        let num_y_states = world.height as usize;
+        let num_destination_states = world.num_fixed_positions();
+        let num_passenger_states = num_destination_states + 1;
 
-        let reward_table = vec![RewardEntry::default(); num_states * Actions::NUM_ELEMENTS];
+        let mut transitions = Vec::with_capacity(Actions::NUM_ELEMENTS);
+        let mut transition_occurences = Vec::with_capacity(Actions::NUM_ELEMENTS);
+
+        for action_index in 0..Actions::NUM_ELEMENTS {
+
+            let action = Actions::from_index(action_index).unwrap();
+
+            let occurence_entry = vec![
+                vec![0.0; num_x_parents(world, action)],
+                vec![0.0; num_y_parents(world, action)],
+                vec![0.0; num_passenger_parents(world, action)],
+                vec![0.0; num_destination_parents(world, action)],
+            ];
+
+            transition_occurences.push(occurence_entry);
+
+            let entry =
+                vec![
+                    vec![vec![0.0; num_x_states]; num_x_parents(world, action)],
+                    vec![vec![0.0; num_y_states]; num_y_parents(world, action)],
+                    vec![vec![0.0; num_passenger_states]; num_passenger_parents(world, action)],
+                    vec![vec![0.0; num_destination_states]; num_destination_parents(world, action)],
+                ];
+
+            transitions.push(entry);
+
+        }
+
+        let reward_table = vec![vec![RewardEntry::default(); num_states]; Actions::NUM_ELEMENTS];
 
         FactoredRMax {
             state_indexer,
             rmax: world.max_reward(),
 
-            transition_table,
+            transition_occurences,
+            transitions,
+
             reward_table,
 
             value_table,
@@ -79,75 +97,251 @@ impl FactoredRMax {
 
     fn apply_experience(
         &mut self,
-        state_index: usize,
+        world: &World,
+        state: &State,
         action: Actions,
-        next_state_index: usize,
+        next_state: &State,
         reward: f64,
     ) {
 
         let action_index = action.to_index();
 
-        let state_action_index = state_index * Actions::NUM_ELEMENTS + action_index;
+        let occurences = &mut self.transition_occurences[action_index];
 
-        let transition_entry = &mut self.transition_table[state_action_index];
+        let x_index = state.get_taxi().x as usize;
+        let y_index = state.get_taxi().y as usize;
 
-        if transition_entry.count < self.known_count {
-            transition_entry.count += 1.0;
-            transition_entry.destination_count[next_state_index] += 1.0;
+        let x_parent_index = generate_x_parent_index(world, x_index, y_index, action);
+
+        let x_occurence_count = occurences[0][x_parent_index];
+        let y_occurence_count = occurences[1][y_index];
+
+        if let Some(passenger_index) = generate_passenger_index(world, state) {
+
+            if let Some(destination_index) = generate_destination_index(world, state) {
+
+                let passenger_parent_index = generate_passenger_parent_index(
+                    world,
+                    x_index,
+                    y_index,
+                    passenger_index,
+                    destination_index,
+                    action,
+                );
+                let passenger_occurence_count = occurences[2][passenger_parent_index];
+
+                let destination_occurence_count = occurences[3][destination_index];
+
+                if x_occurence_count < self.known_count || y_occurence_count < self.known_count ||
+                    passenger_occurence_count < self.known_count ||
+                    destination_occurence_count < self.known_count
+                {
+
+                    let transitions = &mut self.transitions[action_index];
+
+                    let next_x_index = next_state.get_taxi().x as usize;
+                    transitions[0][generate_x_parent_index(world, x_index, y_index, action)]
+                        [next_x_index] += 1.0;
+                    occurences[0][x_parent_index] += 1.0;
+
+                    let next_y_index = next_state.get_taxi().y as usize;
+                    transitions[1][y_index][next_y_index] += 1.0;
+                    occurences[1][y_index] += 1.0;
+
+                    if let Some(next_passenger_index) =
+                        generate_passenger_index(world, next_state)
+                    {
+
+                        transitions[2][generate_passenger_parent_index(
+                            world,
+                            x_index,
+                            y_index,
+                            passenger_index,
+                            destination_index,
+                            action,
+                        )]
+                            [next_passenger_index] += 1.0;
+
+                        occurences[2][passenger_parent_index] += 1.0;
+
+                        if let Some(next_destination_index) =
+                            generate_destination_index(world, next_state)
+                        {
+
+                            transitions[3][destination_index][next_destination_index] += 1.0;
+                            occurences[3][destination_index] += 1.0;
+                        }
+                    }
+                }
+            }
         }
 
-        let reward_entry = &mut self.reward_table[state_action_index];
-        if reward_entry.count < self.known_count {
-            reward_entry.count += 1.0;
 
-            let delta = reward - reward_entry.mean;
+        if let Some(state_index) = self.state_indexer.get_index(world, state) {
 
-            reward_entry.mean += delta / reward_entry.count;
+            let reward_entry = &mut self.reward_table[action_index][state_index];
+            if reward_entry.count < self.known_count {
+                reward_entry.count += 1.0;
+
+                let delta = reward - reward_entry.mean;
+
+                reward_entry.mean += delta / reward_entry.count;
+            }
+
         }
+    }
+
+    fn predict_transition(
+        &self,
+        world: &World,
+        state: &State,
+        action: Actions,
+        next_state: &State,
+    ) -> Option<f64> {
+
+        let action_index = action.to_index();
+
+        let occurences = &self.transition_occurences[action_index];
+
+        let x_index = state.get_taxi().x as usize;
+        let y_index = state.get_taxi().y as usize;
+
+        let x_occurence_count =
+            occurences[0][generate_x_parent_index(world, x_index, y_index, action)];
+
+        if x_occurence_count < self.known_count {
+            return None;
+        }
+
+        let y_occurence_count = occurences[1][y_index];
+        if y_occurence_count < self.known_count {
+            return None;
+        }
+
+        if let Some(passenger_index) = generate_passenger_index(world, state) {
+
+            if let Some(destination_index) = generate_destination_index(world, state) {
+
+                let passenger_occurence_count = occurences[2][generate_passenger_parent_index(
+                    world,
+                    x_index,
+                    y_index,
+                    passenger_index,
+                    destination_index,
+                    action,
+                )];
+                if passenger_occurence_count < self.known_count {
+                    return None;
+                }
+
+                let destination_occurence_count = occurences[3][destination_index];
+
+                if destination_occurence_count < self.known_count {
+                    return None;
+                }
+
+                let transitions = &self.transitions[action_index];
+
+                let next_x_index = next_state.get_taxi().x as usize;
+                let x_transition =
+                    transitions[0][generate_x_parent_index(world, x_index, y_index, action)]
+                        [next_x_index] / x_occurence_count;
+
+                let next_y_index = next_state.get_taxi().y as usize;
+                let y_transition = transitions[1][y_index][next_y_index] / y_occurence_count;
+
+                if let Some(next_passenger_index) = generate_passenger_index(world, next_state) {
+
+                    let passenger_transition = transitions[2][generate_passenger_parent_index(
+                        world,
+                        x_index,
+                        y_index,
+                        passenger_index,
+                        destination_index,
+                        action,
+                    )]
+                        [next_passenger_index] /
+                        passenger_occurence_count;
+
+                    if let Some(next_destination_index) =
+                        generate_destination_index(world, next_state)
+                    {
+
+                        let destination_transition = transitions[3][destination_index]
+                            [next_destination_index] /
+                            destination_occurence_count;
+
+                        return Some(
+                            x_transition * y_transition * destination_transition *
+                                passenger_transition,
+                        );
+                    }
+                }
+            }
+        }
+
+        None
     }
 
 
     fn predict_transition_reward(
         &self,
-        state_index: usize,
-        action_index: usize,
-        next_state_index: usize,
+        world: &World,
+        state: &State,
+        action: Actions,
+        next_state: &State,
     ) -> (f64, f64) {
 
-        let state_action_index = state_index * Actions::NUM_ELEMENTS + action_index;
+        let action_index = action.to_index();
+        if let Some(state_index) = self.state_indexer.get_index(world, state) {
 
-        let transition_entry = &self.transition_table[state_action_index];
-        let reward_entry = &self.reward_table[state_action_index];
+            let reward_entry = &self.reward_table[action_index][state_index];
 
-        if transition_entry.count >= self.known_count && reward_entry.count >= self.known_count {
-            let transition = transition_entry.destination_count[next_state_index] /
-                transition_entry.count;
-            let reward = reward_entry.mean;
+            if reward_entry.count >= self.known_count {
 
-            (transition, reward)
+                let reward = reward_entry.mean;
 
-        } else {
-
-            let transition = if state_index == next_state_index {
-                1.0
-            } else {
-                0.0
-            };
-
-            (transition, self.rmax)
+                if let Some(transition_value) =
+                    self.predict_transition(world, state, action, next_state)
+                {
+                    return (transition_value, reward);
+                }
+            }
         }
+
+
+        let transition = if state == next_state { 1.0 } else { 0.0 };
+
+        (transition, self.rmax)
     }
 
-    fn measure_best_value(&self, state_index: usize) -> f64 {
+    fn measure_best_value(&self, world: &World, state: &State) -> f64 {
 
         let mut best_value = -f64::MAX;
 
+        let state_index = self.state_indexer.get_index(world, state).unwrap();
+
         for action_index in 0..Actions::NUM_ELEMENTS {
-            let mut action_value = 0.0;
+
+            let action = Actions::from_index(action_index).unwrap();
+
+            let reward_entry = &self.reward_table[action_index][state_index];
+
+            let mut action_value = if reward_entry.count >= self.known_count {
+                reward_entry.mean
+            } else {
+                self.rmax
+            };
 
             for next_state_index in 0..self.state_indexer.num_states() {
+
+                let next_state = self.state_indexer
+                    .get_state(world, next_state_index)
+                    .unwrap();
+
                 let (transition, reward) =
-                    self.predict_transition_reward(state_index, action_index, next_state_index);
+                    self.predict_transition_reward(world, state, action, &next_state);
+
                 action_value += transition *
                     (reward + self.gamma * self.value_table[next_state_index]);
             }
@@ -160,21 +354,47 @@ impl FactoredRMax {
         best_value
     }
 
-    fn determine_best_action_index<R: Rng>(&self, state_index: usize, rng: &mut R) -> usize {
+    fn determine_best_action_index<R: Rng>(
+        &self,
+        world: &World,
+        state: &State,
+        rng: &mut R,
+    ) -> usize {
 
         let mut best_value = -f64::MAX;
         let mut best_action_index = Actions::NUM_ELEMENTS;
         let mut num_found = 0;
 
+        let mut action_values = [123.56; Actions::NUM_ELEMENTS];
+
+        let state_index = self.state_indexer.get_index(world, state).unwrap();
+
         for action_index in 0..Actions::NUM_ELEMENTS {
-            let mut action_value = 0.0;
+
+            let action = Actions::from_index(action_index).unwrap();
+
+            let reward_entry = &self.reward_table[action_index][state_index];
+
+            let mut action_value = if reward_entry.count >= self.known_count {
+                reward_entry.mean
+            } else {
+                self.rmax
+            };
 
             for next_state_index in 0..self.state_indexer.num_states() {
+
+                let next_state = self.state_indexer
+                    .get_state(world, next_state_index)
+                    .unwrap();
+
+
                 let (transition, reward) =
-                    self.predict_transition_reward(state_index, action_index, next_state_index);
+                    self.predict_transition_reward(world, state, action, &next_state);
                 action_value += transition *
                     (reward + self.gamma * self.value_table[next_state_index]);
             }
+
+            action_values[action_index] = action_value;
 
             match action_value.approx_cmp(&best_value, 2) {
                 cmp::Ordering::Greater => {
@@ -196,7 +416,7 @@ impl FactoredRMax {
         best_action_index
     }
 
-    fn rebuild_value_table(&mut self) {
+    fn rebuild_value_table(&mut self, world: &World) {
 
         let num_states = self.state_indexer.num_states();
 
@@ -206,9 +426,12 @@ impl FactoredRMax {
             let mut error = 0.0;
 
             for state_index in 0..num_states {
+
+                let state = self.state_indexer.get_state(world, state_index).unwrap();
+
                 let old_value = self.value_table[state_index];
 
-                let new_value = self.measure_best_value(state_index);
+                let new_value = self.measure_best_value(world, &state);
 
                 self.value_table[state_index] = new_value;
 
@@ -224,9 +447,14 @@ impl FactoredRMax {
         }
     }
 
-    fn select_best_action<R: Rng>(&self, state_index: usize, rng: &mut R) -> Option<Actions> {
+    fn select_best_action<R: Rng>(
+        &self,
+        world: &World,
+        state: &State,
+        rng: &mut R,
+    ) -> Option<Actions> {
 
-        let action_index = self.determine_best_action_index(state_index, rng);
+        let action_index = self.determine_best_action_index(world, state, rng);
         Actions::from_index(action_index)
     }
 }
@@ -246,23 +474,18 @@ impl Runner for FactoredRMax {
                 return Some(step);
             }
 
-            self.rebuild_value_table();
+            self.rebuild_value_table(world);
 
-            if let Some(state_index) = self.state_indexer.get_index(world, &state) {
-                if let Some(next_action) = self.select_best_action(state_index, rng) {
+            if let Some(next_action) = self.select_best_action(world, &state, rng) {
 
-                    let reward = state.apply_action(world, next_action);
+                let old_state = state.clone();
+                let reward = state.apply_action(world, next_action);
 
-                    if let Some(next_state_index) = self.state_indexer.get_index(world, &state) {
-                        self.apply_experience(state_index, next_action, next_state_index, reward);
-                    } else {
-                        return None;
-                    }
+                self.apply_experience(world, &old_state, next_action, &state, reward);
 
-                } else {
+            } else {
 
-                    return None;
-                }
+                return None;
             }
         }
 
@@ -289,13 +512,9 @@ impl Runner for FactoredRMax {
                 break;
             }
 
-            if let Some(state_index) = self.state_indexer.get_index(world, &state) {
-                if let Some(next_action) = self.select_best_action(state_index, rng) {
-                    attempt.step(next_action);
-                    state.apply_action(world, next_action);
-                } else {
-                    break;
-                }
+            if let Some(next_action) = self.select_best_action(world, &state, rng) {
+                attempt.step(next_action);
+                state.apply_action(world, next_action);
             } else {
                 break;
             }
@@ -321,12 +540,8 @@ impl Runner for FactoredRMax {
                 return true;
             }
 
-            if let Some(state_index) = self.state_indexer.get_index(world, &state) {
-                if let Some(next_action) = self.select_best_action(state_index, rng) {
-                    state.apply_action(world, next_action);
-                } else {
-                    break;
-                }
+            if let Some(next_action) = self.select_best_action(world, &state, rng) {
+                state.apply_action(world, next_action);
             } else {
                 break;
             }
@@ -336,4 +551,141 @@ impl Runner for FactoredRMax {
     }
 
     fn report_training_result(&self, _world: &World) {}
+}
+
+fn num_x_parents(world: &World, action: Actions) -> usize {
+    match action {
+        Actions::East | Actions::West => (world.width * world.height) as usize,
+        _ => world.width as usize,
+    }
+}
+
+
+fn generate_x_parent_index(
+    world: &World,
+    x_index: usize,
+    y_index: usize,
+    action: Actions,
+) -> usize {
+    match action {
+        Actions::East | Actions::West => y_index * (world.width as usize) + x_index,
+        _ => x_index,
+    }
+}
+
+fn num_y_parents(world: &World, _: Actions) -> usize {
+    world.height as usize
+}
+
+fn generate_passenger_index(world: &World, state: &State) -> Option<usize> {
+    match state.get_passenger() {
+        Some(passenger_id) => world.get_fixed_index(passenger_id),
+        None => Some(world.num_fixed_positions()),
+    }
+}
+
+fn num_passenger_parents(world: &World, action: Actions) -> usize {
+
+    let num_destination_states = world.num_fixed_positions() as usize;
+    let num_passenger_states = (num_destination_states + 1) as usize;
+
+    let num_taxi_states = (world.height * world.width) as usize;
+
+    match action {
+        Actions::DropOff => num_taxi_states * num_destination_states * num_passenger_states,
+        Actions::PickUp => num_taxi_states * num_passenger_states,
+        _ => num_passenger_states,
+    }
+}
+
+fn generate_passenger_parent_index(
+    world: &World,
+    taxi_x_index: usize,
+    taxi_y_index: usize,
+    passenger_index: usize,
+    destination_index: usize,
+    action: Actions,
+) -> usize {
+
+
+    match action {
+        Actions::DropOff => {
+
+            let mut result = taxi_y_index;
+
+            result *= world.width as usize;
+            result += taxi_x_index;
+
+            let num_destination_states = world.num_fixed_positions();
+
+            result *= num_destination_states;
+            result += destination_index;
+
+            result *= num_destination_states + 1;
+            result += passenger_index;
+
+            result
+        }
+        Actions::PickUp => {
+            let mut result = taxi_y_index;
+
+            result *= world.width as usize;
+            result += taxi_x_index;
+
+            let num_destination_states = world.num_fixed_positions();
+            result *= num_destination_states + 1;
+            result += passenger_index;
+
+            result
+        }
+        _ => passenger_index,
+    }
+}
+
+fn num_destination_parents(world: &World, _: Actions) -> usize {
+    world.num_fixed_positions()
+}
+
+fn generate_destination_index(world: &World, state: &State) -> Option<usize> {
+    world.get_fixed_index(state.get_destination())
+}
+
+#[cfg(test)]
+mod test_factoredrmax {
+
+    use rand::Isaac64Rng;
+    use super::*;
+
+    #[test]
+    fn learn_simple() {
+        let world_str = "\
+        ┌───┐\n\
+        │R .│\n\
+        │   │\n\
+        │. G│\n\
+        └───┘\n\
+        ";
+
+        let world = World::build_from_str(world_str).unwrap();
+
+        let mut factoredrmax = FactoredRMax::new(&world, 0.3, 1.0, 1.0e-6);
+
+        let state = State::build(&world, (0, 1), Some('R'), 'G').unwrap();
+
+        let expected_initial_state = "\
+        ┌───┐\n\
+        │p .│\n\
+        │   │\n\
+        │t d│\n\
+        └───┘\n\
+        ";
+
+        let initial_state = state.clone();
+        assert_eq!(expected_initial_state, initial_state.display(&world));
+
+        let mut rng = Isaac64Rng::new_unseeded();
+
+        let result = factoredrmax.learn(&world, state, 100, &mut rng);
+        assert!(result.is_some());
+    }
 }

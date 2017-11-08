@@ -13,8 +13,8 @@ pub struct StateIndexer {
 impl StateIndexer {
     pub fn new(world: &World) -> StateIndexer {
         let num_taxi_states = (world.width * world.height) as usize;
-        let num_passenger_states = world.num_fixed_positions() + 1;
         let num_destination_states = world.num_fixed_positions();
+        let num_passenger_states = num_destination_states + 1;
 
         StateIndexer {
             num_taxi_states,
