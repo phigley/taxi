@@ -21,7 +21,7 @@ fn indices_unique() {
     let possible_destinations = ['R', 'Y', 'G'];
 
 
-    let world = World::build_from_str(&source_world).unwrap();
+    let world = World::build_from_str(source_world).unwrap();
 
     let state_indexer = StateIndexer::new(&world);
 

@@ -731,7 +731,7 @@ fn reaches_destination() {
             match State::build(&w, (2, 1), Some('R'), 'G') {
                 Err(msg) => panic!(msg),
                 Ok(state) => {
-                    println!("");
+                    println!();
                     println!("{}", state.display(&w));
 
                     let mut result0 = state;

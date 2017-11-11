@@ -299,8 +299,8 @@ where
 {
     let stats = gather_stats(
         builder,
-        &world,
-        &probes,
+        world,
+        probes,
         config.sessions,
         config.max_trials,
         config.max_trial_steps,

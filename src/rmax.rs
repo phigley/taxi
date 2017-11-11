@@ -219,7 +219,7 @@ impl RMax {
 
         //self.value_table.iter_mut().for_each(|v| *v = 0.0);
 
-        for _ in 0..10000 {
+        for _ in 0..10_000 {
             let mut error = 0.0;
 
             for state_index in 0..num_states {

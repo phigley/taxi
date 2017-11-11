@@ -452,7 +452,7 @@ impl FactoredRMax {
 
         let num_states = self.state_indexer.num_states();
 
-        for _ in 0..10000 {
+        for _ in 0..10_000 {
             let mut error = 0.0;
 
             for state_index in 0..num_states {
@@ -508,7 +508,7 @@ impl Runner for FactoredRMax {
 
             if let Some(next_action) = self.select_best_action(world, &state, rng) {
 
-                let old_state = state.clone();
+                let old_state = state;
                 let reward = state.apply_action(world, next_action);
 
                 self.apply_experience(world, &old_state, next_action, &state, reward);
