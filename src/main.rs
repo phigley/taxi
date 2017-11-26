@@ -44,6 +44,7 @@ fn main() {
 }
 
 enum AppError {
+    NoConfiguration,
     Configuration(configuration::Error),
     World(taxi::world::Error),
     BuildProbes(taxi::state::Error),
@@ -57,6 +58,7 @@ enum AppError {
 impl fmt::Debug for AppError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
+            AppError::NoConfiguration => write!(f, "Configuration file not specified."),
             AppError::Configuration(ref config_error) => {
                 write!(f, "Failed to read configuration:\n{:?}", config_error)
             }
@@ -94,13 +96,13 @@ fn run() -> Result<(), AppError> {
 
     let args: Vec<String> = env::args().collect();
 
-    let config = if args.len() < 2 {
-        Configuration::default()
-    } else {
-        Configuration::from_file(&args[1]).map_err(
-            AppError::Configuration,
-        )?
-    };
+    if args.len() < 2 {
+        return Err(AppError::NoConfiguration);
+    }
+
+    let config = Configuration::from_file(&args[1]).map_err(
+        AppError::Configuration,
+    )?;
 
     let mut rng = thread_rng();
 
