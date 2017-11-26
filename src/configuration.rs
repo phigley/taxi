@@ -11,6 +11,7 @@ pub enum SolverChoice {
     QLearner,
     RMax,
     FactoredRMax,
+    MaxQ,
 }
 
 impl fmt::Display for SolverChoice {
@@ -20,6 +21,7 @@ impl fmt::Display for SolverChoice {
             SolverChoice::QLearner => write!(f, "Q-Learner"),
             SolverChoice::RMax => write!(f, "RMax"),
             SolverChoice::FactoredRMax => write!(f, "FactoredRMax"),
+            SolverChoice::MaxQ => write!(f, "MaxQ"),
         }
     }
 }
@@ -51,6 +53,15 @@ pub struct FactoredRMaxConfig {
 }
 
 #[derive(Deserialize, Debug)]
+pub struct MaxQConfig {
+    pub alpha: f64,
+    pub gamma: f64,
+    pub epsilon: f64,
+
+    pub show_table: bool,
+}
+
+#[derive(Deserialize, Debug)]
 pub struct Probe {
     pub taxi_pos: (i32, i32),
     pub passenger_loc: Option<char>,
@@ -79,6 +90,7 @@ pub struct Configuration {
     pub q_learner: Option<QLearnerConfig>,
     pub r_max: Option<RMaxConfig>,
     pub factored_r_max: Option<FactoredRMaxConfig>,
+    pub max_q: Option<MaxQConfig>,
     pub replay: Option<Replay>,
 }
 
@@ -164,6 +176,7 @@ impl Default for Configuration {
             q_learner: None,
             r_max: None,
             factored_r_max: None,
+            max_q: None,
             replay: None,
         }
     }

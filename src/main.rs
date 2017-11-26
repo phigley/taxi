@@ -35,6 +35,7 @@ use taxi::random_solver::RandomSolver;
 use taxi::qlearner::QLearner;
 use taxi::rmax::RMax;
 use taxi::factoredrmax::FactoredRMax;
+use taxi::maxq::MaxQ;
 
 fn main() {
 
@@ -176,6 +177,24 @@ fn run() -> Result<(), AppError> {
         };
     }
 
+    if let Some(maxq_config) = config.max_q.as_ref() {
+        gather_and_report_stats(
+            || {
+                MaxQ::new(
+                    &world,
+                    maxq_config.alpha,
+                    maxq_config.gamma,
+                    maxq_config.epsilon,
+                    maxq_config.show_table,
+                )
+            },
+            SolverChoice::MaxQ,
+            &world,
+            &probes,
+            &config,
+        )?;
+    };
+
     if let Some(replay_config) = config.replay.as_ref() {
 
         match replay_config.solver {
@@ -215,7 +234,6 @@ fn run() -> Result<(), AppError> {
                     return Err(AppError::ReplayRunnerNotConfigured(replay_config.solver));
                 }
             }
-
             SolverChoice::RMax => {
                 if let Some(rmax_config) = config.r_max.as_ref() {
                     run_replay(
@@ -244,6 +262,27 @@ fn run() -> Result<(), AppError> {
                             factored_rmax_config.gamma,
                             factored_rmax_config.known_count,
                             factored_rmax_config.error_delta,
+                        ),
+                        replay_config,
+                        &world,
+                        &probes,
+                        config.max_trials,
+                        config.max_trial_steps,
+                        &mut rng,
+                    )?
+                } else {
+                    return Err(AppError::ReplayRunnerNotConfigured(replay_config.solver));
+                }
+            }
+            SolverChoice::MaxQ => {
+                if let Some(maxq_config) = config.q_learner.as_ref() {
+                    run_replay(
+                        &mut QLearner::new(
+                            &world,
+                            maxq_config.alpha,
+                            maxq_config.gamma,
+                            maxq_config.epsilon,
+                            maxq_config.show_table,
                         ),
                         replay_config,
                         &world,
