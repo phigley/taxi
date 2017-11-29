@@ -175,25 +175,24 @@ fn run() -> Result<(), AppError> {
                 &config,
             )?;
         };
-    }
 
-    if let Some(maxq_config) = config.max_q.as_ref() {
-        gather_and_report_stats(
-            || {
-                MaxQ::new(
-                    &world,
-                    maxq_config.alpha,
-                    maxq_config.gamma,
-                    maxq_config.epsilon,
-                    maxq_config.show_table,
-                )
-            },
-            SolverChoice::MaxQ,
-            &world,
-            &probes,
-            &config,
-        )?;
-    };
+        if let Some(maxq_config) = config.max_q.as_ref() {
+            gather_and_report_stats(
+                || {
+                    MaxQ::new(
+                        &world,
+                        maxq_config.alpha,
+                        maxq_config.gamma,
+                        maxq_config.epsilon,
+                    )
+                },
+                SolverChoice::MaxQ,
+                &world,
+                &probes,
+                &config,
+            )?;
+        };
+    }
 
     if let Some(replay_config) = config.replay.as_ref() {
 
@@ -275,14 +274,13 @@ fn run() -> Result<(), AppError> {
                 }
             }
             SolverChoice::MaxQ => {
-                if let Some(maxq_config) = config.q_learner.as_ref() {
+                if let Some(maxq_config) = config.max_q.as_ref() {
                     run_replay(
-                        &mut QLearner::new(
+                        &mut MaxQ::new(
                             &world,
                             maxq_config.alpha,
                             maxq_config.gamma,
                             maxq_config.epsilon,
-                            maxq_config.show_table,
                         ),
                         replay_config,
                         &world,

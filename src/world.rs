@@ -7,10 +7,10 @@ use actions::Actions;
 
 #[derive(PartialEq, Clone)]
 struct Wall {
-    pub north: bool,
-    pub south: bool,
-    pub east: bool,
-    pub west: bool,
+    north: bool,
+    south: bool,
+    east: bool,
+    west: bool,
 }
 
 
@@ -50,9 +50,9 @@ impl fmt::Debug for Wall {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct FixedPosition {
-    pub id: char,
-    pub position: Position,
+struct FixedPosition {
+    id: char,
+    position: Position,
 }
 
 #[derive(Debug, PartialEq)]
@@ -60,7 +60,7 @@ pub struct World {
     pub width: i32,
     pub height: i32,
     walls: Vec<Vec<Wall>>,
-    pub fixed_positions: Vec<FixedPosition>,
+    fixed_positions: Vec<FixedPosition>,
 
     pub movement_cost: f64,
     pub miss_passenger_cost: f64,

@@ -29,6 +29,11 @@ pub enum Error {
         num_fixed_positions: usize,
         world: String,
     },
+
+    FailedToFindDestination {
+        destination_offset: usize,
+        world: String,
+    },
 }
 
 impl fmt::Debug for Error {
@@ -77,6 +82,17 @@ impl fmt::Debug for Error {
                     num_fixed_positions,
                     world,
                 )
+            }
+
+            Error::FailedToFindDestination {
+                destination_offset,
+                ref world,
+            } => {
+                write!( f, "Failed to find a valid destination when generating random state. \
+                    Looking for destation offset {} in world:\n{}",
+                    destination_offset,
+                    world,
+                    )
             }
         }
     }
@@ -127,24 +143,35 @@ impl State {
         let taxi_x = rng.gen_range(0, world.width);
         let taxi_y = rng.gen_range(0, world.height);
 
-        let num_fixed_positions = world.fixed_positions.len();
+        let num_fixed_positions = world.num_fixed_positions();
 
-        if num_fixed_positions < 2 {
+        if num_fixed_positions >= 2 {
+            let destination_fp_index = rng.gen_range(0, num_fixed_positions);
+            if let Some(destination) = world.get_fixed_id_from_index(destination_fp_index) {
+                let passenger_fp_index = (destination_fp_index +
+                                              rng.gen_range(1, num_fixed_positions)) %
+                    num_fixed_positions;
+
+                let passenger = world.get_fixed_id_from_index(passenger_fp_index);
+
+                Ok(State {
+                    taxi: Position::new(taxi_x, taxi_y),
+                    passenger,
+                    destination,
+                })
+            } else {
+                Err(Error::FailedToFindDestination {
+                    destination_offset: destination_fp_index,
+                    world: world.display(),
+                })
+            }
+
+        } else {
             return Err(Error::TooFewFixedPositions {
                 num_fixed_positions,
                 world: world.display(),
             });
         }
-
-        let passenger_fp_index = rng.gen_range(0, num_fixed_positions);
-        let destination_fp_index = (passenger_fp_index + rng.gen_range(1, num_fixed_positions)) %
-            num_fixed_positions;
-
-        Ok(State {
-            taxi: Position::new(taxi_x, taxi_y),
-            passenger: Some(world.fixed_positions[passenger_fp_index].id),
-            destination: world.fixed_positions[destination_fp_index].id,
-        })
     }
 
     pub fn display(&self, world: &World) -> String {
@@ -801,21 +828,15 @@ mod test_state {
             assert!(state.taxi.y >= 0);
             assert!(state.taxi.y < w.height);
 
-            let passenger_id = state.passenger.unwrap();
+            assert_ne!(state.passenger, None);
 
-            let passenger_fp_position = w.fixed_positions.iter().position(
-                |fp| fp.id == passenger_id,
-            );
+            let passenger_fp_index = w.get_fixed_index(state.passenger.unwrap());
+            assert_ne!(passenger_fp_index, None);
 
-            assert_ne!(passenger_fp_position, None);
+            let destination_fp_index = w.get_fixed_index(state.destination);
+            assert_ne!(destination_fp_index, None);
 
-            let destination_fp_position = w.fixed_positions.iter().position(
-                |fp| fp.id == state.destination,
-            );
-
-            assert_ne!(destination_fp_position, None);
-
-            assert_ne!(passenger_fp_position, destination_fp_position);
+            assert_ne!(passenger_fp_index, destination_fp_index);
         }
     }
 }
