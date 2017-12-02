@@ -28,7 +28,7 @@ enum CompoundNodeType {
 struct CompoundNode {
     compound_type: CompoundNodeType,
     children: Vec<usize>,
-    completion: Vec<f64>, // indexed by state_index*children.len() + child_offset
+    completion: Vec<f64>, // indexed by state_index*num_nodes + node_index
 }
 
 #[derive(Debug, Clone)]
@@ -47,6 +47,8 @@ pub struct MaxQ {
     state_indexer: StateIndexer,
 
     max_nodes: Vec<MaxNode>,
+
+    start_actions: usize,
 }
 
 impl MaxQ {
@@ -72,7 +74,7 @@ impl MaxQ {
         let root_node = CompoundNode {
             compound_type: CompoundNodeType::Root,
             children: vec![start_get, start_put],
-            completion: vec![initial_q_value; num_states * 2],
+            completion: vec![initial_q_value; num_states * num_nodes],
         };
 
         max_nodes.push(MaxNode::Compound(root_node));
@@ -92,7 +94,7 @@ impl MaxQ {
             CompoundNode {
                 compound_type: CompoundNodeType::Get,
                 children,
-                completion: vec![initial_q_value; num_states * num_children],
+                completion: vec![initial_q_value; num_states * num_nodes],
             }
         };
         max_nodes.push(MaxNode::Compound(get_node));
@@ -111,7 +113,7 @@ impl MaxQ {
             CompoundNode {
                 compound_type: CompoundNodeType::Put,
                 children,
-                completion: vec![initial_q_value; num_states * num_children],
+                completion: vec![initial_q_value; num_states * num_nodes],
             }
         };
         max_nodes.push(MaxNode::Compound(put_node));
@@ -132,7 +134,7 @@ impl MaxQ {
             let navigate_node = CompoundNode {
                 compound_type: CompoundNodeType::Navigate(id),
                 children,
-                completion: vec![initial_q_value; num_states * 4],
+                completion: vec![initial_q_value; num_states * num_nodes],
             };
             max_nodes.push(MaxNode::Compound(navigate_node));
         }
@@ -157,6 +159,7 @@ impl MaxQ {
             state_indexer,
 
             max_nodes,
+            start_actions,
         }
     }
 
@@ -166,42 +169,38 @@ impl MaxQ {
         world: &World,
         state: &State,
         state_index: usize,
-    ) -> Option<(f64, usize, usize)> {
+    ) -> Option<(f64, usize)> {
         match self.max_nodes[node_index] {
-            MaxNode::Primitive(ref primitive) => Some(
-                (primitive.values[state_index], node_index, 0),
-            ),
+            MaxNode::Primitive(ref primitive) => Some((primitive.values[state_index], node_index)),
             MaxNode::Compound(ref compound) => {
                 if !self.terminal_state(compound.compound_type, world, state) {
 
-                    let num_children = compound.children.len();
+                    let num_nodes = self.max_nodes.len();
 
                     let mut highest_q = None;
                     let mut best_index = node_index;
-                    let mut best_offset = 0;
                     let mut best_value = 0.0;
 
-                    for (offset, child_index) in compound.children.iter().enumerate() {
-                        if let Some((max_value, _, _)) =
+                    for child_index in &compound.children {
+                        if let Some((max_value, _)) =
                             self.evaluate_max_node(*child_index, world, state, state_index)
                         {
 
                             let q = Some(
                                 max_value +
-                                    compound.completion[state_index * num_children + offset],
+                                    compound.completion[state_index * num_nodes + child_index],
                             );
 
                             if q > highest_q {
                                 highest_q = q;
                                 best_index = *child_index;
-                                best_offset = offset;
                                 best_value = max_value;
                             }
                         }
                     }
 
                     if highest_q != None {
-                        Some((best_value, best_index, best_offset))
+                        Some((best_value, best_index))
                     } else {
                         None
                     }
@@ -225,20 +224,20 @@ impl MaxQ {
             ),
             MaxNode::Compound(ref compound) => {
                 if !self.terminal_state(compound.compound_type, world, state) {
-                    let num_children = compound.children.len();
+                    let num_nodes = self.max_nodes.len();
 
                     let mut highest_q = None;
                     let mut best_action = Actions::PickUp;
                     let mut best_value = 0.0;
 
-                    for (offset, child_index) in compound.children.iter().enumerate() {
+                    for child_index in &compound.children {
 
                         if let Some((max_value, max_action)) =
                             self.evaluate_max_node_action(*child_index, world, state, state_index)
                         {
                             let q = Some(
                                 max_value +
-                                    compound.completion[state_index * num_children + offset],
+                                    compound.completion[state_index * num_nodes + child_index],
                             );
 
                             if q > highest_q {
@@ -265,7 +264,7 @@ impl MaxQ {
         match node_type {
             CompoundNodeType::Root => state.at_destination(),
             CompoundNodeType::Get => state.get_passenger() == None,
-            CompoundNodeType::Put => state.at_destination(),
+            CompoundNodeType::Put => state.get_passenger() != None,
             CompoundNodeType::Navigate(id) => {
                 Some(state.get_taxi()) == world.get_fixed_position(id)
             }
@@ -292,6 +291,8 @@ impl MaxQ {
         };
 
         if let Some(node_type) = compound_node_type {
+            let num_nodes = self.max_nodes.len();
+
             while !self.terminal_state(node_type, world, state) && seq.len() < max_steps {
 
                 // println!(
@@ -303,63 +304,41 @@ impl MaxQ {
 
                 if let Some(state_index) = self.state_indexer.get_index(world, state) {
 
-                    let selected_action: Option<(usize, usize)> =
-                        if let MaxNode::Compound(ref compound) = self.max_nodes[node_index] {
-                            let nongreedy_roll = rng.gen_range(0.0f64, 1.0f64);
 
-                            if nongreedy_roll < self.epsilon {
-                                let mut non_terminal_children =
-                                    Vec::with_capacity(compound.children.len());
-                                for (child_offset, child_index) in
-                                    compound.children.iter().enumerate()
-                                {
-                                    match self.max_nodes[*child_index] {
-                                        MaxNode::Primitive(_) => {
-                                            non_terminal_children.push((*child_index, child_offset))
-                                        }
-                                        MaxNode::Compound(ref compound) => {
-                                            if !self.terminal_state(
-                                                compound.compound_type,
-                                                world,
-                                                state,
-                                            )
-                                            {
-                                                non_terminal_children.push(
-                                                    (*child_index, child_offset),
-                                                );
-                                            }
-                                        }
-                                    }
-                                }
 
-                                rng.choose(&non_terminal_children).map(|v| *v)
-                            } else {
-                                if let Some((_, child_index, child_offset)) =
-                                    self.evaluate_max_node(node_index, world, state, state_index)
-                                {
-                                    Some((child_index, child_offset))
-                                } else {
-                                    None
-                                }
-                            }
+                    let selected_action: Option<usize> = {
+                        let nongreedy_roll = rng.gen_range(0.0f64, 1.0f64);
+
+                        if nongreedy_roll < self.epsilon {
+                            let action_offset = rng.gen_range(0, Actions::NUM_ELEMENTS);
+                            Some(self.start_actions + action_offset)
                         } else {
-                            None
-                        };
+                            if let Some((_, child_index)) =
+                                self.evaluate_max_node(node_index, world, state, state_index)
+                            {
+                                Some(child_index)
+                            } else {
+                                None
+                            }
+                        }
+                    };
 
 
-                    if let Some((child_index, child_offset)) = selected_action {
+                    if let Some(child_index) = selected_action {
 
                         // match self.max_nodes[child_index] {
                         //     MaxNode::Primitive(ref primitive) => {
                         //         println!(
-                        //             "Selecting child {} - primitive action {}",
+                        //             "Step {} Selecting child {} - primitive action {}",
+                        //             seq.len(),
                         //             child_index,
                         //             primitive.action
                         //         )
                         //     }
                         //     MaxNode::Compound(ref compound) => {
                         //         println!(
-                        //             "Selecting child {} - {:?}",
+                        //             "Step {} Selecting child {} - {:?}",
+                        //             seq.len(),
                         //             child_index,
                         //             compound.compound_type
                         //         )
@@ -378,26 +357,23 @@ impl MaxQ {
                             self.state_indexer.get_index(world, state)
                         {
 
-                            if let Some((best_value, _, best_offset)) =
+                            if let Some((best_value, best_index)) =
                                 self.evaluate_max_node(node_index, world, state, result_state_index)
                             {
 
                                 if let MaxNode::Compound(ref mut compound) =
                                     self.max_nodes[node_index]
                                 {
-
-                                    let num_children = compound.children.len();
-
                                     let best_q = best_value +
-                                        compound.completion[result_state_index * num_children +
-                                                                best_offset];
+                                        compound.completion[result_state_index * num_nodes +
+                                                                best_index];
 
                                     let mut accum_gamma = self.gamma;
                                     for si in child_seq.iter().rev() {
 
-                                        compound.completion[si * num_children + child_offset] *=
-                                            1.0 - self.alpha;
-                                        compound.completion[si * num_children + child_offset] +=
+                                        compound.completion[si * num_nodes + best_index] *= 1.0 -
+                                            self.alpha;
+                                        compound.completion[si * num_nodes + best_index] +=
                                             self.alpha * accum_gamma * best_q;
                                         accum_gamma *= self.gamma;
                                     }
@@ -412,7 +388,18 @@ impl MaxQ {
                 }
             }
 
-        // println!("Terminating node {}", node_index);
+        // match self.max_nodes[node_index] {
+        //     MaxNode::Primitive(_) => {}
+        //     MaxNode::Compound(ref compound) => {
+        //         println!(
+        //             "Step {} Terminating node {} - {:?}",
+        //             seq.len(),
+        //             node_index,
+        //             compound.compound_type
+        //         );
+        //     }
+        // };
+
 
         } else {
             // Primitive node type
@@ -431,12 +418,16 @@ impl MaxQ {
             }
         }
 
-        // assert!(
-        //     seq.len() > 0,
-        //     "Failed to append to sequence while evaluating node {}, max_nodes = {:?}",
-        //     node_index,
-        //     self.max_nodes
-        // );
+        assert!(
+            seq.len() > 0 || max_steps == 0,
+            "Failed to append to sequence while evaluating node {} - {}\n\
+            state:\n{}\n\
+            max_nodes = {:#?}",
+            node_index,
+            describe_max_node(&self.max_nodes[node_index]),
+            state.display(world),
+            self.max_nodes
+        );
 
         seq
     }
@@ -452,17 +443,27 @@ impl Runner for MaxQ {
         mut rng: &mut R,
     ) -> Option<usize> {
 
+        // println!("Learning:\n{:#?}\n{}\n", state, state.display(world));
+
         let seq = self.maxq_q(0, world, &mut state, max_steps, &mut rng);
 
-        if let Some(final_state_index) = seq.last() {
-            if let Some(final_state) = self.state_indexer.get_state(world, *final_state_index) {
-                if final_state.at_destination() {
-                    return Some(seq.len());
-                }
-            }
-        }
+        // println!(
+        //     "Finished {} steps:\n{:#?}\n{}\n{}",
+        //     seq.len(),
+        //     state,
+        //     state.display(world),
+        //     if state.at_destination() {
+        //         "success"
+        //     } else {
+        //         "failed"
+        //     }
+        // );
 
-        None
+        if state.at_destination() {
+            Some(seq.len())
+        } else {
+            None
+        }
     }
 
     fn attempt<R: Rng>(
@@ -527,5 +528,73 @@ impl Runner for MaxQ {
         }
 
         state.at_destination()
+    }
+
+    // fn report_training_result(&self, world: &World) {
+
+    //     let num_nodes = self.max_nodes.len();
+
+    //     for si in 0..self.state_indexer.num_states() {
+    //         if let Some(state) = self.state_indexer.get_state(world, si) {
+    //             println!("{}\n{}", si, state.display(world));
+    //             if let Some((q, action)) = self.evaluate_max_node_action(0, world, &state, si) {
+    //                 println!("{} = {}", action, q);
+
+    //                 let mut current_index = 0;
+    //                 loop {
+    //                     if let Some((value, child_index)) =
+    //                         self.evaluate_max_node(current_index, world, &state, si)
+    //                     {
+    //                         match self.max_nodes[current_index] {
+    //                             MaxNode::Primitive(ref primitive) => {
+    //                                 println!("{} {} - {}", child_index, primitive.action, value);
+    //                                 break;
+    //                             }
+    //                             MaxNode::Compound(ref compound) => {
+    //                                 for ci in &compound.children {
+    //                                     println!(
+    //                                         "{} {} = {}",
+    //                                         ci,
+    //                                         describe_max_node(&self.max_nodes[*ci]),
+    //                                         compound.completion[si * num_nodes + *ci]
+    //                                     );
+    //                                 }
+
+    //                                 let completion = compound.completion[si * num_nodes +
+    //                                                                          child_index];
+    //                                 let q = value + completion;
+    //                                 println!(
+    //                                     "{} {} - {} + {} = {}",
+    //                                     child_index,
+    //                                     describe_max_node(&self.max_nodes[child_index]),
+    //                                     value,
+    //                                     completion,
+    //                                     q
+    //                                 );
+    //                             }
+    //                         }
+
+    //                         current_index = child_index;
+    //                     } else {
+    //                         println!("Failed to evaluate");
+    //                         break;
+    //                     }
+    //                 }
+    //             } else {
+    //                 println!("Failed to evaluate!");
+    //             }
+
+    //             println!("\n");
+    //         }
+    //     }
+
+    //     // println!("{:#?}", self.max_nodes);
+    // }
+}
+
+fn describe_max_node(max_node: &MaxNode) -> String {
+    match *max_node {
+        MaxNode::Primitive(ref primitive) => format!("{:?}", primitive.action),
+        MaxNode::Compound(ref compound) => format!("{:?}", compound.compound_type),
     }
 }
