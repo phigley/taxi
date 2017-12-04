@@ -395,15 +395,14 @@ impl MaxQ {
                         if nongreedy_roll < self.epsilon {
                             let action_offset = rng.gen_range(0, Actions::NUM_ELEMENTS);
                             Some(self.start_actions + action_offset)
+                        } else if let Some((_, child_index, _)) =
+                            self.evaluate_max_node(node_index, world, state, state_index)
+                        {
+                            Some(child_index)
                         } else {
-                            if let Some((_, child_index, _)) =
-                                self.evaluate_max_node(node_index, world, state, state_index)
-                            {
-                                Some(child_index)
-                            } else {
-                                None
-                            }
+                            None
                         }
+
                     };
 
 
@@ -516,24 +515,23 @@ impl MaxQ {
         // };
 
 
-        } else {
+        } else if let Some(state_index) = self.state_indexer.get_index(world, state) {
             // Primitive node type
-            if let Some(state_index) = self.state_indexer.get_index(world, state) {
 
-                if let MaxNode::Primitive(ref mut primitive) = self.max_nodes[node_index] {
+            if let MaxNode::Primitive(ref mut primitive) = self.max_nodes[node_index] {
 
-                    let value_index = state_index; // primitive.get_index(world, state);
+                let value_index = state_index; // primitive.get_index(world, state);
 
-                    let reward = state.apply_action(world, primitive.action);
+                let reward = state.apply_action(world, primitive.action);
 
-                    primitive.values[value_index] *= 1.0 - self.alpha;
-                    primitive.values[value_index] += self.alpha * reward;
-                    seq.push(state_index);
-                } else {
-                    panic!("Failed to unwrap primitive node {}.", node_index);
-                }
+                primitive.values[value_index] *= 1.0 - self.alpha;
+                primitive.values[value_index] += self.alpha * reward;
+                seq.push(state_index);
+            } else {
+                panic!("Failed to unwrap primitive node {}.", node_index);
             }
         }
+
 
         // assert!(
         //     seq.len() > 0 || max_steps == 0,

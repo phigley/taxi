@@ -167,10 +167,10 @@ impl State {
             }
 
         } else {
-            return Err(Error::TooFewFixedPositions {
+            Err(Error::TooFewFixedPositions {
                 num_fixed_positions,
                 world: world.display(),
-            });
+            })
         }
     }
 
