@@ -227,7 +227,7 @@ impl World {
 
     }
 
-    fn get_fixed_id(&self, position: &Position) -> Option<char> {
+    pub fn get_fixed_id(&self, position: &Position) -> Option<char> {
         for fp in &self.fixed_positions {
             if fp.position == *position {
                 return Some(fp.id);

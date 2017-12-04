@@ -57,6 +57,7 @@ pub struct MaxQConfig {
     pub alpha: f64,
     pub gamma: f64,
     pub epsilon: f64,
+    pub show_table: bool,
 }
 
 #[derive(Deserialize, Debug)]
