@@ -264,9 +264,8 @@ impl State {
 
             ActionAffect::DropOff(id) => {
                 if self.passenger == None {
-                    self.passenger = Some(id);
-
                     if id == self.destination {
+                        self.passenger = Some(id);
                         0.0
                     } else {
                         world.miss_passenger_cost
