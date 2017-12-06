@@ -325,32 +325,21 @@ impl MaxQ {
         }
     }
 
-    fn learning_reward(&self, _node_index: usize, _world: &World, _state: &State) -> f64 {
-        // match self.max_nodes[node_index] {
-        //     MaxNode::Compound(ref compound) => {
-        //         if !self.terminal_state(compound.compound_type, world, state) {
-        //             -100.0
-        //         } else {
-        //             match compound.compound_type {
-        //                 CompoundNodeType::Put => {
-        //                     if let Some(id) = state.get_passenger() {
-        //                         if id != state.get_destination() {
-        //                             -100.0
-        //                         } else {
-        //                             0.0
-        //                         }
-        //                     } else {
-        //                         0.0
-        //                     }
-        //                 }
-        //                 _ => 0.0,
-        //             }
-        //         }
-        //     }
-        //     _ => 0.0,
-        // }
+    fn learning_reward(&self, node_index: usize, world: &World, state: &State) -> f64 {
+        match self.max_nodes[node_index] {
+            MaxNode::Compound(ref compound) => {
+                if !self.terminal_state(compound.compound_type, world, state) {
+                    0.0
+                } else {
+                    match compound.compound_type {
+                        CompoundNodeType::Put => if state.at_destination() { 0.0 } else { -100.0 },
+                        _ => 0.0,
+                    }
+                }
+            }
 
-        0.0
+            _ => 0.0,
+        }
     }
 
     fn maxq_q<R: Rng>(
@@ -440,9 +429,6 @@ impl MaxQ {
                             // There should terminal state check should be run for all parents here.
                             // For taxi, there is no way for a parent to terminate
                             // without the current node terminating, so not needed here.
-                            // Note that the evaluate_max_node on the result state will test that
-                            // the result state is terminal, so the ancestor test is happening but
-                            // it is only one layer deep instead of the full stack.
 
                             if let Some(result_state_index) =
                                 self.state_indexer.get_index(world, state)
@@ -452,46 +438,54 @@ impl MaxQ {
                                 let learning_reward =
                                     self.learning_reward(node_index, world, state);
 
-                                if let Some((best_next_value, best_next_index)) =
-                                    self.evaluate_max_learning_node(
-                                        node_index,
-                                        world,
-                                        state,
-                                        result_state_index,
-                                    )
+                                let max_learning_node = self.evaluate_max_learning_node(
+                                    node_index,
+                                    world,
+                                    state,
+                                    result_state_index,
+                                );
+
+                                if let MaxNode::Compound(ref mut compound) =
+                                    self.max_nodes[node_index]
                                 {
 
-                                    if let MaxNode::Compound(ref mut compound) =
-                                        self.max_nodes[node_index]
-                                    {
+                                    let (result_state_value, result_state_learning_value) =
+                                        if let Some((best_next_value, best_next_index)) =
+                                            max_learning_node
+                                        {
+                                            (
+                                                best_next_value +
+                                                    compound.completion[result_state_index *
+                                                                            num_nodes +
+                                                                            best_next_index],
+                                                best_next_value +
+                                                    compound.learning_completion
+                                                        [result_state_index * num_nodes +
+                                                        best_next_index],
+                                            )
+                                        } else {
+                                            (0.0, 0.0)
+                                        };
 
-                                        let result_state_value = best_next_value +
-                                            compound.completion[result_state_index * num_nodes +
-                                                                    best_next_index];
-                                        let result_state_learning_value = best_next_value +
-                                            compound.learning_completion[result_state_index *
-                                                                             num_nodes +
-                                                                             best_next_index];
-                                        let mut accum_gamma = self.gamma;
-                                        for si in child_seq.iter().rev() {
+                                    let mut accum_gamma = self.gamma;
+                                    for si in child_seq.iter().rev() {
 
-                                            compound.learning_completion[si * num_nodes +
-                                                                             child_index] *= 1.0 -
-                                                self.alpha;
-                                            compound.learning_completion[si * num_nodes +
-                                                                             child_index] +=
-                                                self.alpha * accum_gamma *
-                                                    (learning_reward + result_state_learning_value);
+                                        compound.learning_completion[si * num_nodes +
+                                                                         child_index] *= 1.0 -
+                                            self.alpha;
+                                        compound.learning_completion[si * num_nodes +
+                                                                         child_index] +=
+                                            self.alpha * accum_gamma *
+                                                (learning_reward + result_state_learning_value);
 
-                                            compound.completion[si * num_nodes + child_index] *=
-                                                1.0 - self.alpha;
-                                            compound.completion[si * num_nodes + child_index] +=
-                                                self.alpha * accum_gamma * result_state_value;
-                                            accum_gamma *= self.gamma;
-                                        }
-                                    } else {
-                                        panic!("Failed to unwrap compound node {}.", node_index);
+                                        compound.completion[si * num_nodes + child_index] *= 1.0 -
+                                            self.alpha;
+                                        compound.completion[si * num_nodes + child_index] +=
+                                            self.alpha * accum_gamma * result_state_value;
+                                        accum_gamma *= self.gamma;
                                     }
+                                } else {
+                                    panic!("Failed to unwrap compound node {}.", node_index);
                                 }
                             }
 
