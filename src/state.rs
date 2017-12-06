@@ -264,8 +264,8 @@ impl State {
 
             ActionAffect::DropOff(id) => {
                 if self.passenger == None {
-                    self.passenger = Some(id);
                     if id == self.destination {
+                        self.passenger = Some(id);
                         0.0
                     } else {
                         world.miss_passenger_cost
@@ -521,12 +521,12 @@ mod test_state {
         │         │\n\
         │. . . . .│\n\
         │         │\n\
-        │.│. p│. .│\n\
+        │.│. T│. .│\n\
         │ │   │   │\n\
         │.│d .│. .│\n\
         └─┴───┴───┘\n\
         ",
-                Some('Y'),
+                None,
                 false,
                 Actions::North,
             ),
@@ -537,14 +537,14 @@ mod test_state {
         │   │     │\n\
         │. .│. . .│\n\
         │         │\n\
-        │. . t . .│\n\
+        │. . T . .│\n\
         │         │\n\
-        │.│. p│. .│\n\
+        │.│. .│. .│\n\
         │ │   │   │\n\
         │.│d .│. .│\n\
         └─┴───┴───┘\n\
         ",
-                Some('Y'),
+                None,
                 false,
                 Actions::North,
             ),

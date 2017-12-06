@@ -325,21 +325,24 @@ impl MaxQ {
         }
     }
 
-    fn learning_reward(&self, node_index: usize, world: &World, state: &State) -> f64 {
-        match self.max_nodes[node_index] {
-            MaxNode::Compound(ref compound) => {
-                if !self.terminal_state(compound.compound_type, world, state) {
-                    0.0
-                } else {
-                    match compound.compound_type {
-                        CompoundNodeType::Put => if state.at_destination() { 0.0 } else { -100.0 },
-                        _ => 0.0,
-                    }
-                }
-            }
+    fn learning_reward(&self, _node_index: usize, _world: &World, _state: &State) -> f64 {
+        0.0
+        // match self.max_nodes[node_index] {
+        //     MaxNode::Compound(ref compound) => {
+        //         if !self.terminal_state(compound.compound_type, world, state) {
+        //             0.0
+        //         } else {
+        //             match compound.compound_type {
+        //                 CompoundNodeType::Put => if state.at_destination() {
+        //                  0.0
+        //                  } else { -100.0 },
+        //                 _ => 0.0,
+        //             }
+        //         }
+        //     }
 
-            _ => 0.0,
-        }
+        //     _ => 0.0,
+        // }
     }
 
     fn maxq_q<R: Rng>(
