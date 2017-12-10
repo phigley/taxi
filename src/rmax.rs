@@ -268,13 +268,17 @@ impl Runner for RMax {
             if let Some(state_index) = self.state_indexer.get_index(world, &state) {
                 if let Some(next_action) = self.select_best_action(state_index, rng) {
 
-                    let reward = state.apply_action(world, next_action);
+                    let (reward, next_state) = state.apply_action(world, next_action);
 
-                    if let Some(next_state_index) = self.state_indexer.get_index(world, &state) {
+                    if let Some(next_state_index) =
+                        self.state_indexer.get_index(world, &next_state)
+                    {
                         self.apply_experience(state_index, next_action, next_state_index, reward);
                     } else {
                         return None;
                     }
+
+                    state = next_state;
 
                 } else {
 
@@ -309,7 +313,8 @@ impl Runner for RMax {
             if let Some(state_index) = self.state_indexer.get_index(world, &state) {
                 if let Some(next_action) = self.select_best_action(state_index, rng) {
                     attempt.step(next_action);
-                    state.apply_action(world, next_action);
+                    let (_, next_state) = state.apply_action(world, next_action);
+                    state = next_state;
                 } else {
                     break;
                 }
@@ -340,7 +345,8 @@ impl Runner for RMax {
 
             if let Some(state_index) = self.state_indexer.get_index(world, &state) {
                 if let Some(next_action) = self.select_best_action(state_index, rng) {
-                    state.apply_action(world, next_action);
+                    let (_, next_state) = state.apply_action(world, next_action);
+                    state = next_state;
                 } else {
                     break;
                 }

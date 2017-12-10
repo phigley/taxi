@@ -429,7 +429,7 @@ impl MaxQ {
 
                         if child_seq.len() + seq.len() < max_steps {
 
-                            // There should terminal state check should be run for all parents here.
+                            // A terminal state check should be run for all parents here.
                             // For taxi, there is no way for a parent to terminate
                             // without the current node terminating, so not needed here.
 
@@ -519,11 +519,13 @@ impl MaxQ {
 
                 let value_index = state_index; // primitive.get_index(world, state);
 
-                let reward = state.apply_action(world, primitive.action);
+                let (reward, next_state) = state.apply_action(world, primitive.action);
 
                 primitive.values[value_index] *= 1.0 - self.alpha;
                 primitive.values[value_index] += self.alpha * reward;
                 seq.push(state_index);
+
+                *state = next_state;
             } else {
                 panic!("Failed to unwrap primitive node {}.", node_index);
             }
@@ -597,7 +599,8 @@ impl Runner for MaxQ {
                     self.evaluate_max_node(0, world, &state, state_index)
                 {
                     attempt.step(next_action);
-                    state.apply_action(world, next_action);
+                    let (_, next_state) = state.apply_action(world, next_action);
+                    state = next_state;
                 } else {
                     break;
                 }
@@ -629,7 +632,8 @@ impl Runner for MaxQ {
                 if let Some((_, _, next_action)) =
                     self.evaluate_max_node(0, world, &state, state_index)
                 {
-                    state.apply_action(world, next_action);
+                    let (_, next_state) = state.apply_action(world, next_action);
+                    state = next_state;
                 } else {
                     break;
                 }

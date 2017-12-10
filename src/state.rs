@@ -237,41 +237,56 @@ impl State {
         }
     }
 
-    pub fn apply_action(&mut self, world: &World, action: Actions) -> f64 {
+    pub fn apply_action(&self, world: &World, action: Actions) -> (f64, State) {
 
         match world.determine_affect(&self.taxi, action) {
             ActionAffect::Invalid => {
                 match action {
                     Actions::North | Actions::South | Actions::East | Actions::West => {
-                        world.movement_cost
+                        (world.movement_cost, *self)
                     }
-                    Actions::PickUp | Actions::DropOff => world.miss_passenger_cost,
+                    Actions::PickUp | Actions::DropOff => (world.miss_passenger_cost, *self),
                 }
             }
             ActionAffect::Move(delta) => {
-                self.taxi = self.taxi + delta;
-                world.movement_cost
+                (
+                    world.movement_cost,
+                    State {
+                        taxi: self.taxi + delta,
+                        ..*self
+                    },
+                )
             }
 
             ActionAffect::PickUp(id) => {
                 if self.passenger == Some(id) {
-                    self.passenger = None;
-                    0.0
+                    (
+                        0.0,
+                        State {
+                            passenger: None,
+                            ..*self
+                        },
+                    )
                 } else {
-                    world.miss_passenger_cost
+                    (world.miss_passenger_cost, *self)
                 }
             }
 
             ActionAffect::DropOff(id) => {
                 if self.passenger == None {
                     if id == self.destination {
-                        self.passenger = Some(id);
-                        0.0
+                        (
+                            0.0,
+                            State {
+                                passenger: Some(id),
+                                ..*self
+                            },
+                        )
                     } else {
-                        world.miss_passenger_cost
+                        (world.miss_passenger_cost, *self)
                     }
                 } else {
-                    world.miss_passenger_cost
+                    (world.miss_passenger_cost, *self)
                 }
             }
         }
@@ -368,12 +383,10 @@ mod test_state {
 
         assert_eq!(expected_initial, initial_state.display(&w));
 
-        let mut state0 = initial_state;
-        state0.apply_action(&w, Actions::PickUp);
+        let (_, state0) = initial_state.apply_action(&w, Actions::PickUp);
         assert_eq!(expected_initial, state0.display(&w));
 
-        let mut state1 = state0;
-        state1.apply_action(&w, Actions::DropOff);
+        let (_, state1) = state0.apply_action(&w, Actions::DropOff);
         assert_eq!(expected_initial, state1.display(&w));
     }
 
@@ -414,12 +427,10 @@ mod test_state {
 
         assert_eq!(expected_initial, initial_state.display(&w));
 
-        let mut state0 = initial_state;
-        state0.apply_action(&w, Actions::PickUp);
+        let (_, state0) = initial_state.apply_action(&w, Actions::PickUp);
         assert_eq!(expected_initial, state0.display(&w));
 
-        let mut state1 = state0;
-        state1.apply_action(&w, Actions::DropOff);
+        let (_, state1) = state0.apply_action(&w, Actions::DropOff);
         assert_eq!(expected_initial, state1.display(&w));
     }
 
@@ -570,7 +581,8 @@ mod test_state {
             assert_eq!(expected_at_destination, state.at_destination());
             assert_eq!(expected_str, state.display(&w));
 
-            state.apply_action(&w, next_action);
+            let (_, next_state) = state.apply_action(&w, next_action);
+            state = next_state;
         }
     }
 
@@ -793,7 +805,8 @@ mod test_state {
             assert_eq!(expected_at_destination, state.at_destination());
             assert_eq!(expected_str, state.display(&w));
 
-            state.apply_action(&w, next_action);
+            let (_, next_state) = state.apply_action(&w, next_action);
+            state = next_state;
         }
     }
 

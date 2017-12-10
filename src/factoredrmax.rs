@@ -508,10 +508,10 @@ impl Runner for FactoredRMax {
 
             if let Some(next_action) = self.select_best_action(world, &state, rng) {
 
-                let old_state = state;
-                let reward = state.apply_action(world, next_action);
+                let (reward, next_state) = state.apply_action(world, next_action);
 
-                self.apply_experience(world, &old_state, next_action, &state, reward);
+                self.apply_experience(world, &state, next_action, &next_state, reward);
+                state = next_state;
 
             } else {
 
@@ -544,7 +544,8 @@ impl Runner for FactoredRMax {
 
             if let Some(next_action) = self.select_best_action(world, &state, rng) {
                 attempt.step(next_action);
-                state.apply_action(world, next_action);
+                let (_, next_state) = state.apply_action(world, next_action);
+                state = next_state;
             } else {
                 break;
             }
@@ -571,7 +572,8 @@ impl Runner for FactoredRMax {
             }
 
             if let Some(next_action) = self.select_best_action(world, &state, rng) {
-                state.apply_action(world, next_action);
+                let (_, next_state) = state.apply_action(world, next_action);
+                state = next_state;
             } else {
                 break;
             }

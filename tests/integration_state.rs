@@ -186,8 +186,7 @@ fn move_allowed_north() {
     let world = World::build_from_str(source_world).unwrap();
     let initial_state = State::build(&world, (1, 3), Some('R'), 'G').unwrap();
 
-    let mut state_north = initial_state;
-    state_north.apply_action(&world, Actions::North);
+    let (_, state_north) = initial_state.apply_action(&world, Actions::North);
     assert_eq!(expected_north, state_north.display(&world));
 }
 
@@ -228,8 +227,7 @@ fn move_top_north() {
             match State::build(&w, (1, 0), Some('R'), 'G') {
                 Err(msg) => panic!(msg),
                 Ok(state) => {
-                    let mut state_north = state;
-                    state_north.apply_action(&w, Actions::North);
+                    let (_, state_north) = state.apply_action(&w, Actions::North);
                     assert_eq!(expected_north, state_north.display(&w));
                 }
             }
@@ -274,8 +272,7 @@ fn move_wall_north() {
             match State::build(&w, (1, 3), Some('R'), 'G') {
                 Err(msg) => panic!(msg),
                 Ok(state) => {
-                    let mut state_north = state;
-                    state_north.apply_action(&w, Actions::North);
+                    let (_, state_north) = state.apply_action(&w, Actions::North);
                     assert_eq!(expected_north, state_north.display(&w));
                 }
             }
@@ -320,8 +317,7 @@ fn move_allowed_south() {
             match State::build(&w, (3, 1), Some('R'), 'G') {
                 Err(msg) => panic!(msg),
                 Ok(state) => {
-                    let mut state_south = state;
-                    state_south.apply_action(&w, Actions::South);
+                    let (_, state_south) = state.apply_action(&w, Actions::South);
                     assert_eq!(expected_south, state_south.display(&w));
                 }
             }
@@ -366,8 +362,7 @@ fn move_bottom_south() {
             match State::build(&w, (0, 4), Some('R'), 'G') {
                 Err(msg) => panic!(msg),
                 Ok(state) => {
-                    let mut state_south = state;
-                    state_south.apply_action(&w, Actions::South);
+                    let (_, state_south) = state.apply_action(&w, Actions::South);
                     assert_eq!(expected_south, state_south.display(&w));
                 }
             }
@@ -412,8 +407,7 @@ fn move_wall_south() {
             match State::build(&w, (1, 2), Some('R'), 'G') {
                 Err(msg) => panic!(msg),
                 Ok(state) => {
-                    let mut state_south = state;
-                    state_south.apply_action(&w, Actions::South);
+                    let (_, state_south) = state.apply_action(&w, Actions::South);
                     assert_eq!(expected_south, state_south.display(&w));
                 }
             }
@@ -458,8 +452,7 @@ fn move_allowed_east() {
             match State::build(&w, (1, 2), Some('R'), 'G') {
                 Err(msg) => panic!(msg),
                 Ok(state) => {
-                    let mut state_east = state;
-                    state_east.apply_action(&w, Actions::East);
+                    let (_, state_east) = state.apply_action(&w, Actions::East);
                     assert_eq!(expected_east, state_east.display(&w));
                 }
             }
@@ -504,8 +497,7 @@ fn move_right_east() {
             match State::build(&w, (3, 1), Some('R'), 'G') {
                 Err(msg) => panic!(msg),
                 Ok(state) => {
-                    let mut state_east = state;
-                    state_east.apply_action(&w, Actions::East);
+                    let (_, state_east) = state.apply_action(&w, Actions::East);
                     assert_eq!(expected_east, state_east.display(&w));
                 }
             }
@@ -550,8 +542,7 @@ fn move_wall_east() {
             match State::build(&w, (1, 1), Some('R'), 'G') {
                 Err(msg) => panic!(msg),
                 Ok(state) => {
-                    let mut state_east = state;
-                    state_east.apply_action(&w, Actions::East);
+                    let (_, state_east) = state.apply_action(&w, Actions::East);
                     assert_eq!(expected_east, state_east.display(&w));
                 }
             }
@@ -596,8 +587,7 @@ fn move_allowed_west() {
             match State::build(&w, (1, 1), Some('R'), 'G') {
                 Err(msg) => panic!(msg),
                 Ok(state) => {
-                    let mut state_west = state;
-                    state_west.apply_action(&w, Actions::West);
+                    let (_, state_west) = state.apply_action(&w, Actions::West);
                     assert_eq!(expected_west, state_west.display(&w));
                 }
             }
@@ -642,8 +632,7 @@ fn move_left_west() {
             match State::build(&w, (1, 2), Some('R'), 'G') {
                 Err(msg) => panic!(msg),
                 Ok(state) => {
-                    let mut state_west = state;
-                    state_west.apply_action(&w, Actions::West);
+                    let (_, state_west) = state.apply_action(&w, Actions::West);
                     assert_eq!(expected_west, state_west.display(&w));
                 }
             }
@@ -688,8 +677,7 @@ fn move_wall_west() {
             match State::build(&w, (3, 4), Some('R'), 'G') {
                 Err(msg) => panic!(msg),
                 Ok(state) => {
-                    let mut state_west = state;
-                    state_west.apply_action(&w, Actions::West);
+                    let (_, state_west) = state.apply_action(&w, Actions::West);
                     assert_eq!(expected_west, state_west.display(&w));
                 }
             }
@@ -734,28 +722,23 @@ fn reaches_destination() {
                     println!();
                     println!("{}", state.display(&w));
 
-                    let mut result0 = state;
-                    result0.apply_action(&w, Actions::East);
+                    let (_, result0) = state.apply_action(&w, Actions::East);
                     println!("0:\n{}", result0.display(&w));
                     assert_eq!(result0.at_destination(), false);
 
-                    let mut result1 = result0;
-                    result1.apply_action(&w, Actions::PickUp);
+                    let (_, result1) = result0.apply_action(&w, Actions::PickUp);
                     println!("1:\n{}", result1.display(&w));
                     assert_eq!(result1.at_destination(), false);
 
-                    let mut result2 = result1;
-                    result2.apply_action(&w, Actions::South);
+                    let (_, result2) = result1.apply_action(&w, Actions::South);
                     println!("2:\n{}", result2.display(&w));
                     assert_eq!(result2.at_destination(), false);
 
-                    let mut result3 = result2;
-                    result3.apply_action(&w, Actions::South);
+                    let (_, result3) = result2.apply_action(&w, Actions::South);
                     println!("3:\n{}", result3.display(&w));
                     assert_eq!(result3.at_destination(), false);
 
-                    let mut result4 = result3;
-                    result4.apply_action(&w, Actions::DropOff);
+                    let (_, result4) = result3.apply_action(&w, Actions::DropOff);
                     println!("4:\n{}", result4.display(&w));
                     assert_eq!(result4.at_destination(), true);
                 }
@@ -792,20 +775,16 @@ fn movement_reward() {
     assert_eq!(expected_initial_str, initial_state.display(&world));
 
 
-    let mut north_state = initial_state;
-    let north_reward = north_state.apply_action(&world, Actions::North);
+    let (north_reward, _) = initial_state.apply_action(&world, Actions::North);
     assert_eq!(-1.0, north_reward);
 
-    let mut south_state = initial_state;
-    let south_reward = south_state.apply_action(&world, Actions::South);
+    let (south_reward, _) = initial_state.apply_action(&world, Actions::South);
     assert_eq!(-1.0, south_reward);
 
-    let mut east_state = initial_state;
-    let east_reward = east_state.apply_action(&world, Actions::East);
+    let (east_reward, _) = initial_state.apply_action(&world, Actions::East);
     assert_eq!(-1.0, east_reward);
 
-    let mut west_state = initial_state;
-    let west_reward = west_state.apply_action(&world, Actions::West);
+    let (west_reward, _) = initial_state.apply_action(&world, Actions::West);
     assert_eq!(-1.0, west_reward);
 }
 
@@ -836,8 +815,7 @@ fn correct_pickup_reward() {
 
     assert_eq!(expected_initial_str, initial_state.display(&world));
 
-    let mut pickup_state = initial_state;
-    let pickup_reward = pickup_state.apply_action(&world, Actions::PickUp);
+    let (pickup_reward, _) = initial_state.apply_action(&world, Actions::PickUp);
     assert_eq!(0.0, pickup_reward);
 }
 
@@ -865,7 +843,7 @@ fn incorrect_pickup_reward() {
         └─────┘\n\
         ";
 
-    let mut off_passenger_state = State::build(&world, (1, 1), Some('R'), 'G').unwrap();
+    let off_passenger_state = State::build(&world, (1, 1), Some('R'), 'G').unwrap();
 
     assert_eq!(
         expected_off_passenger_str,
@@ -873,7 +851,7 @@ fn incorrect_pickup_reward() {
     );
     assert_eq!(
         -10.0,
-        off_passenger_state.apply_action(&world, Actions::PickUp)
+        off_passenger_state.apply_action(&world, Actions::PickUp).0
     );
 
     let expected_has_passenger_str = "\
@@ -886,7 +864,7 @@ fn incorrect_pickup_reward() {
         └─────┘\n\
         ";
 
-    let mut has_passenger_state = State::build(&world, (1, 1), None, 'G').unwrap();
+    let has_passenger_state = State::build(&world, (1, 1), None, 'G').unwrap();
 
     assert_eq!(
         expected_has_passenger_str,
@@ -894,7 +872,7 @@ fn incorrect_pickup_reward() {
     );
     assert_eq!(
         -10.0,
-        has_passenger_state.apply_action(&world, Actions::PickUp)
+        has_passenger_state.apply_action(&world, Actions::PickUp).0
     );
 
     let expected_wrong_fp_str = "\
@@ -907,10 +885,13 @@ fn incorrect_pickup_reward() {
         └─────┘\n\
         ";
 
-    let mut wrong_fp_state = State::build(&world, (1, 2), Some('R'), 'G').unwrap();
+    let wrong_fp_state = State::build(&world, (1, 2), Some('R'), 'G').unwrap();
 
     assert_eq!(expected_wrong_fp_str, wrong_fp_state.display(&world));
-    assert_eq!(-10.0, wrong_fp_state.apply_action(&world, Actions::PickUp));
+    assert_eq!(
+        -10.0,
+        wrong_fp_state.apply_action(&world, Actions::PickUp).0
+    );
 }
 
 #[test]
@@ -937,7 +918,7 @@ fn incorrect_dropoff_reward() {
         └─────┘\n\
         ";
 
-    let mut no_passenger_state = State::build(&world, (1, 1), Some('R'), 'G').unwrap();
+    let no_passenger_state = State::build(&world, (1, 1), Some('R'), 'G').unwrap();
 
     assert_eq!(
         expected_no_passenger_str,
@@ -946,7 +927,7 @@ fn incorrect_dropoff_reward() {
 
     assert_eq!(
         -10.0,
-        no_passenger_state.apply_action(&world, Actions::DropOff)
+        no_passenger_state.apply_action(&world, Actions::DropOff).0
     );
 
     let expected_no_passenger_on_dest_str = "\
@@ -959,7 +940,7 @@ fn incorrect_dropoff_reward() {
         └─────┘\n\
         ";
 
-    let mut no_passenger_on_deststate = State::build(&world, (2, 0), Some('R'), 'G').unwrap();
+    let no_passenger_on_deststate = State::build(&world, (2, 0), Some('R'), 'G').unwrap();
 
     assert_eq!(
         expected_no_passenger_on_dest_str,
@@ -968,7 +949,9 @@ fn incorrect_dropoff_reward() {
 
     assert_eq!(
         -10.0,
-        no_passenger_on_deststate.apply_action(&world, Actions::DropOff)
+        no_passenger_on_deststate
+            .apply_action(&world, Actions::DropOff)
+            .0
     );
 
     let expected_passenger_off_fp_str = "\
@@ -981,7 +964,7 @@ fn incorrect_dropoff_reward() {
         └─────┘\n\
         ";
 
-    let mut passenger_off_fp_state = State::build(&world, (1, 1), None, 'G').unwrap();
+    let passenger_off_fp_state = State::build(&world, (1, 1), None, 'G').unwrap();
 
     assert_eq!(
         expected_passenger_off_fp_str,
@@ -990,7 +973,9 @@ fn incorrect_dropoff_reward() {
 
     assert_eq!(
         -10.0,
-        passenger_off_fp_state.apply_action(&world, Actions::DropOff)
+        passenger_off_fp_state
+            .apply_action(&world, Actions::DropOff)
+            .0
     );
 
     let expected_passenger_wrong_fp_str = "\
@@ -1003,7 +988,7 @@ fn incorrect_dropoff_reward() {
         └─────┘\n\
         ";
 
-    let mut passenger_wrong_fp_state = State::build(&world, (1, 2), None, 'G').unwrap();
+    let passenger_wrong_fp_state = State::build(&world, (1, 2), None, 'G').unwrap();
 
     assert_eq!(
         expected_passenger_wrong_fp_str,
@@ -1012,6 +997,8 @@ fn incorrect_dropoff_reward() {
 
     assert_eq!(
         -10.0,
-        passenger_wrong_fp_state.apply_action(&world, Actions::DropOff)
+        passenger_wrong_fp_state
+            .apply_action(&world, Actions::DropOff)
+            .0
     );
 }

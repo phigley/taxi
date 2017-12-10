@@ -153,13 +153,17 @@ impl Runner for QLearner {
 
             if let Some(state_index) = self.state_indexer.get_index(world, &state) {
                 if let Some(next_action) = self.determine_learning_action(state_index, &mut rng) {
-                    let reward = state.apply_action(world, next_action);
+                    let (reward, next_state) = state.apply_action(world, next_action);
 
-                    if let Some(next_state_index) = self.state_indexer.get_index(world, &state) {
+                    if let Some(next_state_index) =
+                        self.state_indexer.get_index(world, &next_state)
+                    {
                         self.apply_experience(state_index, next_action, next_state_index, reward);
                     } else {
                         return None;
                     }
+
+                    state = next_state;
                 } else {
                     return None;
                 }
@@ -196,7 +200,8 @@ impl Runner for QLearner {
 
                     attempt.step(next_action);
 
-                    state.apply_action(world, next_action);
+                    let (_, next_state) = state.apply_action(world, next_action);
+                    state = next_state;
                 } else {
                     break;
                 }
@@ -227,7 +232,8 @@ impl Runner for QLearner {
 
             if let Some(state_index) = self.state_indexer.get_index(world, &state) {
                 if let Some(next_action) = self.determine_greedy_action(state_index, &mut rng) {
-                    state.apply_action(world, next_action);
+                    let (_, next_state) = state.apply_action(world, next_action);
+                    state = next_state;
                 } else {
                     break;
                 }
@@ -292,8 +298,7 @@ mod test_qlearner {
             .get_index(&world, &initial_state)
             .unwrap();
 
-        let mut south_state = initial_state;
-        let reward = south_state.apply_action(&world, Actions::South);
+        let (reward, south_state) = initial_state.apply_action(&world, Actions::South);
         assert_eq!(expected_initial_str, south_state.display(&world));
 
         let south_index = qlearner

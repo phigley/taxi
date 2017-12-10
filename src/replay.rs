@@ -33,8 +33,9 @@ impl Replay {
         states.push(state.display(world));
 
         for a in &attempt.actions {
-            state.apply_action(world, *a);
-            states.push(state.display(world));
+            let (_, next_state) = state.apply_action(world, *a);
+            states.push(next_state.display(world));
+            state = next_state;
         }
 
         let state_height = (2 * world.height + 1) as u16;
