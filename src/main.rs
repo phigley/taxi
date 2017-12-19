@@ -185,6 +185,7 @@ fn run() -> Result<(), AppError> {
                         maxq_config.gamma,
                         maxq_config.epsilon,
                         maxq_config.show_table,
+                        maxq_config.show_learning,
                     )
                 },
                 SolverChoice::MaxQ,
@@ -283,6 +284,7 @@ fn run() -> Result<(), AppError> {
                             maxq_config.gamma,
                             maxq_config.epsilon,
                             maxq_config.show_table,
+                            maxq_config.show_learning,
                         ),
                         replay_config,
                         &world,
