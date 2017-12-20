@@ -15,6 +15,7 @@ mod replay;
 use std::env;
 use std::io;
 use std::fmt;
+use std::time;
 
 use rand::{Rng, thread_rng};
 
@@ -114,18 +115,22 @@ fn run() -> Result<(), AppError> {
 
     if config.sessions > 0 {
 
+        let mut results = Vec::new();
+
         if config.random_solver.is_some() {
-            gather_and_report_stats(
+            let stats = gather_stats(
                 RandomSolver::new,
                 SolverChoice::Random,
                 &world,
                 &probes,
                 &config,
             )?;
+
+            results.push((SolverChoice::Random, stats));
         };
 
         if let Some(qlearner_config) = config.q_learner.as_ref() {
-            gather_and_report_stats(
+            let stats = gather_stats(
                 || {
                     QLearner::new(
                         &world,
@@ -140,10 +145,12 @@ fn run() -> Result<(), AppError> {
                 &probes,
                 &config,
             )?;
+
+            results.push((SolverChoice::QLearner, stats));
         };
 
         if let Some(rmax_config) = config.r_max.as_ref() {
-            gather_and_report_stats(
+            let stats = gather_stats(
                 || {
                     RMax::new(
                         &world,
@@ -157,10 +164,12 @@ fn run() -> Result<(), AppError> {
                 &probes,
                 &config,
             )?;
+
+            results.push((SolverChoice::RMax, stats));
         };
 
         if let Some(factored_rmax_config) = config.factored_r_max.as_ref() {
-            gather_and_report_stats(
+            let stats = gather_stats(
                 || {
                     FactoredRMax::new(
                         &world,
@@ -174,10 +183,12 @@ fn run() -> Result<(), AppError> {
                 &probes,
                 &config,
             )?;
+
+            results.push((SolverChoice::FactoredRMax, stats));
         };
 
         if let Some(maxq_config) = config.max_q.as_ref() {
-            gather_and_report_stats(
+            let stats = gather_stats(
                 || {
                     MaxQ::new(
                         &world,
@@ -193,7 +204,28 @@ fn run() -> Result<(), AppError> {
                 &probes,
                 &config,
             )?;
+
+            results.push((SolverChoice::MaxQ, stats));
         };
+
+        println!();
+
+        for (solver_choice, stats) in results.into_iter() {
+            let (avg_steps, stddev_steps) = stats.distribution.get_distribution();
+
+            let elapsed_time = stats.duration.as_secs() as f64 +
+                stats.duration.subsec_nanos() as f64 * 1e-9;
+
+            println!(
+                "{:?} - finished {} sessions in {:.1} average steps with stddev of {:.2} \
+                in {:.3} secs.",
+                solver_choice,
+                stats.distribution.get_count() as usize,
+                avg_steps,
+                stddev_steps,
+                elapsed_time,
+            );
+        }
     }
 
     if let Some(replay_config) = config.replay.as_ref() {
@@ -327,54 +359,21 @@ fn build_probes(config: &Configuration, world: &World) -> Result<Vec<Probe>, App
 #[derive(Default)]
 struct Stats {
     distribution: MeasureDistribution,
+    duration: time::Duration,
 }
 
-fn gather_and_report_stats<B, Rnr>(
+fn gather_stats<B, Rnr>(
     builder: B,
     solver_choice: SolverChoice,
     world: &World,
     probes: &[Probe],
     config: &Configuration,
-) -> Result<(), AppError>
-where
-    B: Fn() -> Rnr + Sync,
-    Rnr: Runner + Sync,
-{
-    let stats = gather_stats(
-        builder,
-        world,
-        probes,
-        config.sessions,
-        config.max_trials,
-        config.max_trial_steps,
-    )?;
-
-    let (avg_steps, stddev_steps) = stats.distribution.get_distribution();
-
-    println!(
-        "{:?} - finished {} sessions in {} average steps with stddev of {}.",
-        solver_choice,
-        stats.distribution.get_count() as usize,
-        avg_steps,
-        stddev_steps
-    );
-
-    Ok(())
-}
-
-fn gather_stats<B, Rnr>(
-    builder: B,
-    world: &World,
-    probes: &[Probe],
-    sessions: usize,
-    max_trials: usize,
-    max_trial_steps: usize,
 ) -> Result<Stats, AppError>
 where
     B: Fn() -> Rnr + Sync,
     Rnr: Runner + Sync,
 {
-    let session_ids: Vec<usize> = (0..sessions).collect();
+    let session_ids: Vec<usize> = (0..config.sessions).collect();
 
     session_ids
         .par_iter()
@@ -384,26 +383,49 @@ where
 
             current_result.and_then(|mut stats| {
 
+                let start_time = time::Instant::now();
+
                 let mut solver = builder();
                 let mut rng = thread_rng();
 
                 let training_step_count = run_training_session(
                     world,
                     probes,
-                    max_trials,
-                    max_trial_steps,
+                    config.max_trials,
+                    config.max_trial_steps,
                     &mut solver,
                     &mut rng,
                 ).map_err(AppError::Runner)?;
 
+                let duration = start_time.elapsed();
+                let elapsed_time = duration.as_secs() as f64 +
+                    duration.subsec_nanos() as f64 * 1e-9;
+
                 match training_step_count {
                     Some(num_steps) => {
+                        println!(
+                            "{:?} - Finished session {} in {} steps in {:.3} secs.",
+                            solver_choice,
+                            session_number,
+                            num_steps,
+                            elapsed_time,
+                        );
                         stats.distribution.add_value(num_steps as f64);
                     }
                     None => {
-                        println!("Failed session {}.", session_number);
+                        println!(
+                            "{:?} - Failed session {} with maximums {} trials of {} steps \
+                            in {:.3} secs.",
+                            solver_choice,
+                            session_number,
+                            config.max_trials,
+                            config.max_trial_steps,
+                            elapsed_time,
+                        );
                     }
                 };
+
+                stats.duration += duration;
 
                 // This may overlap with other reports, should we guard with a mutex?
                 solver.report_training_result(world);
@@ -424,6 +446,7 @@ where
             result_a.and_then(|mut stats_a| {
                 result_b.and_then(|stats_b| {
                     stats_a.distribution.add_distribution(&stats_b.distribution);
+                    stats_a.duration += stats_b.duration;
                     Ok(stats_a)
                 })
             })
