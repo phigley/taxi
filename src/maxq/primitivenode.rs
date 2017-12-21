@@ -53,7 +53,7 @@ impl PrimitiveNode {
         world: &World,
         state: &State,
         reward: f64,
-        next_state: &State,
+        _next_state: &State,
     ) {
         let value_index = self.get_value_index(world, &state);
 

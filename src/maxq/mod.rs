@@ -148,9 +148,8 @@ impl MaxQ {
             };
 
             if child_completed {
-                // self.nodes.max_nodes[max_index]
-                // .learning_reward(node_index, world, &next_state);
-                let learning_reward = 0.0;
+                let learning_reward =
+                    self.nodes.max_nodes[max_index].learning_reward(world, &next_state);
 
                 if self.params.show_learning {
                     println!(
@@ -161,26 +160,18 @@ impl MaxQ {
                     );
                 }
 
-                let (result_state_value, result_state_learning_value) = self.nodes.max_nodes
+                let (result_state_learning_value, result_state_value) = self.nodes.max_nodes
                     [max_index]
-                    .evaluate(&self.nodes, world, &next_state)
-                    .and_then(|(_, next_child_index, _)| {
-                        self.nodes.q_nodes[next_child_index]
-                            .evaluate(&self.nodes, world, &next_state)
-                            .map(|(next_value, next_completion, _)| {
-                                (next_value + next_completion, next_value + next_completion)
-                            })
-                    })
+                    .result_state_values(&self.nodes, world, &next_state)
                     .unwrap_or((0.0, 0.0));
 
                 let mut accum_gamma = self.params.gamma;
                 for child_state in child_seq.iter().rev() {
-                    self.nodes.q_nodes[child_q_index].update_completion(
+                    self.nodes.q_nodes[child_q_index].update_learning_completion(
                         &self.params,
                         accum_gamma,
+                        learning_reward + result_state_learning_value,
                         result_state_value,
-                        result_state_learning_value,
-                        learning_reward,
                         world,
                         &child_state,
                     );

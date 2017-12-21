@@ -55,12 +55,45 @@ impl MaxNode {
         result
     }
 
-    // fn learning_reward(&self, _world: &World, state: &State) -> f64 {
-    //     match self.node_type {
-    //         MaxNodeType::Put => if state.at_destination() { 0.0 } else { -100.0 },
-    //         _ => 0.0,
-    //     }
-    // }
+    pub fn result_state_values(
+        &self,
+        nodes: &NodeStorage,
+        world: &World,
+        state: &State,
+    ) -> Option<(f64, f64)> {
+        let mut result = None;
+
+        if !self.terminal_state(world, state) {
+            let mut highest_q = None;
+
+            for qnode_index in &self.qnodes {
+                if let Some((value, learning_completion, completion)) =
+                    nodes.q_nodes[*qnode_index].evaluate_learning(nodes, world, state)
+                {
+                    let q = Some(value + learning_completion);
+
+                    if q > highest_q {
+                        highest_q = q;
+
+                        result = Some((value + learning_completion, value + completion));
+                    }
+                }
+            }
+        }
+
+        result
+    }
+
+    pub fn learning_reward(&self, _world: &World, state: &State) -> f64 {
+        match self.node_type {
+            MaxNodeType::Put => if state.at_destination() {
+                0.0
+            } else {
+                -100.0
+            },
+            _ => 0.0,
+        }
+    }
 
     pub fn select_child_to_learn<R: Rng>(
         &self,

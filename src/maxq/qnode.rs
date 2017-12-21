@@ -33,6 +33,7 @@ pub enum QChild {
 pub struct QNode {
     node_type: QNodeType,
     completions: Vec<f64>,
+    learning_completions: Vec<f64>,
 }
 
 impl QNode {
@@ -56,6 +57,7 @@ impl QNode {
         QNode {
             node_type,
             completions: vec![0.0; num_completions],
+            learning_completions: vec![0.0; num_completions],
         }
     }
 
@@ -90,13 +92,47 @@ impl QNode {
         }
     }
 
-    pub fn update_completion(
+    pub fn evaluate_learning(
+        &self,
+        nodes: &NodeStorage,
+        world: &World,
+        state: &State,
+    ) -> Option<(f64, f64, f64)> {
+        let (learning_completion, completion) = self.get_completion_index(world, state)
+            .map(|completion_index| {
+                (
+                    self.learning_completions[completion_index],
+                    self.completions[completion_index],
+                )
+            })
+            .unwrap_or((0.0, 0.0));
+
+        let qchild = self.get_child(world, state)?;
+
+        match qchild {
+            QChild::Primitive(index) => {
+                let primitive_node = &nodes.primitive_nodes[index];
+                let (value, _) = primitive_node.evaluate(world, state);
+
+                Some((value, learning_completion, completion))
+            }
+
+            QChild::MaxNode(index) => {
+                let max_node = &nodes.max_nodes[index];
+
+                max_node
+                    .evaluate(nodes, world, state)
+                    .map(|(value, _, _)| (value, learning_completion, completion))
+            }
+        }
+    }
+
+    pub fn update_learning_completion(
         &mut self,
         params: &MaxQParams,
         gamma: f64,
+        result_learning_completion: f64,
         result_completion: f64,
-        _result_learning_compltion: f64,
-        _learning_reward: f64,
         world: &World,
         state: &State,
     ) {
@@ -107,9 +143,10 @@ impl QNode {
         self.get_completion_index(world, state)
             .map(|completion_index| {
                 let old_completion = self.completions[completion_index];
-                // self.learning_completion[completion_index] *= 1.0 - params.alpha;
-                // self.learning_completion[completion_index] += params.alpha * gamma *
-                //     (learning_reward + result_learning_completion);
+
+                self.learning_completions[completion_index] *= 1.0 - params.alpha;
+                self.learning_completions[completion_index] +=
+                    params.alpha * gamma * result_learning_completion;
 
                 self.completions[completion_index] *= 1.0 - params.alpha;
                 self.completions[completion_index] += params.alpha * gamma * result_completion;
