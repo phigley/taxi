@@ -1,4 +1,3 @@
-
 use std::fmt;
 use std::fs::File;
 use std::io::prelude::*;
@@ -96,29 +95,31 @@ pub struct Configuration {
 
 impl Configuration {
     pub fn from_file(filename: &str) -> Result<Configuration, Error> {
-        let mut config_file = File::open(filename).map_err(|_| {
-            Error::OpenFailure { filename: String::from(filename) }
+        let mut config_file = File::open(filename).map_err(|_| Error::OpenFailure {
+            filename: String::from(filename),
         })?;
 
         let mut config_string = String::new();
-        config_file.read_to_string(&mut config_string).map_err(
-            |_| {
-                Error::ReadFailure { filename: String::from(filename) }
-            },
-        )?;
-
-        toml::from_str(&config_string).map_err(|error| {
-            Error::ParseFailure {
+        config_file
+            .read_to_string(&mut config_string)
+            .map_err(|_| Error::ReadFailure {
                 filename: String::from(filename),
-                error,
-            }
+            })?;
+
+        toml::from_str(&config_string).map_err(|error| Error::ParseFailure {
+            filename: String::from(filename),
+            error,
         })
     }
 }
 
 pub enum Error {
-    OpenFailure { filename: String },
-    ReadFailure { filename: String },
+    OpenFailure {
+        filename: String,
+    },
+    ReadFailure {
+        filename: String,
+    },
     ParseFailure {
         filename: String,
         error: toml::de::Error,
@@ -137,34 +138,30 @@ impl fmt::Debug for Error {
             Error::ParseFailure {
                 ref filename,
                 ref error,
-            } => {
-                write!(
-                    f,
-                    "Configuration - Failed to parse config file '{}' - {}",
-                    filename,
-                    error
-                )
-            }
+            } => write!(
+                f,
+                "Configuration - Failed to parse config file '{}' - {}",
+                filename, error
+            ),
         }
     }
 }
 
-
 impl Default for Configuration {
     fn default() -> Configuration {
         let world_str = "\
-        ┌───┬─────┐\n\
-        │R .│. . G│\n\
-        │   │     │\n\
-        │. .│. . .│\n\
-        │         │\n\
-        │. . . . .│\n\
-        │         │\n\
-        │.│. .│. .│\n\
-        │ │   │   │\n\
-        │Y│. .│B .│\n\
-        └─┴───┴───┘\n\
-        ";
+                         ┌───┬─────┐\n\
+                         │R .│. . G│\n\
+                         │   │     │\n\
+                         │. .│. . .│\n\
+                         │         │\n\
+                         │. . . . .│\n\
+                         │         │\n\
+                         │.│. .│. .│\n\
+                         │ │   │   │\n\
+                         │Y│. .│B .│\n\
+                         └─┴───┴───┘\n\
+                         ";
 
         Configuration {
             world: String::from(world_str),

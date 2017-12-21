@@ -1,4 +1,3 @@
-
 use std::fmt;
 
 use rand::Rng;
@@ -74,7 +73,6 @@ pub enum Error {
 
 impl fmt::Debug for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-
         match *self {
             Error::BuildRandomState(ref state_error) => {
                 write!(f, "Failed to build random state:\n{:?}", state_error)
@@ -82,8 +80,6 @@ impl fmt::Debug for Error {
         }
     }
 }
-
-
 
 pub fn run_training_session<Rnr, R>(
     world: &World,
@@ -97,11 +93,9 @@ where
     Rnr: Runner,
     R: Rng,
 {
-
     let mut total_steps = 0;
 
     for _ in 0..max_trials {
-
         match State::build_random(world, &mut rng) {
             Err(state_error) => {
                 return Err(Error::BuildRandomState(state_error));
@@ -116,9 +110,9 @@ where
             }
         }
 
-        let probes_passed = probes.iter().all(|probe| {
-            runner.solves(world, probe.state, probe.maximum_steps, &mut rng)
-        });
+        let probes_passed = probes
+            .iter()
+            .all(|probe| runner.solves(world, probe.state, probe.maximum_steps, &mut rng));
 
         if probes_passed {
             return Ok(Some(total_steps));

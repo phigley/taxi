@@ -1,11 +1,9 @@
-
-
 use std::fmt;
 
 use rand::Rng;
 
 use position::Position;
-use world::{World, ActionAffect};
+use world::{ActionAffect, World};
 use actions::Actions;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -21,9 +19,15 @@ pub enum Error {
         world_dims: (i32, i32),
     },
 
-    InvalidDestination { id: char, world: String },
+    InvalidDestination {
+        id: char,
+        world: String,
+    },
 
-    InvalidPassenger { id: char, world: String },
+    InvalidPassenger {
+        id: char,
+        world: String,
+    },
 
     TooFewFixedPositions {
         num_fixed_positions: usize,
@@ -42,58 +46,43 @@ impl fmt::Debug for Error {
             Error::InvalidTaxi {
                 taxi_pos,
                 world_dims,
-            } => {
-                write!(
-                    f,
-                    "Taxi position ({},{}) is invalid, world (width, height) is ({},{}).",
-                    taxi_pos.0,
-                    taxi_pos.1,
-                    world_dims.0,
-                    world_dims.1
-                )
-            }
+            } => write!(
+                f,
+                "Taxi position ({},{}) is invalid, world (width, height) is ({},{}).",
+                taxi_pos.0, taxi_pos.1, world_dims.0, world_dims.1
+            ),
 
-            Error::InvalidDestination { id, ref world } => {
-                write!(
-                    f,
-                    "Failed to find destination location '{}' in world:\n{}",
-                    id,
-                    world
-                )
-            }
+            Error::InvalidDestination { id, ref world } => write!(
+                f,
+                "Failed to find destination location '{}' in world:\n{}",
+                id, world
+            ),
 
-            Error::InvalidPassenger { id, ref world } => {
-                write!(
-                    f,
-                    "Failed to find passenger location '{}' in world:\n{}",
-                    id,
-                    world
-                )
-            }
+            Error::InvalidPassenger { id, ref world } => write!(
+                f,
+                "Failed to find passenger location '{}' in world:\n{}",
+                id, world
+            ),
 
             Error::TooFewFixedPositions {
                 num_fixed_positions,
                 ref world,
-            } => {
-                write!(
-                    f,
-                    "World does not have enough fixed positions. \
-                     Need at least 2, but only have {} in world:\n{}",
-                    num_fixed_positions,
-                    world,
-                )
-            }
+            } => write!(
+                f,
+                "World does not have enough fixed positions. \
+                 Need at least 2, but only have {} in world:\n{}",
+                num_fixed_positions, world,
+            ),
 
             Error::FailedToFindDestination {
                 destination_offset,
                 ref world,
-            } => {
-                write!( f, "Failed to find a valid destination when generating random state. \
-                    Looking for destation offset {} in world:\n{}",
-                    destination_offset,
-                    world,
-                    )
-            }
+            } => write!(
+                f,
+                "Failed to find a valid destination when generating random state. \
+                 Looking for destation offset {} in world:\n{}",
+                destination_offset, world,
+            ),
         }
     }
 }
@@ -105,9 +94,8 @@ impl State {
         passenger: Option<char>,
         destination: char,
     ) -> Result<State, Error> {
-
-        if taxi_pos.0 < 0 || taxi_pos.0 >= world.width || taxi_pos.1 < 0 ||
-            taxi_pos.1 >= world.height
+        if taxi_pos.0 < 0 || taxi_pos.0 >= world.width || taxi_pos.1 < 0
+            || taxi_pos.1 >= world.height
         {
             return Err(Error::InvalidTaxi {
                 taxi_pos,
@@ -139,7 +127,6 @@ impl State {
     }
 
     pub fn build_random<R: Rng>(world: &World, rng: &mut R) -> Result<State, Error> {
-
         let taxi_x = rng.gen_range(0, world.width);
         let taxi_y = rng.gen_range(0, world.height);
 
@@ -148,9 +135,9 @@ impl State {
         if num_fixed_positions >= 2 {
             let destination_fp_index = rng.gen_range(0, num_fixed_positions);
             if let Some(destination) = world.get_fixed_id_from_index(destination_fp_index) {
-                let passenger_fp_index = (destination_fp_index +
-                                              rng.gen_range(1, num_fixed_positions)) %
-                    num_fixed_positions;
+                let passenger_fp_index = (destination_fp_index
+                    + rng.gen_range(1, num_fixed_positions))
+                    % num_fixed_positions;
 
                 let passenger = world.get_fixed_id_from_index(passenger_fp_index);
 
@@ -165,7 +152,6 @@ impl State {
                     world: world.display(),
                 })
             }
-
         } else {
             Err(Error::TooFewFixedPositions {
                 num_fixed_positions,
@@ -175,7 +161,6 @@ impl State {
     }
 
     pub fn display(&self, world: &World) -> String {
-
         let world_strings = world.display_strings();
 
         let mut result = String::new();
@@ -183,13 +168,9 @@ impl State {
         let mut current_position = Position::new(0, 0);
 
         for (i_r, r) in world_strings.iter().enumerate() {
-
             if i_r % 2 == 1 {
-
                 for (i_c, c) in r.chars().enumerate() {
-
                     if i_c % 2 == 1 {
-
                         result.push(self.calc_character(c, &current_position));
 
                         current_position.x += 1;
@@ -200,7 +181,6 @@ impl State {
 
                 current_position.x = 0;
                 current_position.y += 1;
-
             } else {
                 result += r;
             }
@@ -212,16 +192,13 @@ impl State {
     }
 
     fn calc_character(&self, id: char, position: &Position) -> char {
-
         if id == self.destination {
             match self.passenger {
                 Some(passenger_id) if passenger_id == self.destination => 'D',
                 _ => 'd',
             }
         } else {
-
             match self.passenger {
-
                 Some(passenger_id) => {
                     if passenger_id == id {
                         'p'
@@ -231,32 +208,30 @@ impl State {
                         '.'
                     }
                 }
-                None => if self.taxi == *position { 'T' } else { '.' },
+                None => if self.taxi == *position {
+                    'T'
+                } else {
+                    '.'
+                },
             }
-
         }
     }
 
     pub fn apply_action(&self, world: &World, action: Actions) -> (f64, State) {
-
         match world.determine_affect(&self.taxi, action) {
-            ActionAffect::Invalid => {
-                match action {
-                    Actions::North | Actions::South | Actions::East | Actions::West => {
-                        (world.movement_cost, *self)
-                    }
-                    Actions::PickUp | Actions::DropOff => (world.miss_passenger_cost, *self),
+            ActionAffect::Invalid => match action {
+                Actions::North | Actions::South | Actions::East | Actions::West => {
+                    (world.movement_cost, *self)
                 }
-            }
-            ActionAffect::Move(delta) => {
-                (
-                    world.movement_cost,
-                    State {
-                        taxi: self.taxi + delta,
-                        ..*self
-                    },
-                )
-            }
+                Actions::PickUp | Actions::DropOff => (world.miss_passenger_cost, *self),
+            },
+            ActionAffect::Move(delta) => (
+                world.movement_cost,
+                State {
+                    taxi: self.taxi + delta,
+                    ..*self
+                },
+            ),
 
             ActionAffect::PickUp(id) => {
                 if self.passenger == Some(id) {
@@ -322,18 +297,18 @@ mod test_state {
     #[test]
     fn build_correct() {
         let source_world = "\
-        ┌───┬─────┐\n\
-        │R .│. . .│\n\
-        │   │     │\n\
-        │. .│G . .│\n\
-        │         │\n\
-        │. . . . .│\n\
-        │         │\n\
-        │.│Y .│B .│\n\
-        │ │   │   │\n\
-        │.│. .│. .│\n\
-        └─┴───┴───┘\n\
-        ";
+                            ┌───┬─────┐\n\
+                            │R .│. . .│\n\
+                            │   │     │\n\
+                            │. .│G . .│\n\
+                            │         │\n\
+                            │. . . . .│\n\
+                            │         │\n\
+                            │.│Y .│B .│\n\
+                            │ │   │   │\n\
+                            │.│. .│. .│\n\
+                            └─┴───┴───┘\n\
+                            ";
 
         let w = World::build_from_str(source_world).unwrap();
         let expected_state = State {
@@ -348,38 +323,37 @@ mod test_state {
 
     #[test]
     fn pickup_dropoff_does_nothing_off_fixedpoint() {
-
         let source_world = "\
-        ┌───┬─────┐\n\
-        │R .│. . .│\n\
-        │   │     │\n\
-        │. .│G . .│\n\
-        │         │\n\
-        │. . . . .│\n\
-        │         │\n\
-        │.│Y .│B .│\n\
-        │ │   │   │\n\
-        │.│. .│. .│\n\
-        └─┴───┴───┘\n\
-        ";
+                            ┌───┬─────┐\n\
+                            │R .│. . .│\n\
+                            │   │     │\n\
+                            │. .│G . .│\n\
+                            │         │\n\
+                            │. . . . .│\n\
+                            │         │\n\
+                            │.│Y .│B .│\n\
+                            │ │   │   │\n\
+                            │.│. .│. .│\n\
+                            └─┴───┴───┘\n\
+                            ";
 
         let w = World::build_from_str(source_world).unwrap();
 
         let initial_state = State::build(&w, (2, 2), Some('R'), 'G').unwrap();
 
         let expected_initial = "\
-        ┌───┬─────┐\n\
-        │p .│. . .│\n\
-        │   │     │\n\
-        │. .│d . .│\n\
-        │         │\n\
-        │. . t . .│\n\
-        │         │\n\
-        │.│. .│. .│\n\
-        │ │   │   │\n\
-        │.│. .│. .│\n\
-        └─┴───┴───┘\n\
-        ";
+                                ┌───┬─────┐\n\
+                                │p .│. . .│\n\
+                                │   │     │\n\
+                                │. .│d . .│\n\
+                                │         │\n\
+                                │. . t . .│\n\
+                                │         │\n\
+                                │.│. .│. .│\n\
+                                │ │   │   │\n\
+                                │.│. .│. .│\n\
+                                └─┴───┴───┘\n\
+                                ";
 
         assert_eq!(expected_initial, initial_state.display(&w));
 
@@ -392,38 +366,37 @@ mod test_state {
 
     #[test]
     fn pickup_dropoff_does_nothing_on_empty_fixedpoint() {
-
         let source_world = "\
-        ┌───┬─────┐\n\
-        │R .│. . .│\n\
-        │   │     │\n\
-        │. .│G . .│\n\
-        │         │\n\
-        │. . . . .│\n\
-        │         │\n\
-        │.│Y .│B .│\n\
-        │ │   │   │\n\
-        │.│. .│. .│\n\
-        └─┴───┴───┘\n\
-        ";
+                            ┌───┬─────┐\n\
+                            │R .│. . .│\n\
+                            │   │     │\n\
+                            │. .│G . .│\n\
+                            │         │\n\
+                            │. . . . .│\n\
+                            │         │\n\
+                            │.│Y .│B .│\n\
+                            │ │   │   │\n\
+                            │.│. .│. .│\n\
+                            └─┴───┴───┘\n\
+                            ";
 
         let w = World::build_from_str(source_world).unwrap();
 
         let initial_state = State::build(&w, (1, 3), Some('R'), 'G').unwrap();
 
         let expected_initial = "\
-        ┌───┬─────┐\n\
-        │p .│. . .│\n\
-        │   │     │\n\
-        │. .│d . .│\n\
-        │         │\n\
-        │. . . . .│\n\
-        │         │\n\
-        │.│t .│. .│\n\
-        │ │   │   │\n\
-        │.│. .│. .│\n\
-        └─┴───┴───┘\n\
-        ";
+                                ┌───┬─────┐\n\
+                                │p .│. . .│\n\
+                                │   │     │\n\
+                                │. .│d . .│\n\
+                                │         │\n\
+                                │. . . . .│\n\
+                                │         │\n\
+                                │.│t .│. .│\n\
+                                │ │   │   │\n\
+                                │.│. .│. .│\n\
+                                └─┴───┴───┘\n\
+                                ";
 
         assert_eq!(expected_initial, initial_state.display(&w));
 
@@ -437,124 +410,124 @@ mod test_state {
     #[test]
     fn passenger_dropoff_at_other_fixed_position() {
         let source = "\
-        ┌───┬─────┐\n\
-        │. .│. . .│\n\
-        │   │     │\n\
-        │. .│. . .│\n\
-        │         │\n\
-        │. . . . .│\n\
-        │         │\n\
-        │.│R Y│. .│\n\
-        │ │   │   │\n\
-        │.│G .│. .│\n\
-        └─┴───┴───┘\n\
-        ";
+                      ┌───┬─────┐\n\
+                      │. .│. . .│\n\
+                      │   │     │\n\
+                      │. .│. . .│\n\
+                      │         │\n\
+                      │. . . . .│\n\
+                      │         │\n\
+                      │.│R Y│. .│\n\
+                      │ │   │   │\n\
+                      │.│G .│. .│\n\
+                      └─┴───┴───┘\n\
+                      ";
 
         let script = [
             (
                 "\
-        ┌───┬─────┐\n\
-        │. .│. . .│\n\
-        │   │     │\n\
-        │. .│. . .│\n\
-        │         │\n\
-        │. t . . .│\n\
-        │         │\n\
-        │.│p .│. .│\n\
-        │ │   │   │\n\
-        │.│d .│. .│\n\
-        └─┴───┴───┘\n\
-        ",
+                 ┌───┬─────┐\n\
+                 │. .│. . .│\n\
+                 │   │     │\n\
+                 │. .│. . .│\n\
+                 │         │\n\
+                 │. t . . .│\n\
+                 │         │\n\
+                 │.│p .│. .│\n\
+                 │ │   │   │\n\
+                 │.│d .│. .│\n\
+                 └─┴───┴───┘\n\
+                 ",
                 Some('R'),
                 false,
                 Actions::South,
             ),
             (
                 "\
-        ┌───┬─────┐\n\
-        │. .│. . .│\n\
-        │   │     │\n\
-        │. .│. . .│\n\
-        │         │\n\
-        │. . . . .│\n\
-        │         │\n\
-        │.│p .│. .│\n\
-        │ │   │   │\n\
-        │.│d .│. .│\n\
-        └─┴───┴───┘\n\
-        ",
+                 ┌───┬─────┐\n\
+                 │. .│. . .│\n\
+                 │   │     │\n\
+                 │. .│. . .│\n\
+                 │         │\n\
+                 │. . . . .│\n\
+                 │         │\n\
+                 │.│p .│. .│\n\
+                 │ │   │   │\n\
+                 │.│d .│. .│\n\
+                 └─┴───┴───┘\n\
+                 ",
                 Some('R'),
                 false,
                 Actions::PickUp,
             ),
             (
                 "\
-        ┌───┬─────┐\n\
-        │. .│. . .│\n\
-        │   │     │\n\
-        │. .│. . .│\n\
-        │         │\n\
-        │. . . . .│\n\
-        │         │\n\
-        │.│T .│. .│\n\
-        │ │   │   │\n\
-        │.│d .│. .│\n\
-        └─┴───┴───┘\n\
-        ",
+                 ┌───┬─────┐\n\
+                 │. .│. . .│\n\
+                 │   │     │\n\
+                 │. .│. . .│\n\
+                 │         │\n\
+                 │. . . . .│\n\
+                 │         │\n\
+                 │.│T .│. .│\n\
+                 │ │   │   │\n\
+                 │.│d .│. .│\n\
+                 └─┴───┴───┘\n\
+                 ",
                 None,
                 false,
                 Actions::East,
             ),
             (
                 "\
-        ┌───┬─────┐\n\
-        │. .│. . .│\n\
-        │   │     │\n\
-        │. .│. . .│\n\
-        │         │\n\
-        │. . . . .│\n\
-        │         │\n\
-        │.│. T│. .│\n\
-        │ │   │   │\n\
-        │.│d .│. .│\n\
-        └─┴───┴───┘\n\
-        ",
+                 ┌───┬─────┐\n\
+                 │. .│. . .│\n\
+                 │   │     │\n\
+                 │. .│. . .│\n\
+                 │         │\n\
+                 │. . . . .│\n\
+                 │         │\n\
+                 │.│. T│. .│\n\
+                 │ │   │   │\n\
+                 │.│d .│. .│\n\
+                 └─┴───┴───┘\n\
+                 ",
                 None,
                 false,
                 Actions::DropOff,
             ),
             (
                 "\
-        ┌───┬─────┐\n\
-        │. .│. . .│\n\
-        │   │     │\n\
-        │. .│. . .│\n\
-        │         │\n\
-        │. . . . .│\n\
-        │         │\n\
-        │.│. T│. .│\n\
-        │ │   │   │\n\
-        │.│d .│. .│\n\
-        └─┴───┴───┘\n\
-        ",
+                 ┌───┬─────┐\n\
+                 │. .│. . .│\n\
+                 │   │     │\n\
+                 │. .│. . .│\n\
+                 │         │\n\
+                 │. . . . .│\n\
+                 │         │\n\
+                 │.│. T│. .│\n\
+                 │ │   │   │\n\
+                 │.│d .│. .│\n\
+                 └─┴───┴───┘\n\
+                 ",
                 None,
                 false,
                 Actions::North,
             ),
             (
                 "\
-        ┌───┬─────┐\n\
-        │. .│. . .│\n\
-        │   │     │\n\
-        │. .│. . .│\n\
-        │         │\n\
-        │. . T . .│\n\
-        │         │\n\
-        │.│. .│. .│\n\
-        │ │   │   │\n\
-        │.│d .│. .│\n\
-        └─┴───┴───┘\n\
-        ",
+                 ┌───┬─────┐\n\
+                 │. .│. . .│\n\
+                 │   │     │\n\
+                 │. .│. . .│\n\
+                 │         │\n\
+                 │. . T . .│\n\
+                 │         │\n\
+                 │.│. .│. .│\n\
+                 │ │   │   │\n\
+                 │.│d .│. .│\n\
+                 └─┴───┴───┘\n\
+                 ",
                 None,
                 false,
                 Actions::North,
@@ -589,196 +562,196 @@ mod test_state {
     #[test]
     fn taxi_full_cycle() {
         let source = "\
-        ┌───┬─────┐\n\
-        │. .│. . .│\n\
-        │   │     │\n\
-        │. .│. . .│\n\
-        │         │\n\
-        │. R . . .│\n\
-        │         │\n\
-        │.│. .│G .│\n\
-        │ │   │   │\n\
-        │.│. .│. .│\n\
-        └─┴───┴───┘\n\
-        ";
+                      ┌───┬─────┐\n\
+                      │. .│. . .│\n\
+                      │   │     │\n\
+                      │. .│. . .│\n\
+                      │         │\n\
+                      │. R . . .│\n\
+                      │         │\n\
+                      │.│. .│G .│\n\
+                      │ │   │   │\n\
+                      │.│. .│. .│\n\
+                      └─┴───┴───┘\n\
+                      ";
 
         let script = [
             (
                 "\
-        ┌───┬─────┐\n\
-        │. .│. . .│\n\
-        │   │     │\n\
-        │. .│. . .│\n\
-        │         │\n\
-        │. p . . .│\n\
-        │         │\n\
-        │.│t .│d .│\n\
-        │ │   │   │\n\
-        │.│. .│. .│\n\
-        └─┴───┴───┘\n\
-        ",
+                 ┌───┬─────┐\n\
+                 │. .│. . .│\n\
+                 │   │     │\n\
+                 │. .│. . .│\n\
+                 │         │\n\
+                 │. p . . .│\n\
+                 │         │\n\
+                 │.│t .│d .│\n\
+                 │ │   │   │\n\
+                 │.│. .│. .│\n\
+                 └─┴───┴───┘\n\
+                 ",
                 Some('R'),
                 false,
                 Actions::North,
             ),
             (
                 "\
-        ┌───┬─────┐\n\
-        │. .│. . .│\n\
-        │   │     │\n\
-        │. .│. . .│\n\
-        │         │\n\
-        │. p . . .│\n\
-        │         │\n\
-        │.│. .│d .│\n\
-        │ │   │   │\n\
-        │.│. .│. .│\n\
-        └─┴───┴───┘\n\
-        ",
+                 ┌───┬─────┐\n\
+                 │. .│. . .│\n\
+                 │   │     │\n\
+                 │. .│. . .│\n\
+                 │         │\n\
+                 │. p . . .│\n\
+                 │         │\n\
+                 │.│. .│d .│\n\
+                 │ │   │   │\n\
+                 │.│. .│. .│\n\
+                 └─┴───┴───┘\n\
+                 ",
                 Some('R'),
                 false,
                 Actions::PickUp,
             ),
             (
                 "\
-        ┌───┬─────┐\n\
-        │. .│. . .│\n\
-        │   │     │\n\
-        │. .│. . .│\n\
-        │         │\n\
-        │. T . . .│\n\
-        │         │\n\
-        │.│. .│d .│\n\
-        │ │   │   │\n\
-        │.│. .│. .│\n\
-        └─┴───┴───┘\n\
-        ",
+                 ┌───┬─────┐\n\
+                 │. .│. . .│\n\
+                 │   │     │\n\
+                 │. .│. . .│\n\
+                 │         │\n\
+                 │. T . . .│\n\
+                 │         │\n\
+                 │.│. .│d .│\n\
+                 │ │   │   │\n\
+                 │.│. .│. .│\n\
+                 └─┴───┴───┘\n\
+                 ",
                 None,
                 false,
                 Actions::East,
             ),
             (
                 "\
-        ┌───┬─────┐\n\
-        │. .│. . .│\n\
-        │   │     │\n\
-        │. .│. . .│\n\
-        │         │\n\
-        │. . T . .│\n\
-        │         │\n\
-        │.│. .│d .│\n\
-        │ │   │   │\n\
-        │.│. .│. .│\n\
-        └─┴───┴───┘\n\
-        ",
+                 ┌───┬─────┐\n\
+                 │. .│. . .│\n\
+                 │   │     │\n\
+                 │. .│. . .│\n\
+                 │         │\n\
+                 │. . T . .│\n\
+                 │         │\n\
+                 │.│. .│d .│\n\
+                 │ │   │   │\n\
+                 │.│. .│. .│\n\
+                 └─┴───┴───┘\n\
+                 ",
                 None,
                 false,
                 Actions::DropOff,
             ),
             (
                 "\
-        ┌───┬─────┐\n\
-        │. .│. . .│\n\
-        │   │     │\n\
-        │. .│. . .│\n\
-        │         │\n\
-        │. . T . .│\n\
-        │         │\n\
-        │.│. .│d .│\n\
-        │ │   │   │\n\
-        │.│. .│. .│\n\
-        └─┴───┴───┘\n\
-        ",
+                 ┌───┬─────┐\n\
+                 │. .│. . .│\n\
+                 │   │     │\n\
+                 │. .│. . .│\n\
+                 │         │\n\
+                 │. . T . .│\n\
+                 │         │\n\
+                 │.│. .│d .│\n\
+                 │ │   │   │\n\
+                 │.│. .│. .│\n\
+                 └─┴───┴───┘\n\
+                 ",
                 None,
                 false,
                 Actions::East,
             ),
             (
                 "\
-        ┌───┬─────┐\n\
-        │. .│. . .│\n\
-        │   │     │\n\
-        │. .│. . .│\n\
-        │         │\n\
-        │. . . T .│\n\
-        │         │\n\
-        │.│. .│d .│\n\
-        │ │   │   │\n\
-        │.│. .│. .│\n\
-        └─┴───┴───┘\n\
-        ",
+                 ┌───┬─────┐\n\
+                 │. .│. . .│\n\
+                 │   │     │\n\
+                 │. .│. . .│\n\
+                 │         │\n\
+                 │. . . T .│\n\
+                 │         │\n\
+                 │.│. .│d .│\n\
+                 │ │   │   │\n\
+                 │.│. .│. .│\n\
+                 └─┴───┴───┘\n\
+                 ",
                 None,
                 false,
                 Actions::PickUp,
             ),
             (
                 "\
-        ┌───┬─────┐\n\
-        │. .│. . .│\n\
-        │   │     │\n\
-        │. .│. . .│\n\
-        │         │\n\
-        │. . . T .│\n\
-        │         │\n\
-        │.│. .│d .│\n\
-        │ │   │   │\n\
-        │.│. .│. .│\n\
-        └─┴───┴───┘\n\
-        ",
+                 ┌───┬─────┐\n\
+                 │. .│. . .│\n\
+                 │   │     │\n\
+                 │. .│. . .│\n\
+                 │         │\n\
+                 │. . . T .│\n\
+                 │         │\n\
+                 │.│. .│d .│\n\
+                 │ │   │   │\n\
+                 │.│. .│. .│\n\
+                 └─┴───┴───┘\n\
+                 ",
                 None,
                 false,
                 Actions::South,
             ),
             (
                 "\
-        ┌───┬─────┐\n\
-        │. .│. . .│\n\
-        │   │     │\n\
-        │. .│. . .│\n\
-        │         │\n\
-        │. . . . .│\n\
-        │         │\n\
-        │.│. .│d .│\n\
-        │ │   │   │\n\
-        │.│. .│. .│\n\
-        └─┴───┴───┘\n\
-        ",
+                 ┌───┬─────┐\n\
+                 │. .│. . .│\n\
+                 │   │     │\n\
+                 │. .│. . .│\n\
+                 │         │\n\
+                 │. . . . .│\n\
+                 │         │\n\
+                 │.│. .│d .│\n\
+                 │ │   │   │\n\
+                 │.│. .│. .│\n\
+                 └─┴───┴───┘\n\
+                 ",
                 None,
                 false,
                 Actions::DropOff,
             ),
             (
                 "\
-        ┌───┬─────┐\n\
-        │. .│. . .│\n\
-        │   │     │\n\
-        │. .│. . .│\n\
-        │         │\n\
-        │. . . . .│\n\
-        │         │\n\
-        │.│. .│D .│\n\
-        │ │   │   │\n\
-        │.│. .│. .│\n\
-        └─┴───┴───┘\n\
-        ",
+                 ┌───┬─────┐\n\
+                 │. .│. . .│\n\
+                 │   │     │\n\
+                 │. .│. . .│\n\
+                 │         │\n\
+                 │. . . . .│\n\
+                 │         │\n\
+                 │.│. .│D .│\n\
+                 │ │   │   │\n\
+                 │.│. .│. .│\n\
+                 └─┴───┴───┘\n\
+                 ",
                 Some('G'),
                 true,
                 Actions::East,
             ),
             (
                 "\
-        ┌───┬─────┐\n\
-        │. .│. . .│\n\
-        │   │     │\n\
-        │. .│. . .│\n\
-        │         │\n\
-        │. . . . .│\n\
-        │         │\n\
-        │.│. .│D t│\n\
-        │ │   │   │\n\
-        │.│. .│. .│\n\
-        └─┴───┴───┘\n\
-        ",
+                 ┌───┬─────┐\n\
+                 │. .│. . .│\n\
+                 │   │     │\n\
+                 │. .│. . .│\n\
+                 │         │\n\
+                 │. . . . .│\n\
+                 │         │\n\
+                 │.│. .│D t│\n\
+                 │ │   │   │\n\
+                 │.│. .│. .│\n\
+                 └─┴───┴───┘\n\
+                 ",
                 Some('G'),
                 true,
                 Actions::South,
@@ -813,25 +786,24 @@ mod test_state {
     #[test]
     fn build_random_state() {
         let source_world = "\
-    ┌───┬─────┐\n\
-    │R .│. . G│\n\
-    │   │     │\n\
-    │. .│. . .│\n\
-    │         │\n\
-    │. . . . .│\n\
-    │         │\n\
-    │.│. .│. .│\n\
-    │ │   │   │\n\
-    │Y│. .│B .│\n\
-    └─┴───┴───┘\n\
-    ";
+                            ┌───┬─────┐\n\
+                            │R .│. . G│\n\
+                            │   │     │\n\
+                            │. .│. . .│\n\
+                            │         │\n\
+                            │. . . . .│\n\
+                            │         │\n\
+                            │.│. .│. .│\n\
+                            │ │   │   │\n\
+                            │Y│. .│B .│\n\
+                            └─┴───┴───┘\n\
+                            ";
 
         let w = World::build_from_str(source_world).unwrap();
 
         let mut rng = thread_rng();
 
         for _ in 0..20 {
-
             let state = State::build_random(&w, &mut rng).unwrap();
 
             println!("{:?}", state);

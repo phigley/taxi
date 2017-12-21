@@ -10,7 +10,7 @@ use actions::Actions;
 use world::World;
 use state_indexer::StateIndexer;
 
-use runner::{Runner, Attempt};
+use runner::{Attempt, Runner};
 
 use self::nodestorage::NodeStorage;
 use self::qnode::QChild;
@@ -40,7 +40,6 @@ impl MaxQ {
         show_table: bool,
         show_learning: bool,
     ) -> MaxQ {
-
         let initial_q_value = 0.123; // world.max_reward() / (1 - gamma)
 
         let nodes = NodeStorage::new(initial_q_value, world);
@@ -76,9 +75,7 @@ impl MaxQ {
     ) -> Option<(State, Vec<State>)> {
         match qchild {
             QChild::Primitive(child_primitive_index) => {
-
                 let primitive_node = &mut self.nodes.primitive_nodes[child_primitive_index];
-
 
                 let (reward, next_state) = state.apply_action(world, primitive_node.get_action());
 
@@ -101,13 +98,11 @@ impl MaxQ {
         max_steps: usize,
         rng: &mut R,
     ) -> Option<(State, Vec<State>)> {
-
         let mut seq = Vec::new();
 
-        while !self.nodes.max_nodes[max_index].terminal_state(world, &state) &&
-            seq.len() < max_steps
+        while !self.nodes.max_nodes[max_index].terminal_state(world, &state)
+            && seq.len() < max_steps
         {
-
             if self.params.show_learning {
                 println!(
                     "step {}/{} node {} - {}\n{}",
@@ -138,14 +133,8 @@ impl MaxQ {
                 );
             }
 
-            let (next_state, mut child_seq) = self.maxq_apply_selection(
-                qchild,
-                world,
-                state,
-                max_steps - seq.len(),
-                rng,
-            )?;
-
+            let (next_state, mut child_seq) =
+                self.maxq_apply_selection(qchild, world, state, max_steps - seq.len(), rng)?;
 
             // A terminal state check should be run for all parents here.
             // For taxi, there is no way for a parent to terminate
@@ -157,7 +146,6 @@ impl MaxQ {
                     self.nodes.max_nodes[child_max_index].terminal_state(world, &next_state)
                 }
             };
-
 
             if child_completed {
                 // self.nodes.max_nodes[max_index]
@@ -217,7 +205,6 @@ impl MaxQ {
     }
 }
 
-
 impl Runner for MaxQ {
     fn learn<R: Rng>(
         &mut self,
@@ -226,7 +213,6 @@ impl Runner for MaxQ {
         max_steps: usize,
         rng: &mut R,
     ) -> Option<usize> {
-
         if self.params.show_learning {
             println!("Learning:\n{:#?}\n{}\n", state, state.display(world));
         }
@@ -260,7 +246,6 @@ impl Runner for MaxQ {
         max_steps: usize,
         mut _rng: &mut R,
     ) -> Attempt {
-
         let mut attempt = Attempt::new(state, max_steps);
 
         for _ in 0..max_steps {
@@ -308,7 +293,6 @@ impl Runner for MaxQ {
     }
 
     fn report_training_result(&self, world: &World) {
-
         if !self.show_table {
             return;
         }
@@ -320,29 +304,21 @@ impl Runner for MaxQ {
                 if !state.at_destination() {
                     println!("{}\n{}", si, state.display(world));
                     if let Some(action) = self.evaluate(world, &state) {
-                        println!(
-                            "Result {}",
-                            action,
-                        );
+                        println!("Result {}", action,);
 
                         let mut current_max_index = 0;
                         loop {
-                            if let Some((_, child_index, _)) =
-                                self.nodes.max_nodes[current_max_index].evaluate(
-                                    &self.nodes,
-                                    world,
-                                    &state,
-                                )
+                            if let Some((_, child_index, _)) = self.nodes.max_nodes
+                                [current_max_index]
+                                .evaluate(&self.nodes, world, &state)
                             {
                                 println!(
                                     "{} chose {}",
                                     self.nodes.max_nodes[current_max_index],
                                     self.nodes.q_nodes[child_index]
                                 );
-                                if let Some(qchild) = self.nodes.q_nodes[child_index].get_child(
-                                    world,
-                                    &state,
-                                )
+                                if let Some(qchild) =
+                                    self.nodes.q_nodes[child_index].get_child(world, &state)
                                 {
                                     match qchild {
                                         QChild::Primitive(_) => break,
@@ -363,9 +339,7 @@ impl Runner for MaxQ {
                         println!("Failed to evaluate!");
                     }
 
-
                     for (max_node_index, max_node) in self.nodes.max_nodes.iter().enumerate() {
-
                         println!("{} {} :", max_node_index, max_node);
 
                         for q_index in max_node.qnode_index_iter() {
@@ -386,12 +360,7 @@ impl Runner for MaxQ {
                                     value + completion
                                 );
                             } else {
-
-                                println!(
-                                    "  {} {} => does not evaluate",
-                                    q_index,
-                                    qnode,
-                                );
+                                println!("  {} {} => does not evaluate", q_index, qnode,);
                             }
                         }
                     }

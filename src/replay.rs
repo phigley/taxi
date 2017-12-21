@@ -1,4 +1,3 @@
-
 use std::io;
 
 use termion::event;
@@ -6,8 +5,8 @@ use termion::input::TermRead;
 
 use tui::Terminal;
 use tui::backend::TermionBackend;
-use tui::widgets::{Widget, Paragraph};
-use tui::layout::{Group, Direction, Size, Rect};
+use tui::widgets::{Paragraph, Widget};
+use tui::layout::{Direction, Group, Rect, Size};
 
 use taxi::actions::Actions;
 use taxi::world::World;
@@ -27,7 +26,6 @@ pub struct Replay {
 
 impl Replay {
     pub fn new(world: &World, attempt: Attempt) -> Replay {
-
         let mut states = Vec::with_capacity(attempt.actions.len() + 1);
         let mut state = attempt.initial_state;
         states.push(state.display(world));
@@ -50,8 +48,6 @@ impl Replay {
 
         let term_width = 80;
         let term_height = state_height + summary_height + step_height;
-
-
 
         let term_size = Rect::new(0, 0, term_width, term_height);
 
@@ -105,7 +101,6 @@ impl Replay {
     }
 
     fn trim_step(&self, step: isize) -> isize {
-
         if step < 0 {
             0
         } else if step > self.max_step {
@@ -116,18 +111,14 @@ impl Replay {
     }
 
     pub fn draw(&self, step: isize, mut t: &mut Terminal<TermionBackend>) -> Result<(), io::Error> {
-
         Group::default()
             .direction(Direction::Vertical)
-            .sizes(
-                &[
-                    Size::Fixed(self.state_height),
-                    Size::Fixed(self.step_height),
-                    Size::Fixed(self.summary_height),
-                ],
-            )
+            .sizes(&[
+                Size::Fixed(self.state_height),
+                Size::Fixed(self.step_height),
+                Size::Fixed(self.summary_height),
+            ])
             .render(&mut t, &self.term_size, |mut t, chunks| {
-
                 let render_state_chunk = chunks[0];
                 let step_data_chunk = chunks[1];
                 let run_data_chunk = chunks[2];
@@ -136,19 +127,16 @@ impl Replay {
                     .text(&self.states[step as usize])
                     .render(&mut t, &render_state_chunk);
 
-
                 let step_data = build_step_string(step as usize, self.solved, &self.actions);
 
-                Paragraph::default().text(&step_data).render(
-                    &mut t,
-                    &step_data_chunk,
-                );
+                Paragraph::default()
+                    .text(&step_data)
+                    .render(&mut t, &step_data_chunk);
 
-
-                Paragraph::default().wrap(true).text(&self.summary).render(
-                    &mut t,
-                    &run_data_chunk,
-                );
+                Paragraph::default()
+                    .wrap(true)
+                    .text(&self.summary)
+                    .render(&mut t, &run_data_chunk);
             });
 
         t.draw()?;
@@ -158,7 +146,6 @@ impl Replay {
 }
 
 fn build_summary_string(solved: bool, num_steps: usize) -> String {
-
     let mut result = String::new();
 
     if solved {
@@ -168,10 +155,10 @@ fn build_summary_string(solved: bool, num_steps: usize) -> String {
     };
 
     result += "\n\
-         \n\
-         Left/Right arrow to advance.\n\
-         Escape to exit.\n\
-         ";
+               \n\
+               Left/Right arrow to advance.\n\
+               Escape to exit.\n\
+               ";
 
     result
 }

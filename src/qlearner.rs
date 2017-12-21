@@ -1,5 +1,3 @@
-
-
 use std::cmp;
 
 use rand::Rng;
@@ -10,8 +8,7 @@ use actions::Actions;
 use world::World;
 use state_indexer::StateIndexer;
 
-use runner::{Runner, Attempt};
-
+use runner::{Attempt, Runner};
 
 #[derive(Debug, Clone)]
 pub struct QLearner {
@@ -26,7 +23,6 @@ pub struct QLearner {
 
 impl QLearner {
     pub fn new(world: &World, alpha: f64, gamma: f64, epsilon: f64, show_table: bool) -> QLearner {
-
         let initial_q_value = world.max_reward() / (1.0 - gamma);
 
         let state_indexer = StateIndexer::new(world);
@@ -52,7 +48,6 @@ impl QLearner {
         let values = &self.qtable[state_index];
 
         for (i, value) in values.iter().enumerate() {
-
             if best_action == None {
                 best_action = Actions::from_index(i);
                 best_value = *value;
@@ -83,7 +78,6 @@ impl QLearner {
         state_index: usize,
         mut rng: &mut R,
     ) -> Option<Actions> {
-
         let nongreedy_roll = rng.gen_range(0.0f64, 1.0f64);
 
         if nongreedy_roll < self.epsilon {
@@ -94,13 +88,11 @@ impl QLearner {
     }
 
     fn find_maximal_value(&self, state_index: usize) -> Option<f64> {
-
         let state_values = &self.qtable[state_index];
 
         let mut best_value: Option<f64> = None;
 
         for value in state_values {
-
             best_value = Some(if let Some(current_best) = best_value {
                 if current_best < *value {
                     *value
@@ -123,7 +115,6 @@ impl QLearner {
         reward: f64,
     ) {
         if let Some(next_state_value) = self.find_maximal_value(next_state_index) {
-
             let state_values = &mut self.qtable[state_index];
             let action_entry = &mut state_values[next_action.to_index()];
 
@@ -133,7 +124,6 @@ impl QLearner {
 
             *action_entry += self.alpha * (reward + self.gamma * next_state_value);
         }
-
     }
 }
 
@@ -145,7 +135,6 @@ impl Runner for QLearner {
         max_steps: usize,
         mut rng: &mut R,
     ) -> Option<usize> {
-
         for step in 0..max_steps {
             if state.at_destination() {
                 return Some(step);
@@ -155,8 +144,7 @@ impl Runner for QLearner {
                 if let Some(next_action) = self.determine_learning_action(state_index, &mut rng) {
                     let (reward, next_state) = state.apply_action(world, next_action);
 
-                    if let Some(next_state_index) =
-                        self.state_indexer.get_index(world, &next_state)
+                    if let Some(next_state_index) = self.state_indexer.get_index(world, &next_state)
                     {
                         self.apply_experience(state_index, next_action, next_state_index, reward);
                     } else {
@@ -186,7 +174,6 @@ impl Runner for QLearner {
         max_steps: usize,
         mut rng: &mut R,
     ) -> Attempt {
-
         let mut attempt = Attempt::new(state, max_steps);
 
         for _ in 0..max_steps {
@@ -195,9 +182,7 @@ impl Runner for QLearner {
             }
 
             if let Some(state_index) = self.state_indexer.get_index(world, &state) {
-
                 if let Some(next_action) = self.determine_greedy_action(state_index, &mut rng) {
-
                     attempt.step(next_action);
 
                     let (_, next_state) = state.apply_action(world, next_action);
@@ -205,7 +190,6 @@ impl Runner for QLearner {
                 } else {
                     break;
                 }
-
             } else {
                 break;
             }
@@ -237,7 +221,6 @@ impl Runner for QLearner {
                 } else {
                     break;
                 }
-
             } else {
                 break;
             }
@@ -247,7 +230,6 @@ impl Runner for QLearner {
     }
 
     fn report_training_result(&self, world: &World) {
-
         if self.show_table {
             println!();
             for (i, action_values) in self.qtable.iter().enumerate() {
@@ -269,22 +251,22 @@ mod test_qlearner {
     #[test]
     fn learns_go_north() {
         let world_str = "\
-        ┌───┐\n\
-        │R .│\n\
-        │   │\n\
-        │. G│\n\
-        └───┘\n\
-        ";
+                         ┌───┐\n\
+                         │R .│\n\
+                         │   │\n\
+                         │. G│\n\
+                         └───┘\n\
+                         ";
 
         let world = World::build_from_str(world_str).unwrap();
 
         let expected_initial_str = "\
-        ┌───┐\n\
-        │p .│\n\
-        │   │\n\
-        │t d│\n\
-        └───┘\n\
-        ";
+                                    ┌───┐\n\
+                                    │p .│\n\
+                                    │   │\n\
+                                    │t d│\n\
+                                    └───┘\n\
+                                    ";
 
         let mut rng = thread_rng();
 
@@ -324,14 +306,13 @@ mod test_qlearner {
 
     #[test]
     fn initial_greedy_action_is_random() {
-
         let world_str = "\
-        ┌───┐\n\
-        │R .│\n\
-        │   │\n\
-        │. G│\n\
-        └───┘\n\
-        ";
+                         ┌───┐\n\
+                         │R .│\n\
+                         │   │\n\
+                         │. G│\n\
+                         └───┘\n\
+                         ";
 
         let world = World::build_from_str(world_str).unwrap();
 
@@ -343,7 +324,6 @@ mod test_qlearner {
         let max_iterations = 100000;
 
         for _ in 0..max_iterations {
-
             let action: Actions = qlearner.determine_greedy_action(0, &mut rng).unwrap();
 
             counts[action.to_index()] += 1.0;
@@ -391,7 +371,6 @@ mod test_qlearner {
             counts[Actions::PickUp.to_index()] / expected_count
         );
 
-
         println!(
             "dropoff count = {}, ratio = {}",
             counts[Actions::DropOff.to_index()],
@@ -405,14 +384,13 @@ mod test_qlearner {
 
     #[test]
     fn initial_learning_action_is_random() {
-
         let world_str = "\
-        ┌───┐\n\
-        │R .│\n\
-        │   │\n\
-        │. G│\n\
-        └───┘\n\
-        ";
+                         ┌───┐\n\
+                         │R .│\n\
+                         │   │\n\
+                         │. G│\n\
+                         └───┘\n\
+                         ";
 
         let world = World::build_from_str(world_str).unwrap();
 
@@ -426,7 +404,6 @@ mod test_qlearner {
         let max_iterations = 100000;
 
         for _ in 0..max_iterations {
-
             let action: Actions = qlearner.determine_learning_action(0, &mut rng).unwrap();
 
             counts[action.to_index()] += 1.0;
@@ -473,7 +450,6 @@ mod test_qlearner {
             counts[Actions::PickUp.to_index()],
             counts[Actions::PickUp.to_index()] / expected_count
         );
-
 
         println!(
             "dropoff count = {}, ratio = {}",

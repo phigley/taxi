@@ -2,10 +2,10 @@
 extern crate serde_derive;
 
 extern crate rand;
-extern crate tui;
+extern crate rayon;
 extern crate termion;
 extern crate toml;
-extern crate rayon;
+extern crate tui;
 
 extern crate taxi;
 
@@ -17,7 +17,7 @@ use std::io;
 use std::fmt;
 use std::time;
 
-use rand::{Rng, thread_rng};
+use rand::{thread_rng, Rng};
 
 use termion::event;
 use termion::input::TermRead;
@@ -39,7 +39,6 @@ use taxi::factoredrmax::FactoredRMax;
 use taxi::maxq::MaxQ;
 
 fn main() {
-
     if let Err(error) = run() {
         println!("{:?}", error);
     }
@@ -73,14 +72,12 @@ impl fmt::Debug for AppError {
             AppError::Runner(ref runner_error) => {
                 write!(f, "Failed to run trial:\n{:?}", runner_error)
             }
-            AppError::ReplayRunnerNotConfigured(ref runner_type) => {
-                write!(
-                    f,
-                    "Attempting to replay {:?} solver with out a valid configuration \
-                        for that solver.",
-                    runner_type
-                )
-            }
+            AppError::ReplayRunnerNotConfigured(ref runner_type) => write!(
+                f,
+                "Attempting to replay {:?} solver with out a valid configuration \
+                 for that solver.",
+                runner_type
+            ),
             AppError::ReplayTraining(ref runner_error) => {
                 write!(f, "Failed to run training for replay:\n{:?}", runner_error)
             }
@@ -95,26 +92,20 @@ impl fmt::Debug for AppError {
 }
 
 fn run() -> Result<(), AppError> {
-
     let args: Vec<String> = env::args().collect();
 
     if args.len() < 2 {
         return Err(AppError::NoConfiguration);
     }
 
-    let config = Configuration::from_file(&args[1]).map_err(
-        AppError::Configuration,
-    )?;
+    let config = Configuration::from_file(&args[1]).map_err(AppError::Configuration)?;
 
     let mut rng = thread_rng();
 
-    let world = World::build_from_str(&config.world).map_err(
-        AppError::World,
-    )?;
+    let world = World::build_from_str(&config.world).map_err(AppError::World)?;
     let probes = build_probes(&config, &world)?;
 
     if config.sessions > 0 {
-
         let mut results = Vec::new();
 
         if config.random_solver.is_some() {
@@ -213,12 +204,12 @@ fn run() -> Result<(), AppError> {
         for (solver_choice, stats) in results.into_iter() {
             let (avg_steps, stddev_steps) = stats.distribution.get_distribution();
 
-            let elapsed_time = stats.duration.as_secs() as f64 +
-                stats.duration.subsec_nanos() as f64 * 1e-9;
+            let elapsed_time =
+                stats.duration.as_secs() as f64 + stats.duration.subsec_nanos() as f64 * 1e-9;
 
             println!(
                 "{:?} - finished {} sessions in {:.1} average steps with stddev of {:.2} \
-                in {:.3} secs.",
+                 in {:.3} secs.",
                 solver_choice,
                 stats.distribution.get_count() as usize,
                 avg_steps,
@@ -229,7 +220,6 @@ fn run() -> Result<(), AppError> {
     }
 
     if let Some(replay_config) = config.replay.as_ref() {
-
         match replay_config.solver {
             SolverChoice::Random => {
                 if config.random_solver.is_some() {
@@ -335,10 +325,7 @@ fn run() -> Result<(), AppError> {
     Ok(())
 }
 
-
-
 fn build_probes(config: &Configuration, world: &World) -> Result<Vec<Probe>, AppError> {
-
     let mut probes = Vec::new();
 
     for probe_config in &config.probes {
@@ -354,7 +341,6 @@ fn build_probes(config: &Configuration, world: &World) -> Result<Vec<Probe>, App
 
     Ok(probes)
 }
-
 
 #[derive(Default)]
 struct Stats {
@@ -377,81 +363,72 @@ where
 
     session_ids
         .par_iter()
-        .fold(|| Ok(Stats::default()), |current_result,
-         session_number|
-         -> Result<Stats, AppError> {
+        .fold(
+            || Ok(Stats::default()),
+            |current_result, session_number| -> Result<Stats, AppError> {
+                current_result.and_then(|mut stats| {
+                    let start_time = time::Instant::now();
 
-            current_result.and_then(|mut stats| {
+                    let mut solver = builder();
+                    let mut rng = thread_rng();
 
-                let start_time = time::Instant::now();
+                    let training_step_count = run_training_session(
+                        world,
+                        probes,
+                        config.max_trials,
+                        config.max_trial_steps,
+                        &mut solver,
+                        &mut rng,
+                    ).map_err(AppError::Runner)?;
 
-                let mut solver = builder();
-                let mut rng = thread_rng();
+                    let duration = start_time.elapsed();
+                    let elapsed_time =
+                        duration.as_secs() as f64 + duration.subsec_nanos() as f64 * 1e-9;
 
-                let training_step_count = run_training_session(
-                    world,
-                    probes,
-                    config.max_trials,
-                    config.max_trial_steps,
-                    &mut solver,
-                    &mut rng,
-                ).map_err(AppError::Runner)?;
+                    match training_step_count {
+                        Some(num_steps) => {
+                            println!(
+                                "{:?} - Finished session {} in {} steps in {:.3} secs.",
+                                solver_choice, session_number, num_steps, elapsed_time,
+                            );
+                            stats.distribution.add_value(num_steps as f64);
+                        }
+                        None => {
+                            println!(
+                                "{:?} - Failed session {} with maximums {} trials of {} steps \
+                                 in {:.3} secs.",
+                                solver_choice,
+                                session_number,
+                                config.max_trials,
+                                config.max_trial_steps,
+                                elapsed_time,
+                            );
+                        }
+                    };
 
-                let duration = start_time.elapsed();
-                let elapsed_time = duration.as_secs() as f64 +
-                    duration.subsec_nanos() as f64 * 1e-9;
+                    stats.duration += duration;
 
-                match training_step_count {
-                    Some(num_steps) => {
-                        println!(
-                            "{:?} - Finished session {} in {} steps in {:.3} secs.",
-                            solver_choice,
-                            session_number,
-                            num_steps,
-                            elapsed_time,
-                        );
-                        stats.distribution.add_value(num_steps as f64);
-                    }
-                    None => {
-                        println!(
-                            "{:?} - Failed session {} with maximums {} trials of {} steps \
-                            in {:.3} secs.",
-                            solver_choice,
-                            session_number,
-                            config.max_trials,
-                            config.max_trial_steps,
-                            elapsed_time,
-                        );
-                    }
-                };
+                    // This may overlap with other reports, should we guard with a mutex?
+                    solver.report_training_result(world);
 
-                stats.duration += duration;
-
-                // This may overlap with other reports, should we guard with a mutex?
-                solver.report_training_result(world);
-
-                Ok(stats)
-            })
-        })
-        .reduce(|| Ok(Stats::default()), |result_a: Result<
-            Stats,
-            AppError,
-        >,
-         result_b: Result<
-            Stats,
-            AppError,
-        >|
-         -> Result<Stats, AppError> {
-
-            result_a.and_then(|mut stats_a| {
-                result_b.and_then(|stats_b| {
-                    stats_a.distribution.add_distribution(&stats_b.distribution);
-                    stats_a.duration += stats_b.duration;
-                    Ok(stats_a)
+                    Ok(stats)
                 })
-            })
-
-        })
+            },
+        )
+        .reduce(
+            || Ok(Stats::default()),
+            |result_a: Result<Stats, AppError>,
+             result_b: Result<Stats, AppError>|
+             -> Result<Stats, AppError> {
+                result_a.and_then(|mut stats_a| {
+                    result_b.and_then(|stats_b| {
+                        stats_a.distribution.add_distribution(&stats_b.distribution);
+                        stats_a.duration += stats_b.duration;
+                        Ok(stats_a)
+                    })
+                })
+            },
+        )
 }
 
 fn run_replay<Rnr, R>(
@@ -483,7 +460,6 @@ where
         let replay = Replay::new(world, attempt);
 
         replay.run().map_err(AppError::Replay)?;
-
     }
 
     Ok(())
@@ -494,16 +470,12 @@ fn wait_for_input() -> Option<()> {
 
     loop {
         for c in io::stdin().keys() {
-
             match c {
-                Ok(evt) => {
-                    match evt {
-                        event::Key::Char('q') |
-                        event::Key::Char('Q') => return None,
-                        event::Key::Char('\n') => return Some(()),
-                        _ => (),
-                    }
-                }
+                Ok(evt) => match evt {
+                    event::Key::Char('q') | event::Key::Char('Q') => return None,
+                    event::Key::Char('\n') => return Some(()),
+                    _ => (),
+                },
                 Err(_) => return None,
             }
         }

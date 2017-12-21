@@ -1,5 +1,3 @@
-
-
 use state::State;
 use actions::Actions;
 use world::World;
@@ -28,20 +26,16 @@ impl PrimitiveNode {
     fn get_value_index(&self, world: &World, state: &State) -> usize {
         match self.action {
             // Pick-up has only 2 results, taxi is at passenger or not.
-            Actions::PickUp => {
-                match state.get_passenger() {
-                    Some(id) if world.get_fixed_position(id) == Some(state.get_taxi()) => 0,
-                    _ => 1,
-                }
-            }
+            Actions::PickUp => match state.get_passenger() {
+                Some(id) if world.get_fixed_position(id) == Some(state.get_taxi()) => 0,
+                _ => 1,
+            },
 
             // Drop-off has only 2 results, passenger is in taxi and at destination or not.
-            Actions::DropOff => {
-                match world.get_fixed_id(state.get_taxi()) {
-                    Some(id) if state.get_passenger() == None && id == state.get_destination() => 0,
-                    _ => 1,
-                }
-            }
+            Actions::DropOff => match world.get_fixed_id(state.get_taxi()) {
+                Some(id) if state.get_passenger() == None && id == state.get_destination() => 0,
+                _ => 1,
+            },
 
             // reward for directional movement is independent of taxi position
             Actions::North | Actions::South | Actions::East | Actions::West => 0,
@@ -61,7 +55,6 @@ impl PrimitiveNode {
         reward: f64,
         next_state: &State,
     ) {
-
         let value_index = self.get_value_index(world, &state);
 
         self.values[value_index] *= 1.0 - params.alpha;
@@ -73,7 +66,6 @@ impl PrimitiveNode {
     }
 
     pub fn build_nodes(initial_q_value: f64) -> Vec<PrimitiveNode> {
-
         let mut result = Vec::with_capacity(Actions::NUM_ELEMENTS);
 
         for action_index in 0..Actions::NUM_ELEMENTS {

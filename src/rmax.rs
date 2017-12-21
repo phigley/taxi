@@ -1,4 +1,3 @@
-
 use std::f64;
 use std::cmp;
 
@@ -9,7 +8,7 @@ use state::State;
 use actions::Actions;
 use world::World;
 
-use runner::{Runner, Attempt};
+use runner::{Attempt, Runner};
 use state_indexer::StateIndexer;
 
 #[derive(Debug, Clone)]
@@ -20,7 +19,6 @@ struct TransitionEntry {
 
 impl TransitionEntry {
     fn new(num_states: usize) -> TransitionEntry {
-
         TransitionEntry {
             destination_count: vec![0.0; num_states],
             count: 0.0,
@@ -33,7 +31,6 @@ struct RewardEntry {
     mean: f64,
     count: f64,
 }
-
 
 #[derive(Debug, Clone)]
 pub struct RMax {
@@ -52,7 +49,6 @@ pub struct RMax {
 
 impl RMax {
     pub fn new(world: &World, gamma: f64, known_count: f64, error_delta: f64) -> RMax {
-
         let state_indexer = StateIndexer::new(world);
         let num_states = state_indexer.num_states();
         let value_table = vec![0.0; num_states];
@@ -84,7 +80,6 @@ impl RMax {
         next_state_index: usize,
         reward: f64,
     ) {
-
         let action_index = action.to_index();
 
         let state_action_index = state_index * Actions::NUM_ELEMENTS + action_index;
@@ -106,28 +101,24 @@ impl RMax {
         }
     }
 
-
     fn predict_transition_reward(
         &self,
         state_index: usize,
         action_index: usize,
         next_state_index: usize,
     ) -> (f64, f64) {
-
         let state_action_index = state_index * Actions::NUM_ELEMENTS + action_index;
 
         let transition_entry = &self.transition_table[state_action_index];
         let reward_entry = &self.reward_table[state_action_index];
 
         if transition_entry.count >= self.known_count && reward_entry.count >= self.known_count {
-            let transition = transition_entry.destination_count[next_state_index] /
-                transition_entry.count;
+            let transition =
+                transition_entry.destination_count[next_state_index] / transition_entry.count;
             let reward = reward_entry.mean;
 
             (transition, reward)
-
         } else {
-
             let transition = if state_index == next_state_index {
                 1.0
             } else {
@@ -139,11 +130,9 @@ impl RMax {
     }
 
     fn measure_best_value(&self, state_index: usize) -> f64 {
-
         let mut best_value = -f64::MAX;
 
         for action_index in 0..Actions::NUM_ELEMENTS {
-
             let state_action_index = state_index * Actions::NUM_ELEMENTS + action_index;
 
             let reward_entry = &self.reward_table[state_action_index];
@@ -157,8 +146,8 @@ impl RMax {
             for next_state_index in 0..self.state_indexer.num_states() {
                 let (transition, reward) =
                     self.predict_transition_reward(state_index, action_index, next_state_index);
-                action_value += transition *
-                    (reward + self.gamma * self.value_table[next_state_index]);
+                action_value +=
+                    transition * (reward + self.gamma * self.value_table[next_state_index]);
             }
 
             if action_value > best_value {
@@ -170,7 +159,6 @@ impl RMax {
     }
 
     fn determine_best_action_index<R: Rng>(&self, state_index: usize, rng: &mut R) -> usize {
-
         let mut best_value = -f64::MAX;
         let mut best_action_index = Actions::NUM_ELEMENTS;
         let mut num_found = 0;
@@ -189,8 +177,8 @@ impl RMax {
             for next_state_index in 0..self.state_indexer.num_states() {
                 let (transition, reward) =
                     self.predict_transition_reward(state_index, action_index, next_state_index);
-                action_value += transition *
-                    (reward + self.gamma * self.value_table[next_state_index]);
+                action_value +=
+                    transition * (reward + self.gamma * self.value_table[next_state_index]);
             }
 
             match action_value.approx_cmp(&best_value, 2) {
@@ -214,7 +202,6 @@ impl RMax {
     }
 
     fn rebuild_value_table(&mut self) {
-
         let num_states = self.state_indexer.num_states();
 
         //self.value_table.iter_mut().for_each(|v| *v = 0.0);
@@ -242,12 +229,10 @@ impl RMax {
     }
 
     fn select_best_action<R: Rng>(&self, state_index: usize, rng: &mut R) -> Option<Actions> {
-
         let action_index = self.determine_best_action_index(state_index, rng);
         Actions::from_index(action_index)
     }
 }
-
 
 impl Runner for RMax {
     fn learn<R: Rng>(
@@ -257,7 +242,6 @@ impl Runner for RMax {
         max_steps: usize,
         rng: &mut R,
     ) -> Option<usize> {
-
         for step in 0..max_steps {
             if state.at_destination() {
                 return Some(step);
@@ -267,11 +251,9 @@ impl Runner for RMax {
 
             if let Some(state_index) = self.state_indexer.get_index(world, &state) {
                 if let Some(next_action) = self.select_best_action(state_index, rng) {
-
                     let (reward, next_state) = state.apply_action(world, next_action);
 
-                    if let Some(next_state_index) =
-                        self.state_indexer.get_index(world, &next_state)
+                    if let Some(next_state_index) = self.state_indexer.get_index(world, &next_state)
                     {
                         self.apply_experience(state_index, next_action, next_state_index, reward);
                     } else {
@@ -279,9 +261,7 @@ impl Runner for RMax {
                     }
 
                     state = next_state;
-
                 } else {
-
                     return None;
                 }
             }
@@ -292,7 +272,6 @@ impl Runner for RMax {
         } else {
             None
         }
-
     }
 
     fn attempt<R: Rng>(
@@ -302,7 +281,6 @@ impl Runner for RMax {
         max_steps: usize,
         rng: &mut R,
     ) -> Attempt {
-
         let mut attempt = Attempt::new(state, max_steps);
 
         for _ in 0..max_steps {
@@ -337,7 +315,6 @@ impl Runner for RMax {
         max_steps: usize,
         rng: &mut R,
     ) -> bool {
-
         for _ in 0..max_steps {
             if state.at_destination() {
                 return true;

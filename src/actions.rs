@@ -1,4 +1,3 @@
-
 use std::fmt;
 use rand::{Rand, Rng};
 
@@ -41,7 +40,6 @@ impl Actions {
 
 impl Rand for Actions {
     fn rand<R: Rng>(rng: &mut R) -> Actions {
-
         let actions = [
             Actions::North,
             Actions::South,
@@ -98,56 +96,48 @@ mod test_actions {
 
     #[test]
     fn random_action_north() {
-
         let found_action = find_action(Actions::North, 500);
         assert!(found_action);
     }
 
     #[test]
     fn random_action_south() {
-
         let found_action = find_action(Actions::South, 500);
         assert!(found_action);
     }
 
     #[test]
     fn random_action_east() {
-
         let found_action = find_action(Actions::East, 500);
         assert!(found_action);
     }
 
     #[test]
     fn random_action_west() {
-
         let found_action = find_action(Actions::West, 500);
         assert!(found_action);
     }
 
     #[test]
     fn random_action_pickup() {
-
         let found_action = find_action(Actions::PickUp, 500);
         assert!(found_action);
     }
 
     #[test]
     fn random_action_dropoff() {
-
         let found_action = find_action(Actions::DropOff, 500);
         assert!(found_action);
     }
 
     #[test]
     fn distribution() {
-
         let max_iterations = 1000000;
 
         let mut counts = vec![0.0f64; Actions::NUM_ELEMENTS];
 
         let mut rng = rand::thread_rng();
         for _ in 0..max_iterations {
-
             let action: Actions = rng.gen();
 
             counts[action.to_index()] += 1.0;
@@ -194,7 +184,6 @@ mod test_actions {
             counts[Actions::PickUp.to_index()],
             counts[Actions::PickUp.to_index()] / expected_count
         );
-
 
         println!(
             "dropoff count = {}, ratio = {}",

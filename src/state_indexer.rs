@@ -1,7 +1,5 @@
-
 use world::World;
 use state::State;
-
 
 #[derive(Debug, Clone, Copy)]
 pub struct StateIndexer {
@@ -28,17 +26,13 @@ impl StateIndexer {
     }
 
     pub fn get_index(&self, world: &World, state: &State) -> Option<usize> {
-
         if let Some(destination_index) = world.get_fixed_index(state.get_destination()) {
-
             let mut result = destination_index;
 
-            if let Some(passenger_index) =
-                match state.get_passenger() {
-                    Some(passenger_id) => world.get_fixed_index(passenger_id),
-                    None => Some(self.num_passenger_states - 1),
-                }
-            {
+            if let Some(passenger_index) = match state.get_passenger() {
+                Some(passenger_id) => world.get_fixed_index(passenger_id),
+                None => Some(self.num_passenger_states - 1),
+            } {
                 result *= self.num_passenger_states;
                 result += passenger_index;
 
@@ -56,7 +50,6 @@ impl StateIndexer {
     }
 
     pub fn get_state(&self, world: &World, mut state_index: usize) -> Option<State> {
-
         let taxi_index = state_index % self.num_taxi_states;
         state_index /= self.num_taxi_states;
 
@@ -69,7 +62,6 @@ impl StateIndexer {
         let taxi_y = taxi_index / (world.width as usize);
 
         if let Some(destination) = world.get_fixed_id_from_index(destination_index) {
-
             let passenger = if passenger_index < world.num_fixed_positions() {
                 world.get_fixed_id_from_index(passenger_index)
             } else {
@@ -82,7 +74,6 @@ impl StateIndexer {
                 passenger,
                 destination,
             ).ok()
-
         } else {
             None
         }

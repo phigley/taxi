@@ -1,12 +1,10 @@
-
 use rand::Rng;
-
 
 use state::State;
 use actions::Actions;
 use world::World;
 
-use runner::{Runner, Attempt};
+use runner::{Attempt, Runner};
 
 #[derive(Default)]
 pub struct RandomSolver {}
@@ -25,7 +23,6 @@ impl Runner for RandomSolver {
         max_steps: usize,
         rng: &mut R,
     ) -> Option<usize> {
-
         for step in 0..max_steps {
             if state.at_destination() {
                 return Some(step);
@@ -46,7 +43,6 @@ impl Runner for RandomSolver {
         max_steps: usize,
         rng: &mut R,
     ) -> Attempt {
-
         let mut attempt = Attempt::new(state, max_steps);
 
         for _ in 0..max_steps {

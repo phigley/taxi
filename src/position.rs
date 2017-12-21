@@ -1,4 +1,3 @@
-
 use std::ops;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -23,7 +22,6 @@ impl ops::Add<Position> for Position {
         }
     }
 }
-
 
 #[cfg(test)]
 mod test_position {

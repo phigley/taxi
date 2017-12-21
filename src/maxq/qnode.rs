@@ -1,4 +1,3 @@
-
 use std::fmt;
 
 use state::State;
@@ -38,7 +37,6 @@ pub struct QNode {
 
 impl QNode {
     pub fn new(node_type: QNodeType, world: &World) -> QNode {
-
         let num_taxi_states = (world.height as usize) * (world.width as usize);
         let num_fixed_positions = world.num_fixed_positions();
 
@@ -68,7 +66,6 @@ impl QNode {
         world: &World,
         state: &State,
     ) -> Option<(f64, f64, Actions)> {
-
         let completion = self.get_completion_index(world, state)
             .map(|completion_index| self.completions[completion_index])
             .unwrap_or(0.0);
@@ -86,11 +83,9 @@ impl QNode {
             QChild::MaxNode(index) => {
                 let max_node = &nodes.max_nodes[index];
 
-                max_node.evaluate(nodes, world, state).map(|(value,
-                  _,
-                  action)| {
-                    (value, completion, action)
-                })
+                max_node
+                    .evaluate(nodes, world, state)
+                    .map(|(value, _, action)| (value, completion, action))
             }
         }
     }
@@ -109,9 +104,8 @@ impl QNode {
             println!("Updating completion for {}", self);
         }
 
-        self.get_completion_index(world, state).map(
-            |completion_index| {
-
+        self.get_completion_index(world, state)
+            .map(|completion_index| {
                 let old_completion = self.completions[completion_index];
                 // self.learning_completion[completion_index] *= 1.0 - params.alpha;
                 // self.learning_completion[completion_index] += params.alpha * gamma *
@@ -130,35 +124,25 @@ impl QNode {
                         self.completions[completion_index]
                     );
                 }
-            },
-        );
+            });
     }
 
     pub fn get_completion_index(&self, world: &World, state: &State) -> Option<usize> {
         match self.node_type {
-            QNodeType::Get => {
-                passenger_state_index(world, state).and_then(|index| {
-                    add_destination_state_index(index, world, state)
-                })
-            }
+            QNodeType::Get => passenger_state_index(world, state)
+                .and_then(|index| add_destination_state_index(index, world, state)),
 
             QNodeType::NavigateForGet => passenger_state_index(world, state),
 
-            QNodeType::PickUp => {
-                passenger_state_index(world, state).and_then(|index| {
-                    add_taxi_state_index(index, world, state)
-                })
-            }
+            QNodeType::PickUp => passenger_state_index(world, state)
+                .and_then(|index| add_taxi_state_index(index, world, state)),
 
             QNodeType::Put => None,
 
             QNodeType::NavigateForPut => destination_state_index(world, state),
 
-            QNodeType::DropOff => {
-                destination_state_index(world, state).and_then(|index| {
-                    add_taxi_state_index(index, world, state)
-                })
-            }
+            QNodeType::DropOff => destination_state_index(world, state)
+                .and_then(|index| add_taxi_state_index(index, world, state)),
 
             QNodeType::North(_) => taxi_state_index(world, state),
             QNodeType::South(_) => taxi_state_index(world, state),
@@ -168,22 +152,23 @@ impl QNode {
     }
 
     pub fn get_child(&self, world: &World, state: &State) -> Option<QChild> {
-
         match self.node_type {
             QNodeType::Get => Some(QChild::MaxNode(MaxNode::get_index(MaxNodeType::Get, world))),
             QNodeType::NavigateForGet => {
                 let id = state.get_passenger()?;
-                Some(QChild::MaxNode(
-                    MaxNode::get_index(MaxNodeType::Navigate(id), world),
-                ))
+                Some(QChild::MaxNode(MaxNode::get_index(
+                    MaxNodeType::Navigate(id),
+                    world,
+                )))
             }
             QNodeType::PickUp => Some(QChild::Primitive(Actions::PickUp.to_index())),
             QNodeType::Put => Some(QChild::MaxNode(MaxNode::get_index(MaxNodeType::Put, world))),
             QNodeType::NavigateForPut => {
                 let id = state.get_destination();
-                Some(QChild::MaxNode(
-                    MaxNode::get_index(MaxNodeType::Navigate(id), world),
-                ))
+                Some(QChild::MaxNode(MaxNode::get_index(
+                    MaxNodeType::Navigate(id),
+                    world,
+                )))
             }
             QNodeType::DropOff => Some(QChild::Primitive(Actions::DropOff.to_index())),
 
@@ -195,7 +180,6 @@ impl QNode {
     }
 
     pub fn build_nodes(world: &World) -> Vec<QNode> {
-
         let num_nodes = Self::num_nodes(world);
         let mut nodes = Vec::with_capacity(num_nodes);
 
@@ -307,9 +291,9 @@ impl fmt::Display for QNode {
 }
 
 fn passenger_state_index(world: &World, state: &State) -> Option<usize> {
-    state.get_passenger().and_then(|passenger_id| {
-        world.get_fixed_index(passenger_id)
-    })
+    state
+        .get_passenger()
+        .and_then(|passenger_id| world.get_fixed_index(passenger_id))
 }
 
 // fn add_passenger_state_index(mut index: usize, world: &World, state: &State) -> Option<usize> {

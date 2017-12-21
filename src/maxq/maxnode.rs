@@ -1,4 +1,3 @@
-
 use std::fmt;
 use std::slice::Iter;
 
@@ -7,7 +6,6 @@ use rand::Rng;
 use state::State;
 use actions::Actions;
 use world::World;
-
 
 use maxq::qnode::{QNode, QNodeType};
 use maxq::nodestorage::NodeStorage;
@@ -34,7 +32,6 @@ impl MaxNode {
         world: &World,
         state: &State,
     ) -> Option<(f64, usize, Actions)> {
-
         let mut result = None;
 
         if !self.terminal_state(world, state) {
@@ -78,11 +75,8 @@ impl MaxNode {
         if nongreedy_roll < params.epsilon {
             rng.choose(&self.qnodes).map(|child_index| *child_index)
         } else {
-            self.evaluate(nodes, world, state).map(
-                |(_, child_index, _)| {
-                    child_index
-                },
-            )
+            self.evaluate(nodes, world, state)
+                .map(|(_, child_index, _)| child_index)
         }
     }
 
@@ -96,10 +90,8 @@ impl MaxNode {
     }
 
     pub fn build_nodes(world: &World) -> Vec<MaxNode> {
-
         let num_nodes = Self::num_nodes(world);
         let mut nodes = Vec::with_capacity(num_nodes);
-
 
         {
             let node_type = MaxNodeType::Root;

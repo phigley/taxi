@@ -1,4 +1,3 @@
-
 use std::iter;
 use std::fmt;
 
@@ -12,7 +11,6 @@ struct Wall {
     east: bool,
     west: bool,
 }
-
 
 impl Wall {
     fn new() -> Wall {
@@ -97,7 +95,9 @@ pub enum ParseError {
         num_chars: usize,
         expected_num_chars: usize,
     },
-    DuplicateFixedPosition { id: char },
+    DuplicateFixedPosition {
+        id: char,
+    },
 }
 
 impl fmt::Debug for ParseError {
@@ -107,31 +107,24 @@ impl fmt::Debug for ParseError {
                 line,
                 num_chars,
                 expected_num_chars,
-            } => {
-                write!(
-                    f,
-                    "Line {} has width {} which does not match initial width of {}.",
-                    line,
-                    num_chars,
-                    expected_num_chars
-                )
-            }
+            } => write!(
+                f,
+                "Line {} has width {} which does not match initial width of {}.",
+                line, num_chars, expected_num_chars
+            ),
 
             ParseError::DuplicateFixedPosition { id } => {
                 write!(f, "Found duplicate fixed position '{}'.", id)
             }
-
         }
     }
 }
 
 impl World {
     pub fn build_from_str(source: &str) -> Result<World, Error> {
-
         let mut lines = source.lines();
 
         if let Some(first_line) = lines.next() {
-
             let line_width = first_line.chars().count();
 
             let mut line_count = 1;
@@ -144,16 +137,14 @@ impl World {
 
             let mut wall_row = Vec::with_capacity(width);
             wall_row.extend(iter::repeat(Wall::new()).take(width));
-            parse_wall_line(first_line, line_count, width, None, Some(&mut wall_row))
-                .map_err(|error| {
-                    Error::Parse {
-                        source: String::from(source),
-                        error,
-                    }
-                })?;
+            parse_wall_line(first_line, line_count, width, None, Some(&mut wall_row)).map_err(
+                |error| Error::Parse {
+                    source: String::from(source),
+                    error,
+                },
+            )?;
 
             while let (Some(content_line), Some(wall_line)) = (lines.next(), lines.next()) {
-
                 let mut next_wall_row = Vec::with_capacity(width);
                 next_wall_row.extend(iter::repeat(Wall::new()).take(width));
 
@@ -164,11 +155,9 @@ impl World {
                     width,
                     &mut wall_row,
                     &mut fixed_positions,
-                ).map_err(|error| {
-                    Error::Parse {
-                        source: String::from(source),
-                        error,
-                    }
+                ).map_err(|error| Error::Parse {
+                    source: String::from(source),
+                    error,
                 })?;
 
                 line_count += 1;
@@ -178,11 +167,9 @@ impl World {
                     width,
                     Some(&mut wall_row),
                     Some(&mut next_wall_row),
-                ).map_err(|error| {
-                    Error::Parse {
-                        source: String::from(source),
-                        error,
-                    }
+                ).map_err(|error| Error::Parse {
+                    source: String::from(source),
+                    error,
                 })?;
 
                 walls.push(wall_row);
@@ -200,7 +187,6 @@ impl World {
                 movement_cost: -1.0,
                 miss_passenger_cost: -10.0,
             })
-
         } else {
             Err(Error::EmptyString)
         }
@@ -224,7 +210,6 @@ impl World {
         }
 
         None
-
     }
 
     pub fn get_fixed_id(&self, position: &Position) -> Option<char> {
@@ -321,21 +306,18 @@ impl World {
     }
 
     pub fn display_strings(&self) -> Vec<String> {
-
         let line_count = (2 * self.height + 1) as usize;
         let mut result = Vec::with_capacity(line_count);
 
         let mut previous_row: Option<&[Wall]> = None;
 
         for (y, row) in self.walls.iter().enumerate() {
-
             let mut upper_chars = String::new();
             let mut chars = String::new();
 
             let mut previous_wall = None;
 
             for (x, w) in row.iter().enumerate() {
-
                 let upper_wall = if let Some(previous_row) = previous_row {
                     Some(&previous_row[x])
                 } else {
@@ -362,13 +344,11 @@ impl World {
             }
 
             if let Some(w) = previous_wall {
-
                 let upper_wall = if let Some(previous_row) = previous_row {
                     Some(&previous_row[(self.width - 1) as usize])
                 } else {
                     None
                 };
-
 
                 upper_chars.push(calc_upper_right_char(w, upper_wall));
                 chars.push(if w.east { '│' } else { ' ' });
@@ -381,11 +361,9 @@ impl World {
         }
 
         if let Some(r) = previous_row {
-
             let mut bottom_chars = String::new();
             let mut previous_wall = None;
             for w in r {
-
                 bottom_chars.push(calc_lower_left_char(w, previous_wall));
                 bottom_chars.push(if w.south { '─' } else { ' ' });
 
@@ -408,12 +386,10 @@ fn calc_upper_left_char(
     previous_wall: Option<&Wall>,
     upper_wall: Option<&Wall>,
 ) -> char {
-
     let mut connect_north = false;
     let mut connect_south = false;
     let mut connect_east = false;
     let mut connect_west = false;
-
 
     if let Some(upper_wall) = upper_wall {
         if upper_wall.west {
@@ -429,7 +405,6 @@ fn calc_upper_left_char(
         connect_east = true;
     }
 
-
     if let Some(previous_wall) = previous_wall {
         if previous_wall.north {
             connect_west = true;
@@ -440,12 +415,10 @@ fn calc_upper_left_char(
 }
 
 fn calc_upper_right_char(current_wall: &Wall, upper_wall: Option<&Wall>) -> char {
-
     let mut connect_north = false;
     let mut connect_south = false;
     let connect_east = false;
     let mut connect_west = false;
-
 
     if let Some(upper_wall) = upper_wall {
         if upper_wall.east {
@@ -465,7 +438,6 @@ fn calc_upper_right_char(current_wall: &Wall, upper_wall: Option<&Wall>) -> char
 }
 
 fn calc_lower_left_char(current_wall: &Wall, previous_wall: Option<&Wall>) -> char {
-
     let mut connect_north = false;
     let connect_south = false;
     let mut connect_east = false;
@@ -494,11 +466,9 @@ fn render_connection(
     connect_east: bool,
     connect_west: bool,
 ) -> char {
-
     // ─ │ ┌ ┐ └ ┘ ├ ┤ ┬ ┴ ┼
 
     match (connect_north, connect_south, connect_east, connect_west) {
-
         (true, true, true, true) => '┼',
 
         (true, true, true, false) => '├',
@@ -513,13 +483,12 @@ fn render_connection(
         (false, true, false, true) => '┐',
         (false, false, true, true) => '─',
 
-        (true, false, false, false) |
-        (false, false, true, false) |
-        (false, true, false, false) |
-        (false, false, false, true) |
-        (false, false, false, false) => ' ',
+        (true, false, false, false)
+        | (false, false, true, false)
+        | (false, true, false, false)
+        | (false, false, false, true)
+        | (false, false, false, false) => ' ',
     }
-
 }
 
 fn parse_wall_line(
@@ -529,12 +498,10 @@ fn parse_wall_line(
     mut previous_row: Option<&mut [Wall]>,
     mut row: Option<&mut [Wall]>,
 ) -> Result<(), ParseError> {
-
     let mut num_chars_read = 0;
     let expected_num_chars = 2 * width + 1;
 
     for (i, c) in line.chars().enumerate() {
-
         num_chars_read += 1;
 
         if num_chars_read > expected_num_chars {
@@ -542,12 +509,9 @@ fn parse_wall_line(
         }
 
         if i % 2 == 1 {
-
             let x = i / 2;
 
             if x > width {}
-
-
 
             if c == '─' {
                 if let Some(ref mut prev) = previous_row {
@@ -570,7 +534,6 @@ fn parse_wall_line(
             expected_num_chars,
         })
     }
-
 }
 
 fn parse_content_line(
@@ -580,14 +543,12 @@ fn parse_content_line(
     wall_row: &mut Vec<Wall>,
     fixed_positions: &mut Vec<FixedPosition>,
 ) -> Result<(), ParseError> {
-
     let mut num_chars_read = 0;
     let expected_num_chars = 2 * width + 1;
 
     let y = (line_count - 1) / 2;
 
     for (i, c) in line.chars().enumerate() {
-
         num_chars_read += 1;
 
         if num_chars_read > expected_num_chars {
@@ -596,11 +557,9 @@ fn parse_content_line(
 
         let x = i / 2;
 
-
         if i % 2 == 1 {
             // odd characters are points themselves
             if c != '.' {
-
                 // for now, ignore the taxi, passenger, and destination characters.
                 if c != 't' && c != 'T' && c != 'd' && c != 'D' && c != 'p' {
                     for fp in fixed_positions.iter() {
@@ -625,7 +584,6 @@ fn parse_content_line(
                 wall_row[x - 1].east = true;
             }
         }
-
     }
 
     if num_chars_read == expected_num_chars {
@@ -639,7 +597,6 @@ fn parse_content_line(
     }
 }
 
-
 #[cfg(test)]
 mod test_world {
 
@@ -648,142 +605,142 @@ mod test_world {
     #[test]
     fn build_correct_height() {
         let source = "\
-            ┌─┐\n\
-            │.│\n\
-            │ │\n\
-            │T│\n\
-            │ │\n\
-            │d│\n\
-            │ │\n\
-            │.│\n\
-            └─┘";
+                      ┌─┐\n\
+                      │.│\n\
+                      │ │\n\
+                      │T│\n\
+                      │ │\n\
+                      │d│\n\
+                      │ │\n\
+                      │.│\n\
+                      └─┘";
 
         let res = World::build_from_str(source);
-        assert_matches!( res, Ok( World { height: 4, .. } ))
+        assert_matches!(res, Ok(World { height: 4, .. }))
     }
 
     #[test]
     fn build_correct_width() {
         let source = "\
-        ┌─────────┐\n\
-        │d T . . .│\n\
-        └─────────┘\n\
-        ";
+                      ┌─────────┐\n\
+                      │d T . . .│\n\
+                      └─────────┘\n\
+                      ";
 
         let res = World::build_from_str(source);
-        assert_matches!( res, Ok( World { width: 5, .. } ))
+        assert_matches!(res, Ok(World { width: 5, .. }))
     }
 
     #[test]
     fn build_fails_short_content() {
         let source = "\
-        ┌───────┐\n\
-        │. . .│\n\
-        │       │\n\
-        │. . . .│\n\
-        └───────┘\n\
-        ";
+                      ┌───────┐\n\
+                      │. . .│\n\
+                      │       │\n\
+                      │. . . .│\n\
+                      └───────┘\n\
+                      ";
 
         let res = World::build_from_str(source);
-        assert_matches!( res, Err( _ ))
+        assert_matches!(res, Err(_))
     }
 
     #[test]
     fn build_fails_short_wall() {
         let source = "\
-        ┌─────────┐\n\
-        │ . . . . │\n\
-        │        │\n\
-        │ . . . . │\n\
-        └─────────┘\n\
-        ";
+                      ┌─────────┐\n\
+                      │ . . . . │\n\
+                      │        │\n\
+                      │ . . . . │\n\
+                      └─────────┘\n\
+                      ";
 
         let res = World::build_from_str(source);
-        assert_matches!( res, Err( _ ))
+        assert_matches!(res, Err(_))
     }
 
     #[test]
     fn build_fails_short_initial() {
         let source = "\
-        ┌────────┐\n\
-        │ . . . . │\n\
-        │         │\n\
-        │ . . . . │\n\
-        └─────────┘\n\
-        ";
+                      ┌────────┐\n\
+                      │ . . . . │\n\
+                      │         │\n\
+                      │ . . . . │\n\
+                      └─────────┘\n\
+                      ";
 
         let res = World::build_from_str(source);
-        assert_matches!( res, Err( _ ))
+        assert_matches!(res, Err(_))
     }
 
     #[test]
     fn build_fails_short_final() {
         let source = "\
-        ┌─────────┐\n\
-        │ . . . . │\n\
-        │         │\n\
-        │ . . . . │\n\
-        └────────┘\n\
-        ";
+                      ┌─────────┐\n\
+                      │ . . . . │\n\
+                      │         │\n\
+                      │ . . . . │\n\
+                      └────────┘\n\
+                      ";
 
         let res = World::build_from_str(source);
-        assert_matches!( res, Err( _ ))
+        assert_matches!(res, Err(_))
     }
 
     #[test]
     fn build_fails_long_content() {
         let source = "\
-        ┌───────┐\n\
-        │. . . . │\n\
-        │       │\n\
-        │. . . .│\n\
-        └───────┘\n\
-        ";
+                      ┌───────┐\n\
+                      │. . . . │\n\
+                      │       │\n\
+                      │. . . .│\n\
+                      └───────┘\n\
+                      ";
 
         let res = World::build_from_str(source);
-        assert_matches!( res, Err( _ ))
+        assert_matches!(res, Err(_))
     }
 
     #[test]
     fn build_fails_long_wall() {
         let source = "\
-        ┌─────────┐\n\
-        │ . . . . │\n\
-        │          │\n\
-        │ . . . . │\n\
-        └─────────┘\n\
-        ";
+                      ┌─────────┐\n\
+                      │ . . . . │\n\
+                      │          │\n\
+                      │ . . . . │\n\
+                      └─────────┘\n\
+                      ";
 
         let res = World::build_from_str(source);
-        assert_matches!( res, Err( _ ))
+        assert_matches!(res, Err(_))
     }
 
     #[test]
     fn build_fails_long_initial() {
         let source = "\
-        ┌──────────┐\n\
-        │ . . . . │\n\
-        │         │\n\
-        │ . . . . │\n\
-        └─────────┘\n\
-        ";
+                      ┌──────────┐\n\
+                      │ . . . . │\n\
+                      │         │\n\
+                      │ . . . . │\n\
+                      └─────────┘\n\
+                      ";
 
         let res = World::build_from_str(source);
-        assert_matches!( res, Err( _ ))
+        assert_matches!(res, Err(_))
     }
 
     #[test]
     fn build_fails_long_final() {
         let source = "\
-        ┌─────────┐\n\
-        │ . . . . │\n\
-        │         │\n\
-        │ . . . . │\n\
-        └──────────┘\n\
-        ";
+                      ┌─────────┐\n\
+                      │ . . . . │\n\
+                      │         │\n\
+                      │ . . . . │\n\
+                      └──────────┘\n\
+                      ";
 
         let res = World::build_from_str(source);
-        assert_matches!( res, Err( _ ))
+        assert_matches!(res, Err(_))
     }
 
     fn build_wall(desc: &str) -> Wall {
@@ -812,24 +769,20 @@ mod test_world {
             movement_cost: -1.0,
             miss_passenger_cost: -10.0,
         }
-
     }
-
 
     #[test]
     fn build_very_simple() {
         let source = "\
-        ┌─┐\n\
-        │.│\n\
-        └─┘\n\
-        ";
+                      ┌─┐\n\
+                      │.│\n\
+                      └─┘\n\
+                      ";
 
         let mut expected_w = build_empty_world();
         expected_w.width = 1;
         expected_w.height = 1;
-        expected_w.walls = vec![ vec![
-            build_wall("nsew")
-        ] ];
+        expected_w.walls = vec![vec![build_wall("nsew")]];
 
         match World::build_from_str(source) {
             Err(msg) => panic!(msg),
@@ -842,40 +795,26 @@ mod test_world {
     #[test]
     fn build_simple() {
         let source = "\
-        ┌─────┐\n\
-        │. . .│\n\
-        │     │\n\
-        │. . .│\n\
-        │     │\n\
-        │. . .│\n\
-        │     │\n\
-        │. . .│\n\
-        └─────┘\n\
-        ";
+                      ┌─────┐\n\
+                      │. . .│\n\
+                      │     │\n\
+                      │. . .│\n\
+                      │     │\n\
+                      │. . .│\n\
+                      │     │\n\
+                      │. . .│\n\
+                      └─────┘\n\
+                      ";
 
         let mut expected_w = build_empty_world();
         expected_w.width = 3;
         expected_w.height = 4;
-        expected_w.walls = vec![ vec![
-            build_wall("nw"),
-            build_wall("n"),
-            build_wall("ne")
-        ],
-        vec![
-            build_wall("w"),
-            build_wall(""),
-            build_wall("e")
-        ],
-        vec![
-            build_wall("w"),
-            build_wall(""),
-            build_wall("e")
-        ],
-        vec![
-            build_wall("sw"),
-            build_wall("s"),
-            build_wall("se")
-        ] ];
+        expected_w.walls = vec![
+            vec![build_wall("nw"), build_wall("n"), build_wall("ne")],
+            vec![build_wall("w"), build_wall(""), build_wall("e")],
+            vec![build_wall("w"), build_wall(""), build_wall("e")],
+            vec![build_wall("sw"), build_wall("s"), build_wall("se")],
+        ];
 
         match World::build_from_str(source) {
             Err(msg) => panic!(msg),
@@ -888,36 +827,38 @@ mod test_world {
     #[test]
     fn build_middle_wall() {
         let source = "\
-        ┌───────┐\n\
-        │. . . .│\n\
-        │ ┌─    │\n\
-        │.│. . .│\n\
-        │ │     │\n\
-        │.│. . .│\n\
-        └─┴─────┘\n\
-        ";
+                      ┌───────┐\n\
+                      │. . . .│\n\
+                      │ ┌─    │\n\
+                      │.│. . .│\n\
+                      │ │     │\n\
+                      │.│. . .│\n\
+                      └─┴─────┘\n\
+                      ";
 
         let mut expected_w = build_empty_world();
         expected_w.width = 4;
         expected_w.height = 3;
-        expected_w.walls = vec![ vec![
-            build_wall("nw"),
-            build_wall("ns"),
-            build_wall("n"),
-            build_wall("ne")
-        ],
-        vec![
-            build_wall("ew"),
-            build_wall("nw"),
-            build_wall(""),
-            build_wall("e")
-        ],
-        vec![
-            build_wall("sew"),
-            build_wall("sw"),
-            build_wall("s"),
-            build_wall("se")
-        ] ];
+        expected_w.walls = vec![
+            vec![
+                build_wall("nw"),
+                build_wall("ns"),
+                build_wall("n"),
+                build_wall("ne"),
+            ],
+            vec![
+                build_wall("ew"),
+                build_wall("nw"),
+                build_wall(""),
+                build_wall("e"),
+            ],
+            vec![
+                build_wall("sew"),
+                build_wall("sw"),
+                build_wall("s"),
+                build_wall("se"),
+            ],
+        ];
 
         match World::build_from_str(source) {
             Err(msg) => panic!(msg),
@@ -930,52 +871,58 @@ mod test_world {
     #[test]
     fn build_complex() {
         let source = "\
-        ┌───┬─────┐\n\
-        │. .│. . .│\n\
-        │   │     │\n\
-        │. .│. . .│\n\
-        │         │\n\
-        │. . . . .│\n\
-        │         │\n\
-        │.│. .│. .│\n\
-        │ │   │   │\n\
-        │.│. .│. .│\n\
-        └─┴───┴───┘\n\
-        ";
+                      ┌───┬─────┐\n\
+                      │. .│. . .│\n\
+                      │   │     │\n\
+                      │. .│. . .│\n\
+                      │         │\n\
+                      │. . . . .│\n\
+                      │         │\n\
+                      │.│. .│. .│\n\
+                      │ │   │   │\n\
+                      │.│. .│. .│\n\
+                      └─┴───┴───┘\n\
+                      ";
 
         let mut expected_w = build_empty_world();
         expected_w.width = 5;
         expected_w.height = 5;
         expected_w.walls = vec![
-            vec![ build_wall("nw"),
-            build_wall("ne"),
-            build_wall("nw"),
-            build_wall("n"),
-            build_wall("ne") ],
-
-            vec![ build_wall("w"),
-            build_wall("e"),
-            build_wall("w"),
-            build_wall(""),
-            build_wall("e") ],
-
-            vec![ build_wall("w"),
-            build_wall(""),
-            build_wall(""),
-            build_wall(""),
-            build_wall("e") ],
-
-            vec![ build_wall("we"),
-            build_wall("w"),
-            build_wall("e"),
-            build_wall("w"),
-            build_wall("e") ],
-
-            vec![ build_wall("swe"),
-            build_wall("sw"),
-            build_wall("se"),
-            build_wall("sw"),
-            build_wall("se") ],
+            vec![
+                build_wall("nw"),
+                build_wall("ne"),
+                build_wall("nw"),
+                build_wall("n"),
+                build_wall("ne"),
+            ],
+            vec![
+                build_wall("w"),
+                build_wall("e"),
+                build_wall("w"),
+                build_wall(""),
+                build_wall("e"),
+            ],
+            vec![
+                build_wall("w"),
+                build_wall(""),
+                build_wall(""),
+                build_wall(""),
+                build_wall("e"),
+            ],
+            vec![
+                build_wall("we"),
+                build_wall("w"),
+                build_wall("e"),
+                build_wall("w"),
+                build_wall("e"),
+            ],
+            vec![
+                build_wall("swe"),
+                build_wall("sw"),
+                build_wall("se"),
+                build_wall("sw"),
+                build_wall("se"),
+            ],
         ];
 
         match World::build_from_str(source) {
@@ -989,52 +936,38 @@ mod test_world {
     #[test]
     fn build_simple_fixed_positions() {
         let source = "\
-        ┌─────┐\n\
-        │A . .│\n\
-        │     │\n\
-        │. B .│\n\
-        │     │\n\
-        │. . C│\n\
-        │     │\n\
-        │. . .│\n\
-        └─────┘\n\
-        ";
+                      ┌─────┐\n\
+                      │A . .│\n\
+                      │     │\n\
+                      │. B .│\n\
+                      │     │\n\
+                      │. . C│\n\
+                      │     │\n\
+                      │. . .│\n\
+                      └─────┘\n\
+                      ";
 
         let mut expected_w = build_empty_world();
         expected_w.width = 3;
         expected_w.height = 4;
-        expected_w.walls = vec![ vec![
-            build_wall("nw"),
-            build_wall("n"),
-            build_wall("ne")
-        ],
-        vec![
-            build_wall("w"),
-            build_wall(""),
-            build_wall("e")
-        ],
-        vec![
-            build_wall("w"),
-            build_wall(""),
-            build_wall("e")
-        ],
-        vec![
-            build_wall("sw"),
-            build_wall("s"),
-            build_wall("se")
-        ] ];
+        expected_w.walls = vec![
+            vec![build_wall("nw"), build_wall("n"), build_wall("ne")],
+            vec![build_wall("w"), build_wall(""), build_wall("e")],
+            vec![build_wall("w"), build_wall(""), build_wall("e")],
+            vec![build_wall("sw"), build_wall("s"), build_wall("se")],
+        ];
         expected_w.fixed_positions = vec![
             FixedPosition {
                 id: 'A',
-                position: Position::new(0,0)
+                position: Position::new(0, 0),
             },
             FixedPosition {
                 id: 'B',
-                position: Position::new(1,1)
+                position: Position::new(1, 1),
             },
             FixedPosition {
                 id: 'C',
-                position: Position::new(2,2)
+                position: Position::new(2, 2),
             },
         ];
 
