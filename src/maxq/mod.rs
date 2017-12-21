@@ -40,7 +40,11 @@ impl MaxQ {
         show_table: bool,
         show_learning: bool,
     ) -> MaxQ {
-        let initial_q_value = 0.123; // world.max_reward() / (1 - gamma)
+        let initial_q_value = if gamma < 1.0 {
+            world.max_reward() / (1.0 - gamma)
+        } else {
+            world.max_reward()
+        };
 
         let nodes = NodeStorage::new(initial_q_value, world);
 
