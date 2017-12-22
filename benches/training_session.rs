@@ -1,8 +1,8 @@
 #![feature(test)]
 
-extern crate test;
-extern crate taxi;
 extern crate rand;
+extern crate taxi;
+extern crate test;
 
 use rand::Isaac64Rng;
 
@@ -19,20 +19,19 @@ struct SessionData {
 
 impl Default for SessionData {
     fn default() -> SessionData {
-
         let world_str = "\
-        ┌───┬─────┐\n\
-        │R .│. . G│\n\
-        │   │     │\n\
-        │. .│. . .│\n\
-        │         │\n\
-        │. . . . .│\n\
-        │         │\n\
-        │.│. .│. .│\n\
-        │ │   │   │\n\
-        │Y│. .│B .│\n\
-        └─┴───┴───┘\n\
-        ";
+                         ┌───┬─────┐\n\
+                         │R .│. . G│\n\
+                         │   │     │\n\
+                         │. .│. . .│\n\
+                         │         │\n\
+                         │. . . . .│\n\
+                         │         │\n\
+                         │.│. .│. .│\n\
+                         │ │   │   │\n\
+                         │Y│. .│B .│\n\
+                         └─┴───┴───┘\n\
+                         ";
 
         let world = World::build_from_str(world_str).unwrap();
 
@@ -51,7 +50,6 @@ impl Default for SessionData {
 
 #[bench]
 fn qlearner(b: &mut test::Bencher) {
-
     let data = SessionData::default();
 
     b.iter(|| {
@@ -64,7 +62,6 @@ fn qlearner(b: &mut test::Bencher) {
 
 #[bench]
 fn rmax(b: &mut test::Bencher) {
-
     let data = SessionData::default();
 
     b.iter(|| {

@@ -1,4 +1,3 @@
-
 extern crate float_cmp;
 extern crate rand;
 extern crate taxi;
@@ -9,7 +8,6 @@ use taxi::distribution::MeasureDistribution;
 
 #[test]
 fn measures_simple() {
-
     let samples: Vec<usize> = (0..101).collect();
 
     let mut measurement = MeasureDistribution::default();
@@ -18,11 +16,9 @@ fn measures_simple() {
     let mut sum_sqr = 0.0;
 
     for s in &samples {
-
         let val = *s as f64;
 
         measurement.add_value(val);
-
 
         sum += val;
         sum_sqr += val * val;
@@ -37,9 +33,7 @@ fn measures_simple() {
 
     println!(
         "mean = {}, std_dev = {} naive_std_dev = {}",
-        mean,
-        std_dev,
-        naive_std_dev,
+        mean, std_dev, naive_std_dev,
     );
 
     assert!(measurement.get_count().approx_eq_ulps(&total_count, 1));
@@ -49,7 +43,6 @@ fn measures_simple() {
 
 #[test]
 fn measure_combines_with_empty() {
-
     let samples: Vec<usize> = (0..101).collect();
 
     let mut measurement = MeasureDistribution::default();
@@ -71,7 +64,6 @@ fn measure_combines_with_empty() {
 
 #[test]
 fn measure_empty_combines_with_nonempty() {
-
     let samples: Vec<usize> = (0..101).collect();
 
     let mut measurement = MeasureDistribution::default();
@@ -91,10 +83,8 @@ fn measure_empty_combines_with_nonempty() {
     assert!(std_dev.approx_eq_ulps(&expected_std_dev, 3));
 }
 
-
 #[test]
 fn measures_combine() {
-
     let samples: Vec<usize> = (0..101).collect();
 
     let mut base_line = MeasureDistribution::default();
@@ -106,22 +96,20 @@ fn measures_combine() {
     let (base_line_mean, base_line_std_dev) = base_line.get_distribution();
 
     let combos = [
-    	vec![ 50, 50 ],
-    	vec![ 10, 10, 10, 10, 10, 10, 10, 10, 10, 10],
-    	vec![20, 30, 40, 10],
-    	vec![ 80, 5, 9, 3, 2, 1],
-    	vec![ 20, 60, 20 ],
-    	vec![ 30, 40 ], // Intentionally short of count
+        vec![50, 50],
+        vec![10, 10, 10, 10, 10, 10, 10, 10, 10, 10],
+        vec![20, 30, 40, 10],
+        vec![80, 5, 9, 3, 2, 1],
+        vec![20, 60, 20],
+        vec![30, 40], // Intentionally short of count
     ];
 
     for combo in &combos {
-
         let mut sampler = samples.as_slice();
 
         let mut dists = Vec::with_capacity(combo.len());
 
         for count in combo {
-
             let mut dist = MeasureDistribution::default();
 
             let (current_chunk, remaining) = sampler.split_at(*count);
@@ -141,7 +129,6 @@ fn measures_combine() {
             result.add_distribution(d);
         }
 
-
         for s in sampler {
             result.add_value(*s as f64);
         }
@@ -150,6 +137,5 @@ fn measures_combine() {
 
         assert!(result_mean.approx_eq_ulps(&base_line_mean, 1));
         assert!(result_std_dev.approx_eq_ulps(&base_line_std_dev, 3));
-
     }
 }

@@ -7,19 +7,18 @@ use taxi::state::State;
 #[test]
 fn indices_unique() {
     let source_world = "\
-        ┌─────┐\n\
-        │R . G│\n\
-        │     │\n\
-        │. . .│\n\
-        │     │\n\
-        │. Y .│\n\
-        └─────┘\n\
-        ";
+                        ┌─────┐\n\
+                        │R . G│\n\
+                        │     │\n\
+                        │. . .│\n\
+                        │     │\n\
+                        │. Y .│\n\
+                        └─────┘\n\
+                        ";
 
     let possible_passengers = [Some('R'), Some('G'), Some('Y'), None];
 
     let possible_destinations = ['R', 'Y', 'G'];
-
 
     let world = World::build_from_str(source_world).unwrap();
 
@@ -31,7 +30,6 @@ fn indices_unique() {
         for passenger in &possible_passengers {
             for y in 0..world.height {
                 for x in 0..world.width {
-
                     let state = State::build(&world, (x, y), *passenger, *destination).unwrap();
                     let state_index = state_indexer.get_index(&world, &state).unwrap();
 
@@ -41,11 +39,11 @@ fn indices_unique() {
                     let reconstructed_state = state_indexer.get_state(&world, state_index).unwrap();
 
                     println!(
-                            "---- {} ----\n{}\n{}",
-                            state_index,
-                            state.display(&world),
-                            reconstructed_state.display(&world),
-                        );
+                        "---- {} ----\n{}\n{}",
+                        state_index,
+                        state.display(&world),
+                        reconstructed_state.display(&world),
+                    );
 
                     assert_eq!(state.display(&world), reconstructed_state.display(&world));
 

@@ -10,22 +10,21 @@ fn build_fails_on_emptystring() {
     World::build_from_str("").unwrap();
 }
 
-
 #[test]
 fn build_world() {
     let source = "\
-    ┌───┬─────┐\n\
-    │. .│. . .│\n\
-    │   │     │\n\
-    │. .│. . .│\n\
-    │         │\n\
-    │. . . . .│\n\
-    │         │\n\
-    │.│. .│. .│\n\
-    │ │   │   │\n\
-    │.│. .│. .│\n\
-    └─┴───┴───┘\n\
-    ";
+                  ┌───┬─────┐\n\
+                  │. .│. . .│\n\
+                  │   │     │\n\
+                  │. .│. . .│\n\
+                  │         │\n\
+                  │. . . . .│\n\
+                  │         │\n\
+                  │.│. .│. .│\n\
+                  │ │   │   │\n\
+                  │.│. .│. .│\n\
+                  └─┴───┴───┘\n\
+                  ";
 
     match World::build_from_str(source) {
         Err(msg) => panic!(msg),
@@ -39,23 +38,22 @@ fn build_world() {
 #[test]
 fn wall_move_validity() {
     let source = "\
-    ┌───┬─────┐\n\
-    │. .│. . .│\n\
-    │   │     │\n\
-    │. .│. . .│\n\
-    │         │\n\
-    │. . . . .│\n\
-    │ ┌─      │\n\
-    │.│. .│. .│\n\
-    │ │   │   │\n\
-    │.│. .│. .│\n\
-    └─┴───┴───┘\n\
-    ";
+                  ┌───┬─────┐\n\
+                  │. .│. . .│\n\
+                  │   │     │\n\
+                  │. .│. . .│\n\
+                  │         │\n\
+                  │. . . . .│\n\
+                  │ ┌─      │\n\
+                  │.│. .│. .│\n\
+                  │ │   │   │\n\
+                  │.│. .│. .│\n\
+                  └─┴───┴───┘\n\
+                  ";
 
     match World::build_from_str(source) {
         Err(msg) => panic!(msg),
         Ok(world) => {
-
             assert_eq!(
                 world.determine_affect(&Position::new(2, 2), Actions::North),
                 ActionAffect::Move(Position::new(0, -1))
@@ -102,7 +100,6 @@ fn edge_action_validity() {
     match World::build_from_str(source) {
         Err(msg) => panic!(msg),
         Ok(world) => {
-
             assert_eq!(
                 world.determine_affect(&Position::new(1, 0), Actions::North),
                 ActionAffect::Invalid
@@ -129,18 +126,18 @@ fn edge_action_validity() {
 #[test]
 fn read_fixed_position() {
     let source = "\
-    ┌───┬─────┐\n\
-    │R .│. . G│\n\
-    │   │     │\n\
-    │. .│. . .│\n\
-    │         │\n\
-    │. . . . .│\n\
-    │         │\n\
-    │.│. .│. .│\n\
-    │ │   │   │\n\
-    │Y│. .│B .│\n\
-    └─┴───┴───┘\n\
-    ";
+                  ┌───┬─────┐\n\
+                  │R .│. . G│\n\
+                  │   │     │\n\
+                  │. .│. . .│\n\
+                  │         │\n\
+                  │. . . . .│\n\
+                  │         │\n\
+                  │.│. .│. .│\n\
+                  │ │   │   │\n\
+                  │Y│. .│B .│\n\
+                  └─┴───┴───┘\n\
+                  ";
 
     match World::build_from_str(source) {
         Err(msg) => panic!(msg),
@@ -153,7 +150,6 @@ fn read_fixed_position() {
             assert_eq!(world.get_fixed_position('B'), Some(&Position::new(3, 4)));
 
             assert_eq!(world.get_fixed_position('?'), None);
-
         }
     }
 }
@@ -161,18 +157,18 @@ fn read_fixed_position() {
 #[test]
 fn fixed_position_indices() {
     let source = "\
-    ┌───┬─────┐\n\
-    │R .│. . G│\n\
-    │   │     │\n\
-    │. .│. . .│\n\
-    │         │\n\
-    │. . . . .│\n\
-    │         │\n\
-    │.│. .│. .│\n\
-    │ │   │   │\n\
-    │Y│. .│B .│\n\
-    └─┴───┴───┘\n\
-    ";
+                  ┌───┬─────┐\n\
+                  │R .│. . G│\n\
+                  │   │     │\n\
+                  │. .│. . .│\n\
+                  │         │\n\
+                  │. . . . .│\n\
+                  │         │\n\
+                  │.│. .│. .│\n\
+                  │ │   │   │\n\
+                  │Y│. .│B .│\n\
+                  └─┴───┴───┘\n\
+                  ";
 
     let world = World::build_from_str(source).unwrap();
 
@@ -197,18 +193,18 @@ fn fixed_position_indices() {
 #[should_panic(expected = "'R'")]
 fn no_duplicate_fixed_position() {
     let source = "\
-    ┌───┬─────┐\n\
-    │R .│. . G│\n\
-    │   │     │\n\
-    │. .│. . .│\n\
-    │         │\n\
-    │. . . . .│\n\
-    │         │\n\
-    │.│. .│. .│\n\
-    │ │   │   │\n\
-    │Y│. .│R .│\n\
-    └─┴───┴───┘\n\
-    ";
+                  ┌───┬─────┐\n\
+                  │R .│. . G│\n\
+                  │   │     │\n\
+                  │. .│. . .│\n\
+                  │         │\n\
+                  │. . . . .│\n\
+                  │         │\n\
+                  │.│. .│. .│\n\
+                  │ │   │   │\n\
+                  │Y│. .│R .│\n\
+                  └─┴───┴───┘\n\
+                  ";
 
     World::build_from_str(source).unwrap();
 }
@@ -216,18 +212,18 @@ fn no_duplicate_fixed_position() {
 #[test]
 fn pickup_dropoff_validity() {
     let source = "\
-    ┌───┬─────┐\n\
-    │R .│. . G│\n\
-    │   │     │\n\
-    │. .│. . .│\n\
-    │         │\n\
-    │. . . . .│\n\
-    │         │\n\
-    │.│. .│. .│\n\
-    │ │   │   │\n\
-    │Y│. .│B .│\n\
-    └─┴───┴───┘\n\
-    ";
+                  ┌───┬─────┐\n\
+                  │R .│. . G│\n\
+                  │   │     │\n\
+                  │. .│. . .│\n\
+                  │         │\n\
+                  │. . . . .│\n\
+                  │         │\n\
+                  │.│. .│. .│\n\
+                  │ │   │   │\n\
+                  │Y│. .│B .│\n\
+                  └─┴───┴───┘\n\
+                  ";
 
     let world = World::build_from_str(source).unwrap();
 
@@ -255,18 +251,18 @@ fn pickup_dropoff_validity() {
 #[test]
 fn output_world() {
     let source = "\
-    ┌───┬─────┐\n\
-    │R .│. . G│\n\
-    │   │     │\n\
-    │. .│. . .│\n\
-    │         │\n\
-    │. . . . .│\n\
-    │         │\n\
-    │.│. .│. .│\n\
-    │ │   │   │\n\
-    │Y│. .│B .│\n\
-    └─┴───┴───┘\n\
-    ";
+                  ┌───┬─────┐\n\
+                  │R .│. . G│\n\
+                  │   │     │\n\
+                  │. .│. . .│\n\
+                  │         │\n\
+                  │. . . . .│\n\
+                  │         │\n\
+                  │.│. .│. .│\n\
+                  │ │   │   │\n\
+                  │Y│. .│B .│\n\
+                  └─┴───┴───┘\n\
+                  ";
 
     let world = World::build_from_str(source).unwrap();
     let strings = world.display_strings();
