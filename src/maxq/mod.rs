@@ -177,7 +177,7 @@ impl MaxQ {
                         learning_reward + result_state_learning_value,
                         result_state_value,
                         world,
-                        &child_state,
+                        child_state,
                     );
                     accum_gamma *= self.params.gamma;
                 }

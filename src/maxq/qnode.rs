@@ -43,15 +43,12 @@ impl QNode {
 
         let num_completions = match node_type {
             QNodeType::Get => num_fixed_positions * num_fixed_positions,
-            QNodeType::NavigateForGet => num_fixed_positions,
-            QNodeType::PickUp => num_fixed_positions * num_taxi_states,
+            QNodeType::NavigateForGet | QNodeType::NavigateForPut => num_fixed_positions,
+            QNodeType::PickUp | QNodeType::DropOff => num_fixed_positions * num_taxi_states,
             QNodeType::Put => 0,
-            QNodeType::NavigateForPut => num_fixed_positions,
-            QNodeType::DropOff => num_fixed_positions * num_taxi_states,
-            QNodeType::North(_) => num_taxi_states,
-            QNodeType::South(_) => num_taxi_states,
-            QNodeType::East(_) => num_taxi_states,
-            QNodeType::West(_) => num_taxi_states,
+            QNodeType::North(_) | QNodeType::South(_) | QNodeType::East(_) | QNodeType::West(_) => {
+                num_taxi_states
+            }
         };
 
         QNode {
@@ -181,10 +178,9 @@ impl QNode {
             QNodeType::DropOff => destination_state_index(world, state)
                 .and_then(|index| add_taxi_state_index(index, world, state)),
 
-            QNodeType::North(_) => taxi_state_index(world, state),
-            QNodeType::South(_) => taxi_state_index(world, state),
-            QNodeType::East(_) => taxi_state_index(world, state),
-            QNodeType::West(_) => taxi_state_index(world, state),
+            QNodeType::North(_) | QNodeType::South(_) | QNodeType::East(_) | QNodeType::West(_) => {
+                taxi_state_index(world, state)
+            }
         }
     }
 

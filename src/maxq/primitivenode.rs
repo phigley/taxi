@@ -55,7 +55,7 @@ impl PrimitiveNode {
         reward: f64,
         _next_state: &State,
     ) {
-        let value_index = self.get_value_index(world, &state);
+        let value_index = self.get_value_index(world, state);
 
         self.values[value_index] *= 1.0 - params.alpha;
         self.values[value_index] += params.alpha * reward;

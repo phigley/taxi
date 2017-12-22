@@ -201,11 +201,11 @@ fn run() -> Result<(), AppError> {
 
         println!();
 
-        for (solver_choice, stats) in results.into_iter() {
+        for (solver_choice, stats) in results {
             let (avg_steps, stddev_steps) = stats.distribution.get_distribution();
 
             let elapsed_time =
-                stats.duration.as_secs() as f64 + stats.duration.subsec_nanos() as f64 * 1e-9;
+                stats.duration.as_secs() as f64 + f64::from(stats.duration.subsec_nanos()) * 1e-9;
 
             println!(
                 "{:?} - finished {} sessions in {:.1} average steps with stddev of {:.2} \
@@ -383,7 +383,7 @@ where
 
                     let duration = start_time.elapsed();
                     let elapsed_time =
-                        duration.as_secs() as f64 + duration.subsec_nanos() as f64 * 1e-9;
+                        duration.as_secs() as f64 + f64::from(duration.subsec_nanos()) * 1e-9;
 
                     match training_step_count {
                         Some(num_steps) => {
