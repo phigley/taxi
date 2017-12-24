@@ -160,6 +160,47 @@ impl State {
         }
     }
 
+    pub fn build_first(world: &World) -> Option<State> {
+        let first_fp = world.get_fixed_id_from_index(0)?;
+
+        Some(State {
+            taxi: Position::new(0, 0),
+            passenger: Some(first_fp),
+            destination: first_fp,
+        })
+    }
+
+    pub fn build_next(world: &World, state: &State) -> Option<State> {
+        if state.taxi.x < world.width - 1 {
+            Some(State {
+                taxi: Position::new(state.taxi.x, state.taxi.y),
+                ..*state
+            })
+        } else if state.taxi.y < world.height - 1 {
+            Some(State {
+                taxi: Position::new(0, state.taxi.y),
+                ..*state
+            })
+        } else if let Some(passenger_id) = state.passenger {
+            let passenger_index = world.get_fixed_index(passenger_id)?;
+            Some(State {
+                taxi: Position::new(0, 0),
+                passenger: world.get_fixed_id_from_index(passenger_index + 1),
+                ..*state
+            })
+        } else {
+            let destination_index = world.get_fixed_index(state.destination)?;
+
+            // Expecting this to return None when destination_index is past the end.
+            let new_destination = world.get_fixed_id_from_index(destination_index + 1)?;
+            Some(State {
+                taxi: Position::new(0, 0),
+                passenger: None,
+                destination: new_destination,
+            })
+        }
+    }
+
     pub fn display(&self, world: &World) -> String {
         let world_strings = world.display_strings();
 
