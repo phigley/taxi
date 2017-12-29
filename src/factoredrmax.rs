@@ -426,42 +426,24 @@ impl FactoredRMax {
     fn predict_transition(
         &self,
         world: &World,
-        action: Actions,
-        x_index: usize,
-        y_index: usize,
-        passenger_index: usize,
-        destination_index: usize,
+        x_parent_index: usize,
+        y_parent_index: usize,
+        passenger_parent_index: usize,
+        destination_parent_index: usize,
         next_state: &State,
     ) -> Option<f64> {
-        let x_parent_index =
-            self.transitions
-                .generate_x_parent_index(world, action, x_index, y_index);
-
         let next_x_index = next_state.get_taxi().x as usize;
         let x_transition = self.transitions
             .get_transition(x_parent_index, next_x_index)?;
 
-        let y_parent_index = self.transitions
-            .generate_y_parent_index(world, action, y_index);
         let next_y_index = next_state.get_taxi().y as usize;
         let y_transition = self.transitions
             .get_transition(y_parent_index, next_y_index)?;
 
-        let passenger_parent_index = self.transitions.generate_passenger_parent_index(
-            world,
-            action,
-            x_index,
-            y_index,
-            passenger_index,
-            destination_index,
-        );
         let next_passenger_index = generate_passenger_index(world, next_state)?;
         let passenger_transition = self.transitions
             .get_transition(passenger_parent_index, next_passenger_index)?;
 
-        let destination_parent_index =
-            self.transitions
-                .generate_destination_parent_index(world, action, destination_index);
         let next_destination_index = generate_destination_index(world, next_state)?;
         let destination_transition = self.transitions
             .get_transition(destination_parent_index, next_destination_index)?;
@@ -487,6 +469,29 @@ impl FactoredRMax {
                     None => self.rmax,
                 };
 
+                let x_parent_index =
+                    self.transitions
+                        .generate_x_parent_index(world, action, x_index, y_index);
+
+                let y_parent_index =
+                    self.transitions
+                        .generate_y_parent_index(world, action, y_index);
+
+                let passenger_parent_index = self.transitions.generate_passenger_parent_index(
+                    world,
+                    action,
+                    x_index,
+                    y_index,
+                    passenger_index,
+                    destination_index,
+                );
+
+                let destination_parent_index = self.transitions.generate_destination_parent_index(
+                    world,
+                    action,
+                    destination_index,
+                );
+
                 let mut action_value = reward;
 
                 for next_state_index in 0..self.state_indexer.num_states() {
@@ -496,11 +501,10 @@ impl FactoredRMax {
 
                     if let Some(transition) = self.predict_transition(
                         world,
-                        action,
-                        x_index,
-                        y_index,
-                        passenger_index,
-                        destination_index,
+                        x_parent_index,
+                        y_parent_index,
+                        passenger_parent_index,
+                        destination_parent_index,
                         &next_state,
                     ) {
                         action_value +=
