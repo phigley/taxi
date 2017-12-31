@@ -963,3 +963,56 @@ fn incorrect_dropoff_reward() {
             .0
     );
 }
+
+#[test]
+fn tiny_state_iterator_walks_all() {
+    let source_world = "\
+                        ┌───┐\n\
+                        │R .│\n\
+                        │   │\n\
+                        │. Y│\n\
+                        └───┘\n\
+                        ";
+
+    let world = World::build_from_str(source_world).unwrap();
+
+    // 2 x positions, 2 y positions, 2 destations, 3 passenger states
+    let num_states = 2 * 2 * 2 * 3;
+
+    let mut observed_states = Vec::with_capacity(num_states);
+
+    for state in StateIterator::new(&world) {
+        print!("{:?}", state);
+        assert!(!observed_states.contains(&state));
+        observed_states.push(state);
+    }
+
+    assert_eq!(observed_states.len(), num_states);
+}
+
+#[test]
+fn state_iterator_walks_all() {
+    let source_world = "\
+                        ┌─────┐\n\
+                        │R . G│\n\
+                        │     │\n\
+                        │. . .│\n\
+                        │     │\n\
+                        │. Y .│\n\
+                        └─────┘\n\
+                        ";
+
+    let world = World::build_from_str(source_world).unwrap();
+
+    // 3 x positions, 3 y positions, 3 destations, 4 passenger states
+    let num_states = 3 * 3 * 3 * 4;
+
+    let mut observed_states = Vec::with_capacity(num_states);
+
+    for state in StateIterator::new(&world) {
+        assert!(!observed_states.contains(&state));
+        observed_states.push(state);
+    }
+
+    assert_eq!(observed_states.len(), num_states);
+}
