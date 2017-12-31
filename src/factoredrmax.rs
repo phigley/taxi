@@ -5,7 +5,7 @@ use rand::Rng;
 //use rand::Isaac64Rng;
 use float_cmp::ApproxOrdUlps;
 
-use state::State;
+use state::{State, StateIterator};
 use actions::Actions;
 use world::World;
 
@@ -494,11 +494,7 @@ impl FactoredRMax {
 
                 let mut action_value = reward;
 
-                for next_state_index in 0..self.state_indexer.num_states() {
-                    let next_state = self.state_indexer
-                        .get_state(world, next_state_index)
-                        .unwrap();
-
+                for next_state in StateIterator::new(world) {
                     if let Some(transition) = self.predict_transition(
                         world,
                         x_parent_index,
@@ -507,9 +503,13 @@ impl FactoredRMax {
                         destination_parent_index,
                         &next_state,
                     ) {
+                        let next_state_index =
+                            self.state_indexer.get_index(world, &next_state).unwrap();
                         action_value +=
                             transition * self.gamma * self.value_table[next_state_index];
                     } else if *state == next_state {
+                        let next_state_index =
+                            self.state_indexer.get_index(world, &next_state).unwrap();
                         action_value += self.gamma * self.value_table[next_state_index];
                     }
                 }
@@ -574,13 +574,11 @@ impl FactoredRMax {
     }
 
     fn rebuild_value_table(&mut self, world: &World) {
-        let num_states = self.state_indexer.num_states();
-
         for _ in 0..10_000 {
             let mut error = 0.0;
 
-            for state_index in 0..num_states {
-                let state = self.state_indexer.get_state(world, state_index).unwrap();
+            for state in StateIterator::new(world) {
+                let state_index = self.state_indexer.get_index(world, &state).unwrap();
 
                 let old_value = self.value_table[state_index];
 
