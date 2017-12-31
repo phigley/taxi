@@ -1,5 +1,6 @@
 use std::f64;
 use std::cmp;
+use std::collections::HashMap;
 
 use rand::Rng;
 use float_cmp::ApproxOrdUlps;
@@ -13,18 +14,19 @@ use state_indexer::StateIndexer;
 
 #[derive(Debug, Clone)]
 struct TransitionEntry {
-    destination_count: Vec<f64>,
+    destination_counts: HashMap<usize, f64>,
     count: f64,
 }
 
 impl TransitionEntry {
-    fn new(num_states: usize) -> TransitionEntry {
+    fn new(maximum_count: usize) -> TransitionEntry {
         TransitionEntry {
-            destination_count: vec![0.0; num_states],
+            destination_counts: HashMap::with_capacity(maximum_count),
             count: 0.0,
         }
     }
 }
+
 
 #[derive(Debug, Clone, Copy, Default)]
 struct RewardEntry {
@@ -88,7 +90,9 @@ impl RMax {
 
         if transition_entry.count < self.known_count {
             transition_entry.count += 1.0;
-            transition_entry.destination_count[next_state_index] += 1.0;
+            let destination_count = 
+            transition_entry.destination_counts.entry(next_state_index).or_insert(0.0);
+            *destination_count += 1.0;
         }
 
         let reward_entry = &mut self.reward_table[state_action_index];
@@ -101,54 +105,40 @@ impl RMax {
         }
     }
 
-    fn predict_transition_reward(
-        &self,
-        state_index: usize,
-        action_index: usize,
-        next_state_index: usize,
-    ) -> (f64, f64) {
+    fn measure_value(&self, state_index: usize, action_index: usize) -> f64 {
         let state_action_index = state_index * Actions::NUM_ELEMENTS + action_index;
 
         let transition_entry = &self.transition_table[state_action_index];
         let reward_entry = &self.reward_table[state_action_index];
 
-        if transition_entry.count >= self.known_count && reward_entry.count >= self.known_count {
-            let transition =
-                transition_entry.destination_count[next_state_index] / transition_entry.count;
-            let reward = reward_entry.mean;
-
-            (transition, reward)
+        let mut action_value = if reward_entry.count >= self.known_count {
+            reward_entry.mean
         } else {
-            let transition = if state_index == next_state_index {
-                1.0
-            } else {
-                0.0
-            };
+            self.rmax
+        };
 
-            (transition, self.rmax)
+        if transition_entry.count >= self.known_count {
+            for (next_state_index, transition_count) in transition_entry.destination_counts.iter() {
+
+                let transition = transition_count / self.known_count;
+
+                action_value +=
+                    transition * self.gamma * self.value_table[*next_state_index];
+            } 
+        } else {
+            // Assume we will stay in our current state.
+            action_value += self.gamma * self.value_table[state_index];
         }
+
+        action_value
     }
 
     fn measure_best_value(&self, state_index: usize) -> f64 {
         let mut best_value = -f64::MAX;
 
         for action_index in 0..Actions::NUM_ELEMENTS {
-            let state_action_index = state_index * Actions::NUM_ELEMENTS + action_index;
 
-            let reward_entry = &self.reward_table[state_action_index];
-
-            let mut action_value = if reward_entry.count >= self.known_count {
-                reward_entry.mean
-            } else {
-                self.rmax
-            };
-
-            for next_state_index in 0..self.state_indexer.num_states() {
-                let (transition, reward) =
-                    self.predict_transition_reward(state_index, action_index, next_state_index);
-                action_value +=
-                    transition * (reward + self.gamma * self.value_table[next_state_index]);
-            }
+            let action_value = self.measure_value(state_index, action_index);
 
             if action_value > best_value {
                 best_value = action_value;
@@ -164,22 +154,7 @@ impl RMax {
         let mut num_found = 0;
 
         for action_index in 0..Actions::NUM_ELEMENTS {
-            let state_action_index = state_index * Actions::NUM_ELEMENTS + action_index;
-
-            let reward_entry = &self.reward_table[state_action_index];
-
-            let mut action_value = if reward_entry.count >= self.known_count {
-                reward_entry.mean
-            } else {
-                self.rmax
-            };
-
-            for next_state_index in 0..self.state_indexer.num_states() {
-                let (transition, reward) =
-                    self.predict_transition_reward(state_index, action_index, next_state_index);
-                action_value +=
-                    transition * (reward + self.gamma * self.value_table[next_state_index]);
-            }
+            let action_value = self.measure_value(state_index, action_index);
 
             match action_value.approx_cmp(&best_value, 2) {
                 cmp::Ordering::Greater => {
@@ -203,8 +178,6 @@ impl RMax {
 
     fn rebuild_value_table(&mut self) {
         let num_states = self.state_indexer.num_states();
-
-        //self.value_table.iter_mut().for_each(|v| *v = 0.0);
 
         for _ in 0..10_000 {
             let mut error = 0.0;
