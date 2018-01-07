@@ -27,7 +27,6 @@ impl TransitionEntry {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, Default)]
 struct RewardEntry {
     mean: f64,
@@ -90,8 +89,10 @@ impl RMax {
 
         if transition_entry.count < self.known_count {
             transition_entry.count += 1.0;
-            let destination_count = 
-            transition_entry.destination_counts.entry(next_state_index).or_insert(0.0);
+            let destination_count = transition_entry
+                .destination_counts
+                .entry(next_state_index)
+                .or_insert(0.0);
             *destination_count += 1.0;
         }
 
@@ -119,12 +120,10 @@ impl RMax {
 
         if transition_entry.count >= self.known_count {
             for (next_state_index, transition_count) in transition_entry.destination_counts.iter() {
-
                 let transition = transition_count / self.known_count;
 
-                action_value +=
-                    transition * self.gamma * self.value_table[*next_state_index];
-            } 
+                action_value += transition * self.gamma * self.value_table[*next_state_index];
+            }
         } else {
             // Assume we will stay in our current state.
             action_value += self.gamma * self.value_table[state_index];
@@ -137,7 +136,6 @@ impl RMax {
         let mut best_value = -f64::MAX;
 
         for action_index in 0..Actions::NUM_ELEMENTS {
-
             let action_value = self.measure_value(state_index, action_index);
 
             if action_value > best_value {

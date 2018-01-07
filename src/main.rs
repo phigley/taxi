@@ -52,7 +52,6 @@ use termion::input::TermRead;
 #[cfg(not(windows))]
 use replay::Replay;
 
-
 fn main() {
     if let Err(error) = run() {
         println!("{:?}", error);
@@ -405,10 +404,7 @@ where
                         Some(num_steps) => {
                             println!(
                                 "{:?} - Finished session {} in {} steps in {:.3} secs.",
-                                solver_choice,
-                                session_number,
-                                num_steps,
-                                elapsed_time,
+                                solver_choice, session_number, num_steps, elapsed_time,
                             );
                             stats.distribution.add_value(num_steps as f64);
                         }
