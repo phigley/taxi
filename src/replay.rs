@@ -6,7 +6,7 @@ use termion::event;
 use termion::input::TermRead;
 
 use tui::Terminal;
-use tui::backend::TermionBackend;
+use tui::backend::RawBackend;
 use tui::widgets::{Paragraph, Widget};
 use tui::layout::{Direction, Group, Rect, Size};
 
@@ -69,7 +69,7 @@ impl Replay {
     pub fn run(&self) -> Result<(), io::Error> {
         let stdin = io::stdin();
 
-        let backend = TermionBackend::new()?;
+        let backend = RawBackend::new()?;
         let mut terminal = Terminal::new(backend)?;
 
         terminal.resize(self.term_size)?;
@@ -112,7 +112,7 @@ impl Replay {
         }
     }
 
-    pub fn draw(&self, step: isize, mut t: &mut Terminal<TermionBackend>) -> Result<(), io::Error> {
+    pub fn draw(&self, step: isize, mut t: &mut Terminal<RawBackend>) -> Result<(), io::Error> {
         Group::default()
             .direction(Direction::Vertical)
             .sizes(&[
