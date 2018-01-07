@@ -221,10 +221,10 @@ impl Rewards {
         let mut next_reward_index = 0;
         let mut reward_starts = [0; Actions::NUM_ELEMENTS];
 
-        for action_index in 0..Actions::NUM_ELEMENTS {
+        for (action_index, reward_start) in reward_starts.iter_mut().enumerate() {
             let action = Actions::from_index(action_index).unwrap();
 
-            reward_starts[action_index] = next_reward_index;
+            *reward_start = next_reward_index;
             next_reward_index += num_reward_parents(world, action);
         }
 

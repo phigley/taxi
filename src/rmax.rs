@@ -119,7 +119,7 @@ impl RMax {
         };
 
         if transition_entry.count >= self.known_count {
-            for (next_state_index, transition_count) in transition_entry.destination_counts.iter() {
+            for (next_state_index, transition_count) in &transition_entry.destination_counts {
                 let transition = transition_count / self.known_count;
 
                 action_value += transition * self.gamma * self.value_table[*next_state_index];

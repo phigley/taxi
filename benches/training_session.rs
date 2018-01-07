@@ -73,48 +73,37 @@ impl Default for SessionData {
 #[bench]
 fn qlearner(b: &mut test::Bencher) {
     let data = SessionData::default();
-    let rng = Isaac64Rng::new_unseeded();
+    let source_rng = Isaac64Rng::new_unseeded();
 
     b.iter(|| {
         let mut qlearner = QLearner::new(&data.world, 0.1, 0.3, 0.6, false);
+        let mut rng = source_rng;
 
-        run_training_session(
-            &data.world,
-            &data.probes,
-            1,
-            100,
-            &mut qlearner,
-            &mut rng.clone(),
-        )
+        run_training_session(&data.world, &data.probes, 1, 100, &mut qlearner, &mut rng)
     })
 }
 
 #[bench]
 fn rmax(b: &mut test::Bencher) {
     let data = SessionData::default();
-    let rng = Isaac64Rng::new_unseeded();
+    let source_rng = Isaac64Rng::new_unseeded();
 
     b.iter(|| {
         let mut rmax = RMax::new(&data.world, 0.3, 1.0, 1.0e-6);
+        let mut rng = source_rng;
 
-        run_training_session(
-            &data.world,
-            &data.probes,
-            1,
-            10,
-            &mut rmax,
-            &mut rng.clone(),
-        )
+        run_training_session(&data.world, &data.probes, 1, 10, &mut rmax, &mut rng)
     })
 }
 
 #[bench]
 fn factored_rmax(b: &mut test::Bencher) {
     let data = SessionData::default();
-    let rng = Isaac64Rng::new_unseeded();
+    let source_rng = Isaac64Rng::new_unseeded();
 
     b.iter(|| {
         let mut factored_rmax = FactoredRMax::new(&data.world, 0.3, 1.0, 1.0e-6);
+        let mut rng = source_rng;
 
         run_training_session(
             &data.world,
@@ -122,7 +111,7 @@ fn factored_rmax(b: &mut test::Bencher) {
             1,
             10,
             &mut factored_rmax,
-            &mut rng.clone(),
+            &mut rng,
         )
     })
 }
