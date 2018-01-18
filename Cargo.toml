@@ -20,7 +20,12 @@ termion = "*"
 
 [dev-dependencies]
 assert_matches = "1.1"
+criterion = "0.1.2"
 
 [[bin]]
 name = "taxi"
 test = false
+
+[[bench]]
+name = "training_session"
+harness = false
