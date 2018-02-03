@@ -11,6 +11,7 @@ pub enum SolverChoice {
     RMax,
     FactoredRMax,
     MaxQ,
+    DoorMax,
 }
 
 impl fmt::Display for SolverChoice {
@@ -21,6 +22,7 @@ impl fmt::Display for SolverChoice {
             SolverChoice::RMax => write!(f, "RMax"),
             SolverChoice::FactoredRMax => write!(f, "FactoredRMax"),
             SolverChoice::MaxQ => write!(f, "MaxQ"),
+            SolverChoice::DoorMax => write!(f, "DoorMax"),
         }
     }
 }
@@ -61,6 +63,9 @@ pub struct MaxQConfig {
 }
 
 #[derive(Deserialize, Debug)]
+pub struct DoorMaxConfig {}
+
+#[derive(Deserialize, Debug)]
 pub struct Probe {
     pub taxi_pos: (i32, i32),
     pub passenger_loc: Option<char>,
@@ -90,6 +95,7 @@ pub struct Configuration {
     pub r_max: Option<RMaxConfig>,
     pub factored_r_max: Option<FactoredRMaxConfig>,
     pub max_q: Option<MaxQConfig>,
+    pub door_max: Option<DoorMaxConfig>,
     pub replay: Option<Replay>,
 }
 
@@ -174,6 +180,7 @@ impl Default for Configuration {
             r_max: None,
             factored_r_max: None,
             max_q: None,
+            door_max: None,
             replay: None,
         }
     }

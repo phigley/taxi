@@ -17,3 +17,4 @@ pub mod qlearner;
 pub mod rmax;
 pub mod factoredrmax;
 pub mod maxq;
+pub mod doormax;

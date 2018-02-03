@@ -36,6 +36,7 @@ use taxi::qlearner::QLearner;
 use taxi::rmax::RMax;
 use taxi::factoredrmax::FactoredRMax;
 use taxi::maxq::MaxQ;
+use taxi::doormax::DoorMax;
 
 #[cfg(not(windows))]
 use std::io;
@@ -215,6 +216,18 @@ fn run() -> Result<(), AppError> {
             results.push((SolverChoice::MaxQ, stats));
         };
 
+        if let Some(_) = config.door_max.as_ref() {
+            let stats = gather_stats(
+                || DoorMax::new(&world),
+                SolverChoice::DoorMax,
+                &world,
+                &probes,
+                &config,
+            )?;
+
+            results.push((SolverChoice::DoorMax, stats));
+        };
+
         println!();
 
         for (solver_choice, stats) in results {
@@ -323,6 +336,19 @@ fn run() -> Result<(), AppError> {
                             maxq_config.show_table,
                             maxq_config.show_learning,
                         ),
+                        replay_config,
+                        &world,
+                        &probes,
+                        config.max_trials,
+                        config.max_trial_steps,
+                        &mut rng,
+                    )?
+                } else {
+                    return Err(AppError::ReplayRunnerNotConfigured(replay_config.solver));
+                },
+                SolverChoice::DoorMax => if let Some(_) = config.door_max.as_ref() {
+                    run_replay(
+                        &mut DoorMax::new(&world),
                         replay_config,
                         &world,
                         &probes,
