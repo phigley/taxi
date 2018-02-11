@@ -5,11 +5,11 @@ use position::Position;
 use actions::Actions;
 
 #[derive(PartialEq, Clone)]
-struct Wall {
-    north: bool,
-    south: bool,
-    east: bool,
-    west: bool,
+pub struct Wall {
+    pub north: bool,
+    pub south: bool,
+    pub east: bool,
+    pub west: bool,
 }
 
 impl Wall {
@@ -238,7 +238,7 @@ impl World {
         }
     }
 
-    fn get_wall(&self, position: &Position) -> &Wall {
+    pub fn get_wall(&self, position: &Position) -> &Wall {
         &self.walls[position.y as usize][position.x as usize]
     }
 
