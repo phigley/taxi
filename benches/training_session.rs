@@ -79,7 +79,7 @@ fn qlearner(c: &mut Criterion) {
     let data = SessionData::default();
     let source_rng = Isaac64Rng::new_unseeded();
 
-    c.bench_function("qmax", |b| {
+    c.bench_function("qmax", move |b| {
         b.iter(|| {
             let mut qlearner = QLearner::new(&data.world, 0.1, 0.3, 0.6, false);
             let mut rng = source_rng;
@@ -93,7 +93,7 @@ fn rmax(c: &mut Criterion) {
     let data = SessionData::default();
     let source_rng = Isaac64Rng::new_unseeded();
 
-    c.bench_function("rmax", |b| {
+    c.bench_function("rmax", move |b| {
         b.iter(|| {
             let mut rmax = RMax::new(&data.world, 0.3, 1.0, 1.0e-6);
             let mut rng = source_rng;
@@ -107,7 +107,7 @@ fn factored_rmax(c: &mut Criterion) {
     let data = SessionData::default();
     let source_rng = Isaac64Rng::new_unseeded();
 
-    c.bench_function("factored_rmax", |b| {
+    c.bench_function("factored_rmax", move |b| {
         b.iter(|| {
             let mut factored_rmax = FactoredRMax::new(&data.world, 0.3, 1.0, 1.0e-6);
             let mut rng = source_rng;

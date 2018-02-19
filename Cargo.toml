@@ -11,8 +11,8 @@ rand = "*"
 serde = "1.0"
 serde_derive = "1.0"
 toml = "0.4"
-rayon = "0.9"
-float-cmp = "0.2"
+rayon = "1.0"
+float-cmp = "0.3"
 enum-map = "0.2"
 
 [target.'cfg(not(windows))'.dependencies]
@@ -21,7 +21,7 @@ termion = "*"
 
 [dev-dependencies]
 assert_matches = "1.1"
-criterion = "0.1.2"
+criterion = "0.2"
 
 [[bin]]
 name = "taxi"
