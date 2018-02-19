@@ -3,6 +3,7 @@ mod condition;
 mod hypothesis;
 mod effect;
 mod condition_learner;
+mod effect_learner;
 mod celearner;
 
 use rand::Rng;

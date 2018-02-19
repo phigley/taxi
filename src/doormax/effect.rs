@@ -1,3 +1,4 @@
+use state;
 use state::State;
 use world::World;
 
@@ -8,7 +9,7 @@ pub enum Attribute {
     Passenger,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Effect {
     Add(i32),
     Assign(Option<char>),
@@ -55,5 +56,54 @@ impl Effect {
         }
 
         result
+    }
+
+    pub fn apply(
+        &self,
+        attribute: Attribute,
+        world: &World,
+        state: &State,
+    ) -> Result<State, state::Error> {
+        match *self {
+            Effect::Add(delta) => match attribute {
+                Attribute::TaxiX => {
+                    let new_taxi_x = state.get_taxi().x + delta;
+
+                    State::build(
+                        world,
+                        (new_taxi_x, state.get_taxi().y),
+                        state.get_passenger(),
+                        state.get_destination(),
+                    )
+                }
+
+                Attribute::TaxiY => {
+                    let new_taxi_y = state.get_taxi().y + delta;
+
+                    State::build(
+                        world,
+                        (state.get_taxi().x, new_taxi_y),
+                        state.get_passenger(),
+                        state.get_destination(),
+                    )
+                }
+
+                Attribute::Passenger => panic!("Cannot apply Add to passenger!"),
+            },
+
+            Effect::Assign(val) => match attribute {
+                Attribute::TaxiX => panic!("Cannot apply Assign to taxi x!"),
+                Attribute::TaxiY => panic!("Cannot apply Assign to taxi y!"),
+                Attribute::Passenger => {
+                    let new_passenger = val;
+                    State::build(
+                        world,
+                        (state.get_taxi().x, state.get_taxi().y),
+                        new_passenger,
+                        state.get_destination(),
+                    )
+                }
+            },
+        }
     }
 }
