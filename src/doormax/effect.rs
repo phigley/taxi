@@ -18,7 +18,6 @@ pub enum Effect {
 impl Effect {
     pub fn generate_effects(
         attribute: Attribute,
-        world: &World,
         old_state: &State,
         new_state: &State,
     ) -> Vec<Effect> {

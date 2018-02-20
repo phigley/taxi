@@ -125,7 +125,7 @@ impl MCELearner {
         for (attribute, learner) in action_learners {
             // I'm not separating effects by type, is that important?
             // For Taxi problem, there is only one type per attribute.
-            let effects = Effect::generate_effects(attribute, world, state, new_state);
+            let effects = Effect::generate_effects(attribute, state, new_state);
 
             // If we were to enforce a maximum number of effects, we should check it here.
             // if effects.len() > 5 {

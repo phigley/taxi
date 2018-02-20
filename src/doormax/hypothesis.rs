@@ -32,23 +32,23 @@ impl From<bool> for Require {
 pub struct Hypothesis(EnumMap<Term, Require>);
 
 impl Hypothesis {
-    pub fn combine(&self, &Hypothesis(ref other_map): &Hypothesis) -> Hypothesis {
-        let &Hypothesis(ref self_map) = self;
+    // pub fn combine(&self, &Hypothesis(ref other_map): &Hypothesis) -> Hypothesis {
+    //     let &Hypothesis(ref self_map) = self;
 
-        let mut result_map = *self_map;
+    //     let mut result_map = *self_map;
 
-        for (key, &value) in self_map {
-            if value != Require::None {
-                result_map[key] = if other_map[key] == value {
-                    value
-                } else {
-                    Require::None
-                };
-            }
-        }
+    //     for (key, &value) in self_map {
+    //         if value != Require::None {
+    //             result_map[key] = if other_map[key] == value {
+    //                 value
+    //             } else {
+    //                 Require::None
+    //             };
+    //         }
+    //     }
 
-        Hypothesis(result_map)
-    }
+    //     Hypothesis(result_map)
+    // }
 
     pub fn combine_cond(&self, &Condition(ref cond_map): &Condition) -> Hypothesis {
         let &Hypothesis(ref self_map) = self;
@@ -72,13 +72,13 @@ impl Hypothesis {
         Hypothesis(result_map)
     }
 
-    pub fn matches(&self, &Hypothesis(ref other): &Hypothesis) -> bool {
-        let &Hypothesis(ref self_map) = self;
+    // pub fn matches(&self, &Hypothesis(ref other): &Hypothesis) -> bool {
+    //     let &Hypothesis(ref self_map) = self;
 
-        self_map
-            .iter()
-            .all(|(key, &value)| value == Require::None || other[key] == value)
-    }
+    //     self_map
+    //         .iter()
+    //         .all(|(key, &value)| value == Require::None || other[key] == value)
+    // }
 
     pub fn matches_cond(&self, &Condition(ref cond_map): &Condition) -> bool {
         let &Hypothesis(ref self_map) = self;
