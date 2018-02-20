@@ -5,6 +5,7 @@ mod effect;
 mod condition_learner;
 mod effect_learner;
 mod mcelearner;
+mod reward;
 
 use std::f64;
 use std::cmp;
@@ -20,14 +21,9 @@ use state_indexer::StateIndexer;
 use actions::Actions;
 
 use self::mcelearner::MCELearner;
+use self::reward::Rewards;
 
 use runner::{Attempt, Runner};
-
-#[derive(Debug, Clone, Copy, Default)]
-struct RewardEntry {
-    mean: f64,
-    count: f64,
-}
 
 #[derive(Debug, Clone)]
 pub struct DoorMax {
@@ -36,7 +32,7 @@ pub struct DoorMax {
 
     mcelearner: MCELearner,
 
-    reward_table: Vec<RewardEntry>,
+    rewards: Rewards,
     known_reward_count: f64,
 
     value_table: Vec<f64>,
@@ -51,15 +47,20 @@ impl DoorMax {
         let num_states = state_indexer.num_states();
         let value_table = vec![0.0; num_states];
 
-        let reward_table = vec![RewardEntry::default(); num_states * Actions::NUM_ELEMENTS];
+        let rewards = Rewards::new(world, known_reward_count);
+        let rmax = if gamma < 1.0 {
+            world.max_reward() / (1.0 - gamma)
+        } else {
+            world.max_reward()
+        };
 
         DoorMax {
             state_indexer,
-            rmax: world.max_reward(),
+            rmax,
 
             mcelearner: MCELearner::new(),
 
-            reward_table,
+            rewards,
             known_reward_count,
 
             value_table,
@@ -79,26 +80,12 @@ impl DoorMax {
     ) {
         self.mcelearner
             .apply_experience(world, state, action, new_state);
-
-        let state_index = self.state_indexer.get_index(world, state).unwrap();
-        let action_index = action.to_index();
-        let state_action_index = state_index * Actions::NUM_ELEMENTS + action_index;
-        let reward_entry = &mut self.reward_table[state_action_index];
-        if reward_entry.count < self.known_reward_count {
-            reward_entry.count += 1.0;
-
-            let delta = reward - reward_entry.mean;
-            reward_entry.mean += delta / reward_entry.count;
-        }
+        self.rewards.apply_experience(reward, world, state, action);
     }
 
-    fn measure_reward(&self, state_index: usize, action: Actions) -> f64 {
-        let state_action_index = state_index * Actions::NUM_ELEMENTS + action.to_index();
-
-        let reward_entry = &self.reward_table[state_action_index];
-
-        if reward_entry.count >= self.known_reward_count {
-            reward_entry.mean
+    fn measure_reward(&self, world: &World, state: &State, action: Actions) -> f64 {
+        if let Some(reward) = self.rewards.get_reward(world, state, action) {
+            reward
         } else {
             self.rmax
         }
@@ -112,7 +99,7 @@ impl DoorMax {
     ) -> Result<f64, state::Error> {
         let state_index = self.state_indexer.get_index(world, state).unwrap();
 
-        let mut action_value = self.measure_reward(state_index, action);
+        let mut action_value = self.measure_reward(world, state, action);
 
         if let Some(next_state) = self.mcelearner.predict(world, state, action)? {
             let next_state_index = self.state_indexer.get_index(world, &next_state).unwrap();
