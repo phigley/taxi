@@ -3,7 +3,7 @@ use state::State;
 use world::World;
 use doormax::effect::{Attribute, Effect};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct EffectLearner {
     effects: Vec<Effect>,
 }
@@ -38,20 +38,11 @@ impl EffectLearner {
         Ok(predicted_state)
     }
 
-    pub fn add_experience(
-        &mut self,
-        attribute: Attribute,
-        world: &World,
-        old_state: &State,
-        new_state: &State,
-    ) {
-        let new_effects = Effect::generate_effects(attribute, world, old_state, new_state);
-
+    pub fn apply_experience(&mut self, effects: &[Effect]) {
         if self.effects.is_empty() {
-            // If we were to enforce a maximum number of effects, we should check it here.
-            self.effects = new_effects;
+            self.effects = effects.to_vec();
         } else {
-            self.effects.retain(|e| new_effects.contains(e));
+            self.effects.retain(|e| effects.contains(e));
         }
     }
 }
@@ -87,7 +78,12 @@ mod effect_learner_test {
         let predicted_0 = learner.predict(Attribute::TaxiX, &w, &test_state).unwrap();
         assert_eq!(predicted_0, None);
 
-        learner.add_experience(Attribute::TaxiX, &w, &old_state, &new_state);
+        learner.apply_experience(&Effect::generate_effects(
+            Attribute::TaxiX,
+            &w,
+            &old_state,
+            &new_state,
+        ));
 
         let expected_1 = Some(State::build(&w, (4, 3), Some('R'), 'B').unwrap());
         let predicted_1 = learner.predict(Attribute::TaxiX, &w, &test_state).unwrap();
@@ -126,7 +122,12 @@ mod effect_learner_test {
         let predicted_0 = learner.predict(Attribute::TaxiX, &w, &test_state).unwrap();
         assert_eq!(predicted_0, None);
 
-        learner.add_experience(Attribute::TaxiX, &w, &old_state, &new_state);
+        learner.apply_experience(&Effect::generate_effects(
+            Attribute::TaxiX,
+            &w,
+            &old_state,
+            &new_state,
+        ));
 
         let expected_1 = Some(State::build(&w, (2, 3), Some('R'), 'B').unwrap());
         let predicted_1 = learner.predict(Attribute::TaxiX, &w, &test_state).unwrap();
@@ -155,7 +156,13 @@ mod effect_learner_test {
         let new_state = State::build(&w, (2, 3), Some('R'), 'B').unwrap();
 
         let mut learner = EffectLearner::new();
-        learner.add_experience(Attribute::TaxiX, &w, &old_state, &new_state);
+
+        learner.apply_experience(&Effect::generate_effects(
+            Attribute::TaxiX,
+            &w,
+            &old_state,
+            &new_state,
+        ));
 
         let test_state = State::build(&w, (3, 3), Some('R'), 'B').unwrap();
 
@@ -165,7 +172,13 @@ mod effect_learner_test {
 
         let conflicting_old = State::build(&w, (1, 2), Some('R'), 'B').unwrap();
         let conflicting_new = State::build(&w, (0, 2), Some('R'), 'B').unwrap();
-        learner.add_experience(Attribute::TaxiX, &w, &conflicting_old, &conflicting_new);
+
+        learner.apply_experience(&Effect::generate_effects(
+            Attribute::TaxiX,
+            &w,
+            &conflicting_old,
+            &conflicting_new,
+        ));
 
         let predicted_1 = learner.predict(Attribute::TaxiX, &w, &test_state).unwrap();
         assert_eq!(predicted_1, None);
@@ -198,7 +211,12 @@ mod effect_learner_test {
         let predicted_0 = learner.predict(Attribute::TaxiX, &w, &test_state).unwrap();
         assert_eq!(predicted_0, None);
 
-        learner.add_experience(Attribute::TaxiX, &w, &old_state, &new_state);
+        learner.apply_experience(&Effect::generate_effects(
+            Attribute::TaxiX,
+            &w,
+            &old_state,
+            &new_state,
+        ));
 
         let predicted_1 = learner.predict(Attribute::TaxiX, &w, &test_state).unwrap();
         assert_eq!(predicted_1, None);
@@ -231,7 +249,12 @@ mod effect_learner_test {
         let predicted_0 = learner.predict(Attribute::TaxiY, &w, &test_state).unwrap();
         assert_eq!(predicted_0, None);
 
-        learner.add_experience(Attribute::TaxiY, &w, &old_state, &new_state);
+        learner.apply_experience(&Effect::generate_effects(
+            Attribute::TaxiY,
+            &w,
+            &old_state,
+            &new_state,
+        ));
 
         let expected_1 = Some(State::build(&w, (3, 2), Some('R'), 'B').unwrap());
         let predicted_1 = learner.predict(Attribute::TaxiY, &w, &test_state).unwrap();
@@ -267,7 +290,12 @@ mod effect_learner_test {
             .unwrap();
         assert_eq!(predicted_0, None);
 
-        learner.add_experience(Attribute::Passenger, &w, &old_state, &new_state);
+        learner.apply_experience(&Effect::generate_effects(
+            Attribute::Passenger,
+            &w,
+            &old_state,
+            &new_state,
+        ));
 
         let expected_1 = Some(State::build(&w, (3, 3), None, 'B').unwrap());
         let predicted_1 = learner
@@ -305,7 +333,12 @@ mod effect_learner_test {
             .unwrap();
         assert_eq!(predicted_0, None);
 
-        learner.add_experience(Attribute::Passenger, &w, &old_state, &new_state);
+        learner.apply_experience(&Effect::generate_effects(
+            Attribute::Passenger,
+            &w,
+            &old_state,
+            &new_state,
+        ));
 
         let expected_1 = Some(State::build(&w, (3, 3), Some('R'), 'B').unwrap());
         let predicted_1 = learner

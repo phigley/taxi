@@ -65,10 +65,14 @@ enum AppError {
     World(taxi::world::Error),
     BuildProbes(taxi::state::Error),
     Runner(taxi::runner::Error),
-    #[cfg(not(windows))] ReplayRunnerNotConfigured(SolverChoice),
-    #[cfg(not(windows))] ReplayTraining(taxi::runner::Error),
-    #[cfg(not(windows))] ReplayState(taxi::state::Error),
-    #[cfg(not(windows))] Replay(io::Error),
+    #[cfg(not(windows))]
+    ReplayRunnerNotConfigured(SolverChoice),
+    #[cfg(not(windows))]
+    ReplayTraining(taxi::runner::Error),
+    #[cfg(not(windows))]
+    ReplayState(taxi::state::Error),
+    #[cfg(not(windows))]
+    Replay(io::Error),
 }
 
 impl fmt::Debug for AppError {
@@ -216,9 +220,16 @@ fn run() -> Result<(), AppError> {
             results.push((SolverChoice::MaxQ, stats));
         };
 
-        if let Some(_) = config.door_max.as_ref() {
+        if let Some(doormax_config) = config.door_max.as_ref() {
             let stats = gather_stats(
-                || DoorMax::new(&world),
+                || {
+                    DoorMax::new(
+                        &world,
+                        doormax_config.gamma,
+                        doormax_config.known_count,
+                        doormax_config.error_delta,
+                    )
+                },
                 SolverChoice::DoorMax,
                 &world,
                 &probes,

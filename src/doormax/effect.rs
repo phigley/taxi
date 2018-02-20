@@ -2,7 +2,7 @@ use state;
 use state::State;
 use world::World;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumMap)]
 pub enum Attribute {
     TaxiX,
     TaxiY,

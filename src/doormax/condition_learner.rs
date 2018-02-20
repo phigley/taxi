@@ -29,7 +29,7 @@ impl ConditionLearner {
             None => if !has_failure {
                 Some(true)
             } else {
-                None
+                Some(false)
             },
 
             Some(ref best_hypothesis) => if best_hypothesis.matches_cond(condition) {
@@ -48,7 +48,7 @@ impl ConditionLearner {
         }
     }
 
-    pub fn add_experience(&mut self, condition: &Condition, truth: bool) {
+    pub fn apply_experience(&mut self, condition: &Condition, truth: bool) {
         if truth {
             match self.best {
                 None => {
@@ -73,6 +73,12 @@ impl ConditionLearner {
                 }
             }
         }
+    }
+}
+
+impl Default for ConditionLearner {
+    fn default() -> Self {
+        ConditionLearner::new()
     }
 }
 
@@ -114,24 +120,27 @@ mod condition_learner_test {
         let state_2_1 = State::build(&w, (2, 1), None, 'G').unwrap();
         let cond_2_1 = Condition::new(&w, &state_2_1);
 
-        assert_eq!(ce.predict(&cond_0_1), None);
-        ce.add_experience(&cond_0_1, true);
+        // Notice how the prediction changes.  We need to predict
+        // false so that actions that have no effect will learn from
+        // the falses.
+        assert_eq!(ce.predict(&cond_0_1), Some(false));
+        ce.apply_experience(&cond_0_1, true);
         assert_eq!(ce.predict(&cond_0_1), Some(true));
 
         // This has a new condition, so it should be
         // uncertain.
         assert_eq!(ce.predict(&cond_1_1), None);
-        ce.add_experience(&cond_1_1, true);
+        ce.apply_experience(&cond_1_1, true);
         assert_eq!(ce.predict(&cond_1_1), Some(true));
 
         // Note that this one will predict Some(false) if
         // we are not checking for un-observed positive conditions.
         assert_eq!(ce.predict(&cond_0_0), None);
-        ce.add_experience(&cond_0_0, false);
+        ce.apply_experience(&cond_0_0, false);
         assert_eq!(ce.predict(&cond_0_0), Some(false));
 
         assert_eq!(ce.predict(&cond_1_0), None);
-        ce.add_experience(&cond_1_0, false);
+        ce.apply_experience(&cond_1_0, false);
         assert_eq!(ce.predict(&cond_1_0), Some(false));
 
         assert_eq!(ce.predict(&cond_2_0), Some(false));
