@@ -166,10 +166,6 @@ impl DoorMax {
             let mut error = 0.0;
 
             for state in StateIterator::new(world) {
-                if state.at_destination() {
-                    continue;
-                }
-
                 let state_index = self.state_indexer.get_index(world, &state).unwrap();
 
                 let old_value = self.value_table[state_index];
