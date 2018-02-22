@@ -80,7 +80,6 @@ mod effect_learner_test {
 
         learner.apply_experience(&Effect::generate_effects(
             Attribute::TaxiX,
-            &w,
             &old_state,
             &new_state,
         ));
@@ -124,7 +123,6 @@ mod effect_learner_test {
 
         learner.apply_experience(&Effect::generate_effects(
             Attribute::TaxiX,
-            &w,
             &old_state,
             &new_state,
         ));
@@ -159,7 +157,6 @@ mod effect_learner_test {
 
         learner.apply_experience(&Effect::generate_effects(
             Attribute::TaxiX,
-            &w,
             &old_state,
             &new_state,
         ));
@@ -175,7 +172,6 @@ mod effect_learner_test {
 
         learner.apply_experience(&Effect::generate_effects(
             Attribute::TaxiX,
-            &w,
             &conflicting_old,
             &conflicting_new,
         ));
@@ -213,7 +209,6 @@ mod effect_learner_test {
 
         learner.apply_experience(&Effect::generate_effects(
             Attribute::TaxiX,
-            &w,
             &old_state,
             &new_state,
         ));
@@ -251,7 +246,6 @@ mod effect_learner_test {
 
         learner.apply_experience(&Effect::generate_effects(
             Attribute::TaxiY,
-            &w,
             &old_state,
             &new_state,
         ));
@@ -292,7 +286,6 @@ mod effect_learner_test {
 
         learner.apply_experience(&Effect::generate_effects(
             Attribute::Passenger,
-            &w,
             &old_state,
             &new_state,
         ));
@@ -335,7 +328,6 @@ mod effect_learner_test {
 
         learner.apply_experience(&Effect::generate_effects(
             Attribute::Passenger,
-            &w,
             &old_state,
             &new_state,
         ));
