@@ -61,17 +61,10 @@ impl ConditionLearner {
 
             let best_hypothesis = self.best.as_ref().unwrap();
 
-            for i in (0..self.false_conditions.len()).rev() {
-                if best_hypothesis.matches_cond(&self.false_conditions[i]) {
-                    self.false_conditions.swap_remove(i);
-                }
-            }
+            self.false_conditions
+                .retain(|c| !best_hypothesis.matches_cond(c));
         } else {
-            for i in (0..self.true_conditions.len()).rev() {
-                if self.true_conditions[i] == *condition {
-                    self.true_conditions.swap_remove(i);
-                }
-            }
+            self.true_conditions.retain(|c| c != condition);
         }
     }
 }
