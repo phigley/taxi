@@ -357,9 +357,14 @@ fn run() -> Result<(), AppError> {
                 } else {
                     return Err(AppError::ReplayRunnerNotConfigured(replay_config.solver));
                 },
-                SolverChoice::DoorMax => if let Some(_) = config.door_max.as_ref() {
+                SolverChoice::DoorMax => if let Some(doormax_config) = config.door_max.as_ref() {
                     run_replay(
-                        &mut DoorMax::new(&world),
+                        &mut DoorMax::new(
+                            &world,
+                            doormax_config.gamma,
+                            doormax_config.known_count,
+                            doormax_config.error_delta,
+                        ),
                         replay_config,
                         &world,
                         &probes,
