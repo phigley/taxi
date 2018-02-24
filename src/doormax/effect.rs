@@ -1,108 +1,140 @@
+use std;
+use std::fmt;
+
 use state;
 use state::State;
 use world::World;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumMap)]
-pub enum Attribute {
-    TaxiX,
-    TaxiY,
-    Passenger,
+pub enum Error {
+    InvalidState(state::Error),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Effect {
-    Add(i32),
-    Assign(Option<char>),
-}
-
-impl Effect {
-    pub fn generate_effects(
-        attribute: Attribute,
-        old_state: &State,
-        new_state: &State,
-    ) -> Vec<Effect> {
-        let mut result = Vec::new();
-
-        match attribute {
-            Attribute::TaxiX => {
-                let old_x = old_state.get_taxi().x;
-                let new_x = new_state.get_taxi().x;
-
-                if old_x != new_x {
-                    let delta = new_x - old_x;
-                    result.push(Effect::Add(delta));
-                }
-            }
-
-            Attribute::TaxiY => {
-                let old_y = old_state.get_taxi().y;
-                let new_y = new_state.get_taxi().y;
-
-                if old_y != new_y {
-                    let delta = new_y - old_y;
-                    result.push(Effect::Add(delta));
-                }
-            }
-
-            Attribute::Passenger => {
-                let old_passenger = old_state.get_passenger();
-                let new_passenger = new_state.get_passenger();
-
-                if old_passenger != new_passenger {
-                    result.push(Effect::Assign(new_passenger));
-                }
+impl fmt::Debug for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            Error::InvalidState(ref state_error) => {
+                write!(f, "Failed to create state from effect: {:?}", state_error)
             }
         }
+    }
+}
 
-        result
+impl From<state::Error> for Error {
+    fn from(error: state::Error) -> Self {
+        Error::InvalidState(error)
+    }
+}
+
+pub trait Effect
+where
+    Self: std::marker::Sized,
+{
+    fn generate_effects(old_state: &State, new_state: &State) -> Vec<Self>;
+
+    fn apply(&self, world: &World, state: &State) -> Result<State, Error>;
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ChangeTaxiX {
+    delta: i32,
+}
+
+impl ChangeTaxiX {
+    pub fn new(delta: i32) -> Self {
+        ChangeTaxiX { delta }
+    }
+}
+
+impl Effect for ChangeTaxiX {
+    fn generate_effects(old_state: &State, new_state: &State) -> Vec<Self> {
+        let old_x = old_state.get_taxi().x;
+        let new_x = new_state.get_taxi().x;
+
+        if old_x != new_x {
+            let delta = new_x - old_x;
+            vec![ChangeTaxiX::new(delta)]
+        } else {
+            Vec::new()
+        }
     }
 
-    pub fn apply(
-        &self,
-        attribute: Attribute,
-        world: &World,
-        state: &State,
-    ) -> Result<State, state::Error> {
-        match *self {
-            Effect::Add(delta) => match attribute {
-                Attribute::TaxiX => {
-                    let new_taxi_x = state.get_taxi().x + delta;
+    fn apply(&self, world: &World, state: &State) -> Result<State, Error> {
+        let new_taxi_x = state.get_taxi().x + self.delta;
 
-                    State::build(
-                        world,
-                        (new_taxi_x, state.get_taxi().y),
-                        state.get_passenger(),
-                        state.get_destination(),
-                    )
-                }
+        Ok(State::build(
+            world,
+            (new_taxi_x, state.get_taxi().y),
+            state.get_passenger(),
+            state.get_destination(),
+        )?)
+    }
+}
 
-                Attribute::TaxiY => {
-                    let new_taxi_y = state.get_taxi().y + delta;
+#[derive(Debug, Clone, PartialEq)]
+pub struct ChangeTaxiY {
+    delta: i32,
+}
 
-                    State::build(
-                        world,
-                        (state.get_taxi().x, new_taxi_y),
-                        state.get_passenger(),
-                        state.get_destination(),
-                    )
-                }
+impl ChangeTaxiY {
+    pub fn new(delta: i32) -> Self {
+        ChangeTaxiY { delta }
+    }
+}
 
-                Attribute::Passenger => panic!("Cannot apply Add to passenger!"),
-            },
+impl Effect for ChangeTaxiY {
+    fn generate_effects(old_state: &State, new_state: &State) -> Vec<Self> {
+        let old_y = old_state.get_taxi().y;
+        let new_y = new_state.get_taxi().y;
 
-            Effect::Assign(val) => match attribute {
-                Attribute::TaxiX => panic!("Cannot apply Assign to taxi x!"),
-                Attribute::TaxiY => panic!("Cannot apply Assign to taxi y!"),
-                Attribute::Passenger => {
-                    let new_passenger = val;
-                    State::build(
-                        world,
-                        (state.get_taxi().x, state.get_taxi().y),
-                        new_passenger,
-                        state.get_destination(),
-                    )
-                }
-            },
+        if old_y != new_y {
+            let delta = new_y - old_y;
+            vec![ChangeTaxiY::new(delta)]
+        } else {
+            Vec::new()
         }
+    }
+
+    fn apply(&self, world: &World, state: &State) -> Result<State, Error> {
+        let new_taxi_y = state.get_taxi().y + self.delta;
+
+        Ok(State::build(
+            world,
+            (state.get_taxi().x, new_taxi_y),
+            state.get_passenger(),
+            state.get_destination(),
+        )?)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ChangePassenger {
+    value: Option<char>,
+}
+
+impl ChangePassenger {
+    pub fn new(value: Option<char>) -> Self {
+        ChangePassenger { value }
+    }
+}
+
+impl Effect for ChangePassenger {
+    fn generate_effects(old_state: &State, new_state: &State) -> Vec<Self> {
+        let old_passenger = old_state.get_passenger();
+        let new_passenger = new_state.get_passenger();
+
+        if old_passenger != new_passenger {
+            vec![ChangePassenger::new(new_passenger)]
+        } else {
+            Vec::new()
+        }
+    }
+
+    fn apply(&self, world: &World, state: &State) -> Result<State, Error> {
+        Ok(State::build(
+            world,
+            (state.get_taxi().x, state.get_taxi().y),
+            self.value,
+            state.get_destination(),
+        )?)
     }
 }

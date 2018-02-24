@@ -1,32 +1,28 @@
-use state;
 use state::State;
 use world::World;
-use doormax::effect::{Attribute, Effect};
+
+use doormax::effect;
+use doormax::effect::Effect;
 
 #[derive(Debug, Clone, Default)]
-pub struct EffectLearner {
-    effects: Vec<Effect>,
+pub struct EffectLearner<E: Effect> {
+    effects: Vec<E>,
 }
 
-impl EffectLearner {
+impl<E: Effect> EffectLearner<E> {
     pub fn new() -> Self {
         EffectLearner {
             effects: Vec::new(),
         }
     }
 
-    pub fn predict(
-        &self,
-        attribute: Attribute,
-        world: &World,
-        state: &State,
-    ) -> Result<Option<State>, state::Error> {
+    pub fn predict(&self, world: &World, state: &State) -> Result<Option<State>, effect::Error> {
         // Notice that this returns None (aka bottom)
         // if effects is empty.
         let mut predicted_state = None;
 
         for e in &self.effects {
-            let modified_state = e.apply(attribute, world, state)?;
+            let modified_state = e.apply(world, state)?;
             match predicted_state {
                 None => predicted_state = Some(modified_state),
                 Some(previous_prediction) => if previous_prediction != modified_state {
@@ -38,7 +34,15 @@ impl EffectLearner {
         Ok(predicted_state)
     }
 
-    pub fn apply_experience(&mut self, effects: &[Effect]) {
+    pub fn apply_experience(&mut self, effects: &[E])
+    where
+        E: PartialEq + Clone,
+    {
+        // If we were to enforce a maximum number of effects, we should check it here.
+        // if effects.len() > 5 {
+        //     self.effects = Vec::new();
+        // } else
+
         if self.effects.is_empty() {
             self.effects = effects.to_vec();
         } else {
@@ -50,6 +54,7 @@ impl EffectLearner {
 #[cfg(test)]
 mod effect_learner_test {
     use super::*;
+    use doormax::effect::{ChangePassenger, ChangeTaxiX, ChangeTaxiY};
 
     #[test]
     fn learns_taxi_x_east() {
@@ -72,25 +77,21 @@ mod effect_learner_test {
         let old_state = State::build(&w, (1, 3), Some('R'), 'B').unwrap();
         let new_state = State::build(&w, (2, 3), Some('R'), 'B').unwrap();
 
-        let mut learner = EffectLearner::new();
+        let mut taxi_x_learner = EffectLearner::<ChangeTaxiX>::new();
         let test_state = State::build(&w, (3, 3), Some('R'), 'B').unwrap();
 
-        let predicted_0 = learner.predict(Attribute::TaxiX, &w, &test_state).unwrap();
+        let predicted_0 = taxi_x_learner.predict(&w, &test_state).unwrap();
         assert_eq!(predicted_0, None);
 
-        learner.apply_experience(&Effect::generate_effects(
-            Attribute::TaxiX,
-            &old_state,
-            &new_state,
-        ));
+        taxi_x_learner.apply_experience(&ChangeTaxiX::generate_effects(&old_state, &new_state));
 
         let expected_1 = Some(State::build(&w, (4, 3), Some('R'), 'B').unwrap());
-        let predicted_1 = learner.predict(Attribute::TaxiX, &w, &test_state).unwrap();
+        let predicted_1 = taxi_x_learner.predict(&w, &test_state).unwrap();
         assert_eq!(predicted_1, expected_1);
 
         let test_failure = State::build(&w, (4, 3), Some('R'), 'B').unwrap();
 
-        let predicted_failure = learner.predict(Attribute::TaxiX, &w, &test_failure);
+        let predicted_failure = taxi_x_learner.predict(&w, &test_failure);
         assert!(predicted_failure.is_err());
     }
 
@@ -115,20 +116,16 @@ mod effect_learner_test {
         let old_state = State::build(&w, (2, 3), Some('R'), 'B').unwrap();
         let new_state = State::build(&w, (1, 3), Some('R'), 'B').unwrap();
 
-        let mut learner = EffectLearner::new();
+        let mut taxi_x_learner = EffectLearner::new();
         let test_state = State::build(&w, (3, 3), Some('R'), 'B').unwrap();
 
-        let predicted_0 = learner.predict(Attribute::TaxiX, &w, &test_state).unwrap();
+        let predicted_0 = taxi_x_learner.predict(&w, &test_state).unwrap();
         assert_eq!(predicted_0, None);
 
-        learner.apply_experience(&Effect::generate_effects(
-            Attribute::TaxiX,
-            &old_state,
-            &new_state,
-        ));
+        taxi_x_learner.apply_experience(&ChangeTaxiX::generate_effects(&old_state, &new_state));
 
         let expected_1 = Some(State::build(&w, (2, 3), Some('R'), 'B').unwrap());
-        let predicted_1 = learner.predict(Attribute::TaxiX, &w, &test_state).unwrap();
+        let predicted_1 = taxi_x_learner.predict(&w, &test_state).unwrap();
         assert_eq!(predicted_1, expected_1);
     }
 
@@ -153,30 +150,25 @@ mod effect_learner_test {
         let old_state = State::build(&w, (1, 3), Some('R'), 'B').unwrap();
         let new_state = State::build(&w, (2, 3), Some('R'), 'B').unwrap();
 
-        let mut learner = EffectLearner::new();
+        let mut taxi_x_learner = EffectLearner::<ChangeTaxiX>::new();
 
-        learner.apply_experience(&Effect::generate_effects(
-            Attribute::TaxiX,
-            &old_state,
-            &new_state,
-        ));
+        taxi_x_learner.apply_experience(&ChangeTaxiX::generate_effects(&old_state, &new_state));
 
         let test_state = State::build(&w, (3, 3), Some('R'), 'B').unwrap();
 
         let expected_0 = Some(State::build(&w, (4, 3), Some('R'), 'B').unwrap());
-        let predicted_0 = learner.predict(Attribute::TaxiX, &w, &test_state).unwrap();
+        let predicted_0 = taxi_x_learner.predict(&w, &test_state).unwrap();
         assert_eq!(predicted_0, expected_0);
 
         let conflicting_old = State::build(&w, (1, 2), Some('R'), 'B').unwrap();
         let conflicting_new = State::build(&w, (0, 2), Some('R'), 'B').unwrap();
 
-        learner.apply_experience(&Effect::generate_effects(
-            Attribute::TaxiX,
+        taxi_x_learner.apply_experience(&ChangeTaxiX::generate_effects(
             &conflicting_old,
             &conflicting_new,
         ));
 
-        let predicted_1 = learner.predict(Attribute::TaxiX, &w, &test_state).unwrap();
+        let predicted_1 = taxi_x_learner.predict(&w, &test_state).unwrap();
         assert_eq!(predicted_1, None);
     }
 
@@ -201,19 +193,15 @@ mod effect_learner_test {
         let old_state = State::build(&w, (1, 3), Some('R'), 'B').unwrap();
         let new_state = State::build(&w, (1, 4), None, 'B').unwrap();
 
-        let mut learner = EffectLearner::new();
+        let mut taxi_x_learner = EffectLearner::<ChangeTaxiX>::new();
         let test_state = State::build(&w, (3, 3), Some('R'), 'B').unwrap();
 
-        let predicted_0 = learner.predict(Attribute::TaxiX, &w, &test_state).unwrap();
+        let predicted_0 = taxi_x_learner.predict(&w, &test_state).unwrap();
         assert_eq!(predicted_0, None);
 
-        learner.apply_experience(&Effect::generate_effects(
-            Attribute::TaxiX,
-            &old_state,
-            &new_state,
-        ));
+        taxi_x_learner.apply_experience(&ChangeTaxiX::generate_effects(&old_state, &new_state));
 
-        let predicted_1 = learner.predict(Attribute::TaxiX, &w, &test_state).unwrap();
+        let predicted_1 = taxi_x_learner.predict(&w, &test_state).unwrap();
         assert_eq!(predicted_1, None);
     }
 
@@ -238,20 +226,16 @@ mod effect_learner_test {
         let old_state = State::build(&w, (2, 3), Some('R'), 'B').unwrap();
         let new_state = State::build(&w, (2, 2), Some('R'), 'B').unwrap();
 
-        let mut learner = EffectLearner::new();
+        let mut taxi_y_learner = EffectLearner::<ChangeTaxiY>::new();
         let test_state = State::build(&w, (3, 3), Some('R'), 'B').unwrap();
 
-        let predicted_0 = learner.predict(Attribute::TaxiY, &w, &test_state).unwrap();
+        let predicted_0 = taxi_y_learner.predict(&w, &test_state).unwrap();
         assert_eq!(predicted_0, None);
 
-        learner.apply_experience(&Effect::generate_effects(
-            Attribute::TaxiY,
-            &old_state,
-            &new_state,
-        ));
+        taxi_y_learner.apply_experience(&ChangeTaxiY::generate_effects(&old_state, &new_state));
 
         let expected_1 = Some(State::build(&w, (3, 2), Some('R'), 'B').unwrap());
-        let predicted_1 = learner.predict(Attribute::TaxiY, &w, &test_state).unwrap();
+        let predicted_1 = taxi_y_learner.predict(&w, &test_state).unwrap();
         assert_eq!(predicted_1, expected_1);
     }
 
@@ -276,24 +260,17 @@ mod effect_learner_test {
         let old_state = State::build(&w, (2, 3), Some('R'), 'B').unwrap();
         let new_state = State::build(&w, (2, 2), None, 'B').unwrap();
 
-        let mut learner = EffectLearner::new();
+        let mut passenger_learner = EffectLearner::<ChangePassenger>::new();
         let test_state = State::build(&w, (3, 3), Some('Y'), 'B').unwrap();
 
-        let predicted_0 = learner
-            .predict(Attribute::Passenger, &w, &test_state)
-            .unwrap();
+        let predicted_0 = passenger_learner.predict(&w, &test_state).unwrap();
         assert_eq!(predicted_0, None);
 
-        learner.apply_experience(&Effect::generate_effects(
-            Attribute::Passenger,
-            &old_state,
-            &new_state,
-        ));
+        passenger_learner
+            .apply_experience(&ChangePassenger::generate_effects(&old_state, &new_state));
 
         let expected_1 = Some(State::build(&w, (3, 3), None, 'B').unwrap());
-        let predicted_1 = learner
-            .predict(Attribute::Passenger, &w, &test_state)
-            .unwrap();
+        let predicted_1 = passenger_learner.predict(&w, &test_state).unwrap();
         assert_eq!(predicted_1, expected_1);
     }
 
@@ -318,24 +295,17 @@ mod effect_learner_test {
         let old_state = State::build(&w, (2, 3), None, 'B').unwrap();
         let new_state = State::build(&w, (2, 2), Some('R'), 'B').unwrap();
 
-        let mut learner = EffectLearner::new();
+        let mut passenger_learner = EffectLearner::<ChangePassenger>::new();
         let test_state = State::build(&w, (3, 3), None, 'B').unwrap();
 
-        let predicted_0 = learner
-            .predict(Attribute::Passenger, &w, &test_state)
-            .unwrap();
+        let predicted_0 = passenger_learner.predict(&w, &test_state).unwrap();
         assert_eq!(predicted_0, None);
 
-        learner.apply_experience(&Effect::generate_effects(
-            Attribute::Passenger,
-            &old_state,
-            &new_state,
-        ));
+        passenger_learner
+            .apply_experience(&ChangePassenger::generate_effects(&old_state, &new_state));
 
         let expected_1 = Some(State::build(&w, (3, 3), Some('R'), 'B').unwrap());
-        let predicted_1 = learner
-            .predict(Attribute::Passenger, &w, &test_state)
-            .unwrap();
+        let predicted_1 = passenger_learner.predict(&w, &test_state).unwrap();
         assert_eq!(predicted_1, expected_1);
     }
 }

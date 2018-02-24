@@ -14,7 +14,6 @@ use rand::Rng;
 // use rand::Isaac64Rng;
 use float_cmp::ApproxOrdUlps;
 
-use state;
 use state::{State, StateIterator};
 use world::World;
 use state_indexer::StateIndexer;
@@ -96,7 +95,7 @@ impl DoorMax {
         world: &World,
         state: &State,
         action: Actions,
-    ) -> Result<f64, state::Error> {
+    ) -> Result<f64, effect::Error> {
         let state_index = self.state_indexer.get_index(world, state).unwrap();
 
         let mut action_value = self.measure_reward(world, state, action);
@@ -112,7 +111,7 @@ impl DoorMax {
         Ok(action_value)
     }
 
-    fn measure_best_value(&self, world: &World, state: &State) -> Result<f64, state::Error> {
+    fn measure_best_value(&self, world: &World, state: &State) -> Result<f64, effect::Error> {
         let mut best_value = -f64::MAX;
 
         for action_index in 0..Actions::NUM_ELEMENTS {
@@ -132,7 +131,7 @@ impl DoorMax {
         world: &World,
         state: &State,
         rng: &mut R,
-    ) -> Result<Option<Actions>, state::Error> {
+    ) -> Result<Option<Actions>, effect::Error> {
         let mut best_value = -f64::MAX;
         let mut best_action = None;
         let mut num_found = 0;
@@ -161,7 +160,7 @@ impl DoorMax {
         Ok(best_action)
     }
 
-    fn rebuild_value_table(&mut self, world: &World) -> Result<(), state::Error> {
+    fn rebuild_value_table(&mut self, world: &World) -> Result<(), effect::Error> {
         for _ in 0..10_000 {
             let mut error = 0.0;
 
@@ -194,7 +193,7 @@ impl DoorMax {
         mut state: State,
         max_steps: usize,
         rng: &mut R,
-    ) -> Result<Option<usize>, state::Error> {
+    ) -> Result<Option<usize>, effect::Error> {
         for step in 0..max_steps {
             if state.at_destination() {
                 return Ok(Some(step));
@@ -225,7 +224,7 @@ impl DoorMax {
         mut state: State,
         max_steps: usize,
         rng: &mut R,
-    ) -> Result<Attempt, state::Error> {
+    ) -> Result<Attempt, effect::Error> {
         let mut attempt = Attempt::new(state, max_steps);
 
         for _ in 0..max_steps {
@@ -255,7 +254,7 @@ impl DoorMax {
         mut state: State,
         max_steps: usize,
         rng: &mut R,
-    ) -> Result<bool, state::Error> {
+    ) -> Result<bool, effect::Error> {
         for _ in 0..max_steps {
             if state.at_destination() {
                 return Ok(true);
