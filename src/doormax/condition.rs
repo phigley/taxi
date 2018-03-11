@@ -7,7 +7,7 @@ use world::World;
 
 use doormax::term::Term;
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Condition(pub EnumMap<Term, bool>);
 
 impl Condition {
@@ -15,13 +15,7 @@ impl Condition {
         let taxi_pos = state.get_taxi();
         let walls = world.get_wall(taxi_pos);
 
-        let enum_map = enum_map! {
-            Term::TouchWallN => walls.north,
-            Term::TouchWallS => walls.south,
-            Term::TouchWallE => walls.east,
-            Term::TouchWallW => walls.west,
-
-            Term::OnPassenger => if let Some(passenger_id) = state.get_passenger() {
+        let on_passenger = if let Some(passenger_id) = state.get_passenger() {
             if let Some(passenger_pos) = world.get_fixed_position(passenger_id) {
                 passenger_pos == taxi_pos
             } else {
@@ -29,14 +23,23 @@ impl Condition {
             }
         } else {
             false
-        },
-            Term::OnDestination =>
+        };
+
+        let on_destination =
             if let Some(destination_pos) = world.get_fixed_position(state.get_destination()) {
                 destination_pos == taxi_pos
             } else {
                 false
-            },
+            };
 
+        let enum_map = enum_map! {
+            Term::TouchWallN => walls.north,
+            Term::TouchWallS => walls.south,
+            Term::TouchWallE => walls.east,
+            Term::TouchWallW => walls.west,
+
+            Term::OnPassenger => on_passenger,
+            Term::OnDestination => on_destination,
             Term::HasPassenger => state.get_passenger().is_none(),
         };
 
@@ -104,7 +107,7 @@ impl Condition {
     }
 }
 
-impl fmt::Debug for Condition {
+impl fmt::Display for Condition {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let &Condition(ref cond_map) = self;
 

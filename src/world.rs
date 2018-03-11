@@ -4,7 +4,7 @@ use std::fmt;
 use position::Position;
 use actions::Actions;
 
-#[derive(PartialEq, Clone)]
+#[derive(PartialEq, Clone, Debug)]
 pub struct Wall {
     pub north: bool,
     pub south: bool,
@@ -23,7 +23,7 @@ impl Wall {
     }
 }
 
-impl fmt::Debug for Wall {
+impl fmt::Display for Wall {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Wall('")?;
 

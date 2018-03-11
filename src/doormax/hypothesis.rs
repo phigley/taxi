@@ -28,7 +28,7 @@ impl From<bool> for Require {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Hypothesis(EnumMap<Term, Require>);
 
 impl Hypothesis {
@@ -72,13 +72,13 @@ impl Hypothesis {
         Hypothesis(result_map)
     }
 
-    // pub fn matches(&self, &Hypothesis(ref other): &Hypothesis) -> bool {
-    //     let &Hypothesis(ref self_map) = self;
+    pub fn matches(&self, &Hypothesis(ref other): &Hypothesis) -> bool {
+        let &Hypothesis(ref self_map) = self;
 
-    //     self_map
-    //         .iter()
-    //         .all(|(key, &value)| value == Require::None || other[key] == value)
-    // }
+        self_map
+            .iter()
+            .all(|(key, &value)| value == Require::None || other[key] == value)
+    }
 
     pub fn matches_cond(&self, &Condition(ref cond_map): &Condition) -> bool {
         let &Hypothesis(ref self_map) = self;
@@ -91,7 +91,7 @@ impl Hypothesis {
     }
 }
 
-impl fmt::Debug for Hypothesis {
+impl fmt::Display for Hypothesis {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let &Hypothesis(ref hyp_map) = self;
 
@@ -136,88 +136,88 @@ mod test_hypthothesis {
 
     use super::*;
 
-    // #[test]
-    // fn hypothesis_matches() {
-    //     let hyp_a = Hypothesis(enum_map!{
-    //         Term::TouchWallN => Require::True,
-    //         Term::TouchWallS => Require::True,
-    //         Term::TouchWallE => Require::True,
-    //         Term::TouchWallW => Require::True,
-    //         Term::OnPassenger => Require::True,
-    //         Term::OnDestination => Require::True,
-    //         Term::HasPassenger => Require::True,
-    //     });
+    #[test]
+    fn hypothesis_matches() {
+        let hyp_a = Hypothesis(enum_map!{
+            Term::TouchWallN => Require::True,
+            Term::TouchWallS => Require::True,
+            Term::TouchWallE => Require::True,
+            Term::TouchWallW => Require::True,
+            Term::OnPassenger => Require::True,
+            Term::OnDestination => Require::True,
+            Term::HasPassenger => Require::True,
+        });
 
-    //     let hyp_b = Hypothesis(enum_map!{
-    //         Term::TouchWallN => Require::False,
-    //         Term::TouchWallS => Require::False,
-    //         Term::TouchWallE => Require::False,
-    //         Term::TouchWallW => Require::False,
-    //         Term::OnPassenger => Require::False,
-    //         Term::OnDestination => Require::False,
-    //         Term::HasPassenger => Require::False,
-    //     });
+        let hyp_b = Hypothesis(enum_map!{
+            Term::TouchWallN => Require::False,
+            Term::TouchWallS => Require::False,
+            Term::TouchWallE => Require::False,
+            Term::TouchWallW => Require::False,
+            Term::OnPassenger => Require::False,
+            Term::OnDestination => Require::False,
+            Term::HasPassenger => Require::False,
+        });
 
-    //     let hyp_c = Hypothesis(enum_map!{
-    //         Term::TouchWallN => Require::True,
-    //         Term::TouchWallS => Require::None,
-    //         Term::TouchWallE => Require::None,
-    //         Term::TouchWallW => Require::None,
-    //         Term::OnPassenger => Require::None,
-    //         Term::OnDestination => Require::None,
-    //         Term::HasPassenger => Require::None,
-    //     });
+        let hyp_c = Hypothesis(enum_map!{
+            Term::TouchWallN => Require::True,
+            Term::TouchWallS => Require::None,
+            Term::TouchWallE => Require::None,
+            Term::TouchWallW => Require::None,
+            Term::OnPassenger => Require::None,
+            Term::OnDestination => Require::None,
+            Term::HasPassenger => Require::None,
+        });
 
-    //     let hyp_d = Hypothesis(enum_map!{
-    //         Term::TouchWallN => Require::True,
-    //         Term::TouchWallS => Require::False,
-    //         Term::TouchWallE => Require::None,
-    //         Term::TouchWallW => Require::None,
-    //         Term::OnPassenger => Require::None,
-    //         Term::OnDestination => Require::None,
-    //         Term::HasPassenger => Require::None,
-    //     });
+        let hyp_d = Hypothesis(enum_map!{
+            Term::TouchWallN => Require::True,
+            Term::TouchWallS => Require::False,
+            Term::TouchWallE => Require::None,
+            Term::TouchWallW => Require::None,
+            Term::OnPassenger => Require::None,
+            Term::OnDestination => Require::None,
+            Term::HasPassenger => Require::None,
+        });
 
-    //     let hyp_e = Hypothesis(enum_map!{
-    //         Term::TouchWallN => Require::True,
-    //         Term::TouchWallS => Require::False,
-    //         Term::TouchWallE => Require::True,
-    //         Term::TouchWallW => Require::True,
-    //         Term::OnPassenger => Require::True,
-    //         Term::OnDestination => Require::True,
-    //         Term::HasPassenger => Require::True,
-    //     });
+        let hyp_e = Hypothesis(enum_map!{
+            Term::TouchWallN => Require::True,
+            Term::TouchWallS => Require::False,
+            Term::TouchWallE => Require::True,
+            Term::TouchWallW => Require::True,
+            Term::OnPassenger => Require::True,
+            Term::OnDestination => Require::True,
+            Term::HasPassenger => Require::True,
+        });
 
-    //     assert!(hyp_a.matches(&hyp_a));
-    //     assert!(!hyp_a.matches(&hyp_b));
-    //     assert!(!hyp_a.matches(&hyp_c));
-    //     assert!(!hyp_a.matches(&hyp_d));
-    //     assert!(!hyp_a.matches(&hyp_e));
+        assert!(hyp_a.matches(&hyp_a));
+        assert!(!hyp_a.matches(&hyp_b));
+        assert!(!hyp_a.matches(&hyp_c));
+        assert!(!hyp_a.matches(&hyp_d));
+        assert!(!hyp_a.matches(&hyp_e));
 
-    //     assert!(!hyp_b.matches(&hyp_a));
-    //     assert!(hyp_b.matches(&hyp_b));
-    //     assert!(!hyp_b.matches(&hyp_c));
-    //     assert!(!hyp_b.matches(&hyp_d));
-    //     assert!(!hyp_b.matches(&hyp_e));
+        assert!(!hyp_b.matches(&hyp_a));
+        assert!(hyp_b.matches(&hyp_b));
+        assert!(!hyp_b.matches(&hyp_c));
+        assert!(!hyp_b.matches(&hyp_d));
+        assert!(!hyp_b.matches(&hyp_e));
 
-    //     assert!(hyp_c.matches(&hyp_a));
-    //     assert!(!hyp_c.matches(&hyp_b));
-    //     assert!(hyp_c.matches(&hyp_c));
-    //     assert!(hyp_c.matches(&hyp_d));
-    //     assert!(hyp_c.matches(&hyp_e));
+        assert!(hyp_c.matches(&hyp_a));
+        assert!(!hyp_c.matches(&hyp_b));
+        assert!(hyp_c.matches(&hyp_c));
+        assert!(hyp_c.matches(&hyp_d));
+        assert!(hyp_c.matches(&hyp_e));
 
-    //     assert!(!hyp_d.matches(&hyp_a));
-    //     assert!(!hyp_d.matches(&hyp_b));
-    //     assert!(!hyp_d.matches(&hyp_c));
-    //     assert!(hyp_d.matches(&hyp_d));
-    //     assert!(hyp_d.matches(&hyp_e));
+        assert!(!hyp_d.matches(&hyp_a));
+        assert!(!hyp_d.matches(&hyp_b));
+        assert!(!hyp_d.matches(&hyp_c));
+        assert!(hyp_d.matches(&hyp_d));
+        assert!(hyp_d.matches(&hyp_e));
 
-    //     assert!(!hyp_e.matches(&hyp_a));
-    //     assert!(!hyp_e.matches(&hyp_b));
-    //     assert!(!hyp_e.matches(&hyp_c));
-    //     assert!(!hyp_e.matches(&hyp_d));
-    //     assert!(hyp_e.matches(&hyp_e));
-    // }
+        assert!(!hyp_e.matches(&hyp_a));
+        assert!(!hyp_e.matches(&hyp_b));
+        assert!(!hyp_e.matches(&hyp_c));
+        assert!(!hyp_e.matches(&hyp_d));
+        assert!(hyp_e.matches(&hyp_e));
+    }
 
     #[test]
     fn hypothesis_matches_cond() {

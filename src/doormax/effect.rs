@@ -29,7 +29,7 @@ pub trait Effect
 where
     Self: std::marker::Sized,
 {
-    fn generate_effects(old_state: &State, new_state: &State) -> Vec<Self>;
+    fn generate_effects(old_state: &State, new_state: &State) -> Option<Self>;
 
     fn apply(&self, world: &World, state: &State) -> Result<State, Error>;
 }
@@ -46,15 +46,15 @@ impl ChangeTaxiX {
 }
 
 impl Effect for ChangeTaxiX {
-    fn generate_effects(old_state: &State, new_state: &State) -> Vec<Self> {
+    fn generate_effects(old_state: &State, new_state: &State) -> Option<Self> {
         let old_x = old_state.get_taxi().x;
         let new_x = new_state.get_taxi().x;
 
         if old_x != new_x {
             let delta = new_x - old_x;
-            vec![ChangeTaxiX::new(delta)]
+            Some(ChangeTaxiX::new(delta))
         } else {
-            Vec::new()
+            None
         }
     }
 
@@ -70,6 +70,12 @@ impl Effect for ChangeTaxiX {
     }
 }
 
+impl fmt::Display for ChangeTaxiX {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "ChangeTaxiX({})", self.delta)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct ChangeTaxiY {
     delta: i32,
@@ -82,15 +88,15 @@ impl ChangeTaxiY {
 }
 
 impl Effect for ChangeTaxiY {
-    fn generate_effects(old_state: &State, new_state: &State) -> Vec<Self> {
+    fn generate_effects(old_state: &State, new_state: &State) -> Option<Self> {
         let old_y = old_state.get_taxi().y;
         let new_y = new_state.get_taxi().y;
 
         if old_y != new_y {
             let delta = new_y - old_y;
-            vec![ChangeTaxiY::new(delta)]
+            Some(ChangeTaxiY::new(delta))
         } else {
-            Vec::new()
+            None
         }
     }
 
@@ -106,6 +112,12 @@ impl Effect for ChangeTaxiY {
     }
 }
 
+impl fmt::Display for ChangeTaxiY {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "ChangeTaxiY({})", self.delta)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct ChangePassenger {
     value: Option<char>,
@@ -118,14 +130,14 @@ impl ChangePassenger {
 }
 
 impl Effect for ChangePassenger {
-    fn generate_effects(old_state: &State, new_state: &State) -> Vec<Self> {
+    fn generate_effects(old_state: &State, new_state: &State) -> Option<Self> {
         let old_passenger = old_state.get_passenger();
         let new_passenger = new_state.get_passenger();
 
         if old_passenger != new_passenger {
-            vec![ChangePassenger::new(new_passenger)]
+            Some(ChangePassenger::new(new_passenger))
         } else {
-            Vec::new()
+            None
         }
     }
 
@@ -136,5 +148,11 @@ impl Effect for ChangePassenger {
             self.value,
             state.get_destination(),
         )?)
+    }
+}
+
+impl fmt::Display for ChangePassenger {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "ChangePassenger({:#?})", self.value)
     }
 }

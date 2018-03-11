@@ -3,7 +3,6 @@ mod condition;
 mod hypothesis;
 mod effect;
 mod condition_learner;
-mod effect_learner;
 mod mcelearner;
 mod reward;
 
@@ -315,23 +314,28 @@ impl Runner for DoorMax {
         //                 self.mcelearner.predict(world, &state, next_action).unwrap()
         //             {
         //                 println!("{}", next_state.display(world));
+        //             } else {
+        //                 println!("Situation unknown.");
         //             }
 
         //             for action_index in 0..Actions::NUM_ELEMENTS {
         //                 let action = Actions::from_index(action_index).unwrap();
 
-        //                 let reward = self.measure_reward(state_index, action);
+        //                 let reward = self.measure_reward(world, &state, action);
         //                 let action_value = self.measure_value(world, &state, action).unwrap();
         //                 println!(
         //                     "{} - {} + {} = {}",
         //                     action,
         //                     reward,
-        //                     action_value,
-        //                     reward + action_value
+        //                     action_value - reward,
+        //                     action_value
         //                 );
         //             }
         //         }
         //     }
         // }
+
+        // println!("MCELearner:");
+        // println!("{}", self.mcelearner);
     }
 }
