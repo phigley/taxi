@@ -1,5 +1,5 @@
-use state::State;
 use actions::Actions;
+use state::State;
 use world::World;
 
 use maxq::MaxQParams;

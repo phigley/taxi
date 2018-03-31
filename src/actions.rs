@@ -1,5 +1,5 @@
-use std::fmt;
 use rand::{Rand, Rng};
+use std::fmt;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Actions {
@@ -71,9 +71,9 @@ mod test_actions {
 
     use super::*;
 
-    use std::f64;
     use rand;
     use rand::Rng;
+    use std::f64;
 
     fn find_action(desired_action: Actions, max_iterations: u32) -> bool {
         let mut rng = rand::thread_rng();

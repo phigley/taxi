@@ -3,13 +3,13 @@ use std::slice::Iter;
 
 use rand::Rng;
 
-use state::State;
 use actions::Actions;
+use state::State;
 use world::World;
 
-use maxq::qnode::{QNode, QNodeType};
-use maxq::nodestorage::NodeStorage;
 use maxq::MaxQParams;
+use maxq::nodestorage::NodeStorage;
+use maxq::qnode::{QNode, QNodeType};
 
 #[derive(Debug, Clone, Copy)]
 pub enum MaxNodeType {

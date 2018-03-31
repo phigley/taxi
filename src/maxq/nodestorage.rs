@@ -1,8 +1,8 @@
 use world::World;
 
 use maxq::maxnode::MaxNode;
-use maxq::qnode::QNode;
 use maxq::primitivenode::PrimitiveNode;
+use maxq::qnode::QNode;
 
 #[derive(Debug, Clone)]
 pub struct NodeStorage {

@@ -26,17 +26,17 @@ use rayon::prelude::*;
 
 use configuration::{Configuration, SolverChoice};
 
+use taxi::distribution::MeasureDistribution;
 use taxi::state::State;
 use taxi::world::World;
-use taxi::distribution::MeasureDistribution;
 
-use taxi::runner::{run_training_session, Probe, Runner};
-use taxi::random_solver::RandomSolver;
-use taxi::qlearner::QLearner;
-use taxi::rmax::RMax;
+use taxi::doormax::DoorMax;
 use taxi::factoredrmax::FactoredRMax;
 use taxi::maxq::MaxQ;
-use taxi::doormax::DoorMax;
+use taxi::qlearner::QLearner;
+use taxi::random_solver::RandomSolver;
+use taxi::rmax::RMax;
+use taxi::runner::{run_training_session, Probe, Runner};
 
 #[cfg(not(windows))]
 use std::io;

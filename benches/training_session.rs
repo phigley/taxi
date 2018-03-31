@@ -8,12 +8,12 @@ use rand::Isaac64Rng;
 
 use criterion::Criterion;
 
-use taxi::world::World;
-use taxi::state::State;
-use taxi::runner::{run_training_session, Probe};
+use taxi::factoredrmax::FactoredRMax;
 use taxi::qlearner::QLearner;
 use taxi::rmax::RMax;
-use taxi::factoredrmax::FactoredRMax;
+use taxi::runner::{run_training_session, Probe};
+use taxi::state::State;
+use taxi::world::World;
 
 criterion_group!(trainers, qlearner, rmax, factored_rmax);
 criterion_main!(trainers);

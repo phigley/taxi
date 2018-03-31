@@ -1,11 +1,11 @@
 use std::fmt;
 
-use state::State;
 use actions::Actions;
+use state::State;
 use world::World;
 
-use maxq::nodestorage::NodeStorage;
 use maxq::maxnode::{MaxNode, MaxNodeType};
+use maxq::nodestorage::NodeStorage;
 
 use maxq::MaxQParams;
 

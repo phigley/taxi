@@ -2,9 +2,9 @@ use std::fmt;
 
 use rand::Rng;
 
+use actions::Actions;
 use position::Position;
 use world::{ActionAffect, World};
-use actions::Actions;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct State {
@@ -346,8 +346,8 @@ impl<'a> Iterator for StateIterator<'a> {
 #[cfg(test)]
 mod test_state {
 
-    use rand::thread_rng;
     use super::*;
+    use rand::thread_rng;
 
     #[test]
     fn build_correct() {

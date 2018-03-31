@@ -1,12 +1,12 @@
-use std::f64;
 use std::cmp;
+use std::f64;
 
 use rand::Rng;
 //use rand::Isaac64Rng;
 use float_cmp::ApproxOrdUlps;
 
-use state::{State, StateIterator};
 use actions::Actions;
+use state::{State, StateIterator};
 use world::World;
 
 use runner::{Attempt, Runner};
@@ -884,8 +884,8 @@ fn generate_reward_parent_index(
 #[cfg(test)]
 mod test_factoredrmax {
 
-    use rand::Isaac64Rng;
     use super::*;
+    use rand::Isaac64Rng;
 
     #[test]
     fn learn_simple() {

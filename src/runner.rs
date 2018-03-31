@@ -2,10 +2,10 @@ use std::fmt;
 
 use rand::Rng;
 
+use actions::Actions;
 use state;
 use state::State;
 use world::World;
-use actions::Actions;
 
 #[derive(Debug)]
 pub struct Probe {

@@ -107,8 +107,8 @@ impl fmt::Display for ConditionLearner {
 #[cfg(test)]
 mod condition_learner_test {
     use super::*;
-    use world::World;
     use state::State;
+    use world::World;
 
     #[test]
     fn learns_north() {

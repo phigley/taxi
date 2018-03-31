@@ -1,22 +1,22 @@
-mod term;
 mod condition;
-mod hypothesis;
-mod effect;
 mod condition_learner;
+mod effect;
+mod hypothesis;
 mod mcelearner;
 mod reward;
+mod term;
 
-use std::f64;
 use std::cmp;
+use std::f64;
 
 use rand::Rng;
 // use rand::Isaac64Rng;
 use float_cmp::ApproxOrdUlps;
 
-use state::{State, StateIterator};
-use world::World;
-use state_indexer::StateIndexer;
 use actions::Actions;
+use state::{State, StateIterator};
+use state_indexer::StateIndexer;
+use world::World;
 
 use self::mcelearner::MCELearner;
 use self::reward::Rewards;

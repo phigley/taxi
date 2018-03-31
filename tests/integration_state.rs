@@ -1,8 +1,8 @@
 extern crate taxi;
 
+use taxi::actions::Actions;
 use taxi::state::*;
 use taxi::world::World;
-use taxi::actions::Actions;
 
 #[test]
 #[should_panic(expected = "'C'")]

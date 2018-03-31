@@ -1,8 +1,8 @@
 extern crate taxi;
 
+use taxi::state::State;
 use taxi::state_indexer::StateIndexer;
 use taxi::world::World;
-use taxi::state::State;
 
 #[test]
 fn indices_unique() {

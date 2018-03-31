@@ -1,13 +1,13 @@
 use std::fmt;
 
+use doormax::condition::Condition;
 use doormax::condition_learner::ConditionLearner;
 use doormax::effect;
 use doormax::effect::{ChangePassenger, ChangeTaxiX, ChangeTaxiY, Effect};
-use doormax::condition::Condition;
 
-use world::World;
-use state::State;
 use actions::Actions;
+use state::State;
+use world::World;
 
 #[derive(Debug, Clone)]
 pub struct CELearner<E: Effect> {

@@ -1,8 +1,8 @@
-use std::iter;
 use std::fmt;
+use std::iter;
 
-use position::Position;
 use actions::Actions;
+use position::Position;
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct Wall {

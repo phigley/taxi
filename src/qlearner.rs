@@ -1,12 +1,12 @@
 use std::cmp;
 
-use rand::Rng;
 use float_cmp::ApproxOrdUlps;
+use rand::Rng;
 
-use state::State;
 use actions::Actions;
-use world::World;
+use state::State;
 use state_indexer::StateIndexer;
+use world::World;
 
 use runner::{Attempt, Runner};
 

@@ -1,7 +1,7 @@
 use rand::Rng;
 
-use state::State;
 use actions::Actions;
+use state::State;
 use world::World;
 
 use runner::{Attempt, Runner};

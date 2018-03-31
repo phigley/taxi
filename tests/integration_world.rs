@@ -1,8 +1,8 @@
 extern crate taxi;
 
-use taxi::world::*;
-use taxi::position::Position;
 use taxi::actions::Actions;
+use taxi::position::Position;
+use taxi::world::*;
 
 #[test]
 #[should_panic]
