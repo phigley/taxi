@@ -54,7 +54,11 @@ impl<E: Effect> CELearner<E> {
             };
         }
 
-        Ok(full_result)
+        if full_result.is_some() {
+            Ok(full_result)
+        } else {
+            Ok(Some(*state))
+        }
     }
 
     pub fn apply_experience(&mut self, condition: &Condition, old_state: &State, new_state: &State)
@@ -62,6 +66,13 @@ impl<E: Effect> CELearner<E> {
         E: Clone + PartialEq,
     {
         let observed_effect = E::generate_effects(old_state, new_state);
+
+        if observed_effect.is_none() {
+            for &mut (ref mut condition_learner, _) in &mut self.condition_effects {
+                condition_learner.apply_experience(condition, false);
+            }
+            return;
+        }
 
         let mut found_entry = false;
         for &mut (ref mut condition_learner, ref learned_effect) in &mut self.condition_effects {
@@ -294,8 +305,6 @@ mod mcelearner_test {
         assert_eq!(*blocked_final_state.get_taxi(), Position::new(1, 1));
 
         learner.apply_experience(&w, &blocked_state, Actions::East, &blocked_final_state);
-
-        println!("{}", learner);
 
         let predicted_0b = learner.predict(&w, &clear_state, Actions::East).unwrap();
         assert_eq!(predicted_0b, Some(clear_final_state));

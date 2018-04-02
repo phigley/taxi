@@ -460,13 +460,19 @@ where
                                 config.max_trial_steps,
                                 elapsed_time,
                             );
+
+                            // This may overlap with other reports, should we guard with a mutex?
+                            // solver.report_training_result(world);
+                            // println!("Report Reults #{} : END", session_number);
                         }
                     };
 
                     stats.duration += duration;
 
                     // This may overlap with other reports, should we guard with a mutex?
+                    // println!("Report Reults #{} : BEGIN", session_number);
                     solver.report_training_result(world);
+                    // println!("Report Reults #{} : END", session_number);
 
                     Ok(stats)
                 })

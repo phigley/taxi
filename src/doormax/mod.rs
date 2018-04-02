@@ -9,9 +9,9 @@ mod term;
 use std::cmp;
 use std::f64;
 
-use rand::Rng;
-// use rand::Isaac64Rng;
 use float_cmp::ApproxOrdUlps;
+// use rand::Isaac64Rng;
+use rand::Rng;
 
 use actions::Actions;
 use state::{State, StateIterator};

@@ -120,12 +120,12 @@ impl fmt::Display for ChangeTaxiY {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ChangePassenger {
-    value: Option<char>,
+    on_destination: bool,
 }
 
 impl ChangePassenger {
-    pub fn new(value: Option<char>) -> Self {
-        ChangePassenger { value }
+    pub fn new(on_destination: bool) -> Self {
+        ChangePassenger { on_destination }
     }
 }
 
@@ -135,17 +135,25 @@ impl Effect for ChangePassenger {
         let new_passenger = new_state.get_passenger();
 
         if old_passenger != new_passenger {
-            Some(ChangePassenger::new(new_passenger))
+            // Assume that a non-None value for new_passenger
+            // means that the passenger was placed on the destination.
+            Some(ChangePassenger::new(!new_passenger.is_none()))
         } else {
             None
         }
     }
 
     fn apply(&self, world: &World, state: &State) -> Result<State, Error> {
+        let passenger = if self.on_destination {
+            Some(state.get_destination())
+        } else {
+            None
+        };
+
         Ok(State::build(
             world,
             (state.get_taxi().x, state.get_taxi().y),
-            self.value,
+            passenger,
             state.get_destination(),
         )?)
     }
@@ -153,6 +161,6 @@ impl Effect for ChangePassenger {
 
 impl fmt::Display for ChangePassenger {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "ChangePassenger({:#?})", self.value)
+        write!(f, "ChangePassenger({:#?})", self.on_destination)
     }
 }

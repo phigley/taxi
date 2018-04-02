@@ -25,28 +25,19 @@ impl ConditionLearner {
 
     pub fn predict(&self, condition: &Condition) -> Option<bool> {
         let has_failure = self.false_conditions.iter().any(|c| c == condition);
-        let has_true = self.true_conditions.iter().any(|c| c == condition);
 
-        match self.best {
-            None => if !has_failure {
+        if let Some(ref best_hypothesis) = self.best {
+            if best_hypothesis.matches_cond(condition) && !has_failure {
                 Some(true)
+            } else if has_failure && !self.true_conditions.iter().any(|c| c == condition) {
+                Some(false)
             } else {
                 None
-            },
-
-            Some(ref best_hypothesis) => if best_hypothesis.matches_cond(condition) {
-                if !has_failure {
-                    Some(true)
-                } else {
-                    None
-                }
-            } else {
-                if has_failure && !has_true {
-                    Some(false)
-                } else {
-                    None
-                }
-            },
+            }
+        } else if has_failure && !self.true_conditions.iter().any(|c| c == condition) {
+            Some(false)
+        } else {
+            None
         }
     }
 
