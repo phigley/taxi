@@ -8,7 +8,7 @@ pub struct Position {
 
 impl Position {
     pub fn new(x: i32, y: i32) -> Position {
-        Position { x: x, y: y }
+        Position { x, y }
     }
 }
 

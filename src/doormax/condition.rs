@@ -61,36 +61,36 @@ impl Condition {
         };
 
         loop {
-            result.push(Condition(accumulator.clone()));
+            result.push(Condition(accumulator));
 
-            if accumulator[Term::TouchWallN] == false {
+            if !accumulator[Term::TouchWallN] {
                 accumulator[Term::TouchWallN] = true;
-            } else if accumulator[Term::TouchWallS] == false {
+            } else if !accumulator[Term::TouchWallS] {
                 accumulator[Term::TouchWallN] = false;
                 accumulator[Term::TouchWallS] = true;
-            } else if accumulator[Term::TouchWallE] == false {
+            } else if !accumulator[Term::TouchWallE] {
                 accumulator[Term::TouchWallN] = false;
                 accumulator[Term::TouchWallS] = false;
                 accumulator[Term::TouchWallE] = true;
-            } else if accumulator[Term::TouchWallW] == false {
+            } else if !accumulator[Term::TouchWallW] {
                 accumulator[Term::TouchWallN] = false;
                 accumulator[Term::TouchWallS] = false;
                 accumulator[Term::TouchWallE] = false;
                 accumulator[Term::TouchWallW] = true;
-            } else if accumulator[Term::OnPassenger] == false {
+            } else if !accumulator[Term::OnPassenger] {
                 accumulator[Term::TouchWallN] = false;
                 accumulator[Term::TouchWallS] = false;
                 accumulator[Term::TouchWallE] = false;
                 accumulator[Term::TouchWallW] = false;
                 accumulator[Term::OnPassenger] = true;
-            } else if accumulator[Term::OnDestination] == false {
+            } else if !accumulator[Term::OnDestination] {
                 accumulator[Term::TouchWallN] = false;
                 accumulator[Term::TouchWallS] = false;
                 accumulator[Term::TouchWallE] = false;
                 accumulator[Term::TouchWallW] = false;
                 accumulator[Term::OnPassenger] = false;
                 accumulator[Term::OnDestination] = true;
-            } else if accumulator[Term::HasPassenger] == false {
+            } else if !accumulator[Term::HasPassenger] {
                 accumulator[Term::TouchWallN] = false;
                 accumulator[Term::TouchWallS] = false;
                 accumulator[Term::TouchWallE] = false;

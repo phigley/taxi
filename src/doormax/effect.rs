@@ -137,7 +137,7 @@ impl Effect for ChangePassenger {
         if old_passenger != new_passenger {
             // Assume that a non-None value for new_passenger
             // means that the passenger was placed on the destination.
-            Some(ChangePassenger::new(!new_passenger.is_none()))
+            Some(ChangePassenger::new(new_passenger.is_some()))
         } else {
             None
         }
