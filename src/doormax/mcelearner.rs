@@ -11,7 +11,7 @@ use world::World;
 
 #[derive(Debug, Clone)]
 pub struct CELearner<E: Effect> {
-    condition_effects: Vec<(ConditionLearner, Option<E>)>,
+    condition_effects: Vec<(ConditionLearner, E)>,
 }
 
 impl<E: Effect> CELearner<E> {
@@ -37,10 +37,7 @@ impl<E: Effect> CELearner<E> {
                 }
                 Some(false) => (),
                 Some(true) => {
-                    let result = match *learned_effect {
-                        Some(ref learned_effect) => learned_effect.apply(world, state)?,
-                        None => *state,
-                    };
+                    let result = learned_effect.apply(world, state)?;
 
                     if let Some(full_result) = full_result {
                         if full_result != result {
@@ -67,56 +64,60 @@ impl<E: Effect> CELearner<E> {
     {
         let observed_effect = E::generate_effects(old_state, new_state);
 
-        if observed_effect.is_none() {
-            for &mut (ref mut condition_learner, _) in &mut self.condition_effects {
-                condition_learner.apply_experience(condition, false);
-            }
-            return;
-        }
-
-        let mut found_entry = false;
-        for &mut (ref mut condition_learner, ref learned_effect) in &mut self.condition_effects {
-            if observed_effect == *learned_effect {
-                condition_learner.apply_experience(condition, true);
-                found_entry = true;
-            } else {
-                condition_learner.apply_experience(condition, false);
-            }
-        }
-
-        if !found_entry {
-            let mut condition_learner = ConditionLearner::new();
-            condition_learner.apply_experience(condition, true);
-
-            for &(ref other_condition_learner, _) in &self.condition_effects {
-                condition_learner.remove_overlap(other_condition_learner);
-            }
-
-            self.condition_effects
-                .push((condition_learner, observed_effect));
-        }
-
-        // Check for overlapping conditions.
-        if !self.condition_effects.is_empty() {
-            let mut has_conflict = false;
-
-            for i in 0..(self.condition_effects.len() - 1) {
-                let &(ref condition_learner, _) = &self.condition_effects[i];
-
-                for j in (i + 1)..self.condition_effects.len() {
-                    let &(ref other_condition_learner, _) = &self.condition_effects[j];
-
-                    if condition_learner.overlaps(other_condition_learner) {
-                        has_conflict = true;
-                        break;
-                    }
+        match observed_effect {
+            None => {
+                for &mut (ref mut condition_learner, _) in &mut self.condition_effects {
+                    condition_learner.apply_experience(condition, false);
                 }
             }
 
-            if has_conflict {
-                self.condition_effects = Vec::new();
+            Some( observed_effect ) => {
+                let mut found_entry = false;
+                for &mut (ref mut condition_learner, ref learned_effect) in &mut self.condition_effects {
+                    if observed_effect == *learned_effect {
+                        condition_learner.apply_experience(condition, true);
+                        found_entry = true;
+                    } else {
+                        condition_learner.apply_experience(condition, false);
+                    }
+                }
+
+                if !found_entry {
+                    let mut condition_learner = ConditionLearner::new();
+                    condition_learner.apply_experience(condition, true);
+
+                    for &(ref other_condition_learner, _) in &self.condition_effects {
+                        condition_learner.remove_overlap(other_condition_learner);
+                    }
+
+                    self.condition_effects
+                        .push((condition_learner, observed_effect));
+                }
+
+                // Check for overlapping conditions.
+                if !self.condition_effects.is_empty() {
+                    let mut has_conflict = false;
+
+                    for i in 0..(self.condition_effects.len() - 1) {
+                        let &(ref condition_learner, _) = &self.condition_effects[i];
+
+                        for j in (i + 1)..self.condition_effects.len() {
+                            let &(ref other_condition_learner, _) = &self.condition_effects[j];
+
+                            if condition_learner.overlaps(other_condition_learner) {
+                                has_conflict = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if has_conflict {
+                        self.condition_effects = Vec::new();
+                    }
+                }                
             }
         }
+
     }
 }
 
@@ -131,13 +132,7 @@ impl<E: Effect + fmt::Display> fmt::Display for CELearner<E> {
         write!(f, "CL(")?;
         let mut leader = " ";
         for &(ref condition_learner, ref learned_effect) in &self.condition_effects {
-            match *learned_effect {
-                Some(ref learned_effect) => {
-                    write!(f, "{}{} => {}", leader, condition_learner, learned_effect)?
-                }
-                None => write!(f, "{}{} => None", leader, condition_learner)?,
-            }
-
+            write!(f, "{}{} => {}", leader, condition_learner, learned_effect)?;
             leader = ", ";
         }
         write!(f, " )")
