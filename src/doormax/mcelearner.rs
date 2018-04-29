@@ -32,10 +32,23 @@ impl<E: Effect> CELearner<E> {
         for &(ref condition_learner, ref learned_effect) in &self.condition_effects {
             let matches_condition = condition_learner.predict(condition);
             match matches_condition {
+
+                // A condition learner returns None if it does not have enough
+                // information to know if this condition applies.  So we
+                // return None to show that this needs to be explored.
                 None => {
                     return Ok(None);
                 }
+                
+                // If the condition does not match this learner, ignore it.
                 Some(false) => (),
+
+                // There is a match.  If we supported multiple effect types per
+                // learner, there could be a conflict (ie. a set value and increment
+                // value effect could have been learned for the same condition).  This
+                // code does not really support multiple effect types per learner, but
+                // we go ahead and pretend it does just to show where the conflict checking
+                // needs to be.
                 Some(true) => {
                     let result = learned_effect.apply(world, state)?;
 
@@ -54,6 +67,12 @@ impl<E: Effect> CELearner<E> {
         if full_result.is_some() {
             Ok(full_result)
         } else {
+            // full_result is None only if we know that
+            // this condition does not match any effects.
+            // Hence, full_result == None does _not_ mean
+            // unknown effect (which is what return Ok(None) means),
+            // but instead it means that there is no effect on the
+            // state. 
             Ok(Some(*state))
         }
     }

@@ -65,6 +65,7 @@ pub struct MaxQConfig {
 #[derive(Deserialize, Debug)]
 pub struct DoorMaxConfig {
     pub gamma: f64,
+    pub use_reward_learner: bool,
     pub known_count: f64,
     pub error_delta: f64,
 }

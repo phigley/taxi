@@ -226,6 +226,7 @@ fn run() -> Result<(), AppError> {
                     DoorMax::new(
                         &world,
                         doormax_config.gamma,
+                        doormax_config.use_reward_learner,
                         doormax_config.known_count,
                         doormax_config.error_delta,
                     )
@@ -362,6 +363,7 @@ fn run() -> Result<(), AppError> {
                         &mut DoorMax::new(
                             &world,
                             doormax_config.gamma,
+                            doormax_config.use_reward_learner,
                             doormax_config.known_count,
                             doormax_config.error_delta,
                         ),
