@@ -358,5 +358,10 @@ impl Runner for DoorMax {
 
         // println!("MCELearner:");
         // println!("{}", self.mcelearner);
+
+        // if self.use_reward_learner {
+        //     println!("{}", self.rewardlearner);
+        // }
+
     }
 }

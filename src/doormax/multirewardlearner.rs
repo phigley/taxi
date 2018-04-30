@@ -85,7 +85,7 @@ impl RewardLearner {
             if has_conflict {
                 self.condition_rewards = Vec::new();
             }
-
+            
             // Now add our new condition_learner.
             self.condition_rewards
                 .push((condition_learner, reward));
@@ -183,5 +183,115 @@ impl fmt::Display for MultiRewardLearner {
         }
         write!(f, "\n")?;
         Ok(())
+    }
+}
+
+
+#[cfg(test)]
+mod multirewardlearner_test {
+    use super::*;
+    use actions::Actions;
+
+    #[test]
+    fn learns_pickup() {
+        let source_world = "\
+                            ┌───┬─────┐\n\
+                            │R .│. . .│\n\
+                            │   │     │\n\
+                            │. .│G . .│\n\
+                            │         │\n\
+                            │. . . . .│\n\
+                            │         │\n\
+                            │.│Y .│B .│\n\
+                            │ │   │   │\n\
+                            │.│. .│. .│\n\
+                            └─┴───┴───┘\n\
+                            ";
+
+        let w = World::build_from_str(source_world).unwrap();
+
+        let off_passenger = State::build(&w, (0, 1), Some('R'), 'B').unwrap();
+        let (off_passenger_reward, _) = off_passenger.apply_action(&w, Actions::PickUp);
+        assert_eq!(off_passenger_reward, -10.0);
+
+        let mut learner = MultiRewardLearner::new();
+
+        assert_eq!(learner.predict(&w, &off_passenger, Actions::PickUp), None);
+
+        learner.apply_experience(&w, &off_passenger, Actions::PickUp, off_passenger_reward);
+
+        assert_eq!(learner.predict(&w, &off_passenger, Actions::PickUp), Some(off_passenger_reward));
+
+        let on_passenger = State::build(&w, (0, 0), Some('R'), 'B').unwrap();
+        let (on_passenger_reward, _) = on_passenger.apply_action(&w, Actions::PickUp);
+        assert_eq!(on_passenger_reward, 0.0);
+        
+        assert_eq!(learner.predict(&w, &on_passenger, Actions::PickUp), None);
+        assert_eq!(learner.predict(&w, &off_passenger, Actions::PickUp), Some(off_passenger_reward));
+
+        learner.apply_experience(&w, &on_passenger, Actions::PickUp, on_passenger_reward);
+
+        assert_eq!(learner.predict(&w, &on_passenger, Actions::PickUp), Some(on_passenger_reward));
+        assert_eq!(learner.predict(&w, &off_passenger, Actions::PickUp), Some(off_passenger_reward));
+    }
+
+    #[test]
+    fn learns_dropoff() {
+        let source_world = "\
+                            ┌───┬─────┐\n\
+                            │R .│. . .│\n\
+                            │   │     │\n\
+                            │. .│G . .│\n\
+                            │         │\n\
+                            │. . . . .│\n\
+                            │         │\n\
+                            │.│Y .│B .│\n\
+                            │ │   │   │\n\
+                            │.│. .│. .│\n\
+                            └─┴───┴───┘\n\
+                            ";
+
+        let w = World::build_from_str(source_world).unwrap();
+
+        let no_passenger = State::build(&w, (3,3), Some('R'), 'B').unwrap();
+        let (no_passenger_reward, _) = no_passenger.apply_action(&w, Actions::DropOff);
+        assert_eq!(no_passenger_reward, -10.0);
+
+        let mut learner = MultiRewardLearner::new();
+
+        assert_eq!(learner.predict(&w, &no_passenger, Actions::DropOff), None);
+
+        learner.apply_experience(&w, &no_passenger, Actions::DropOff, no_passenger_reward);
+
+        assert_eq!(learner.predict(&w, &no_passenger, Actions::DropOff), Some(no_passenger_reward));
+
+        let off_destination = State::build(&w, (1,3), None, 'B').unwrap();
+        let (off_destination_reward, _) = off_destination.apply_action(&w, Actions::DropOff);
+        assert_eq!(off_destination_reward, -10.0);
+        
+        assert_eq!(learner.predict(&w, &off_destination, Actions::DropOff), None);
+
+        learner.apply_experience(&w, &off_destination, Actions::DropOff, off_destination_reward);
+
+        assert_eq!(learner.predict(&w, &off_destination, Actions::DropOff), Some(off_destination_reward));
+        assert_eq!(learner.predict(&w, &no_passenger, Actions::DropOff), Some(no_passenger_reward));
+
+        let on_destination = State::build(&w, (3,3), None, 'B').unwrap();
+        let (on_destination_reward, _) = on_destination.apply_action(&w, Actions::DropOff);
+        assert_eq!(on_destination_reward, 0.0);
+        
+        // This fails, it will predict Some(-10) because no_passenger
+        // and off_destination states have taught that those 2 conditions are **
+        // for that effect.  This is what Diuk is talking about when he says
+        // disjunctions cannot be learned.
+        //assert_eq!(learner.predict(&w, &on_destination, Actions::DropOff), None);
+
+        learner.apply_experience(&w, &on_destination, Actions::DropOff, on_destination_reward);
+
+        // off_destination and no_passenger will now be None because they were removed
+        // as conflicts.
+        assert_eq!(learner.predict(&w, &on_destination, Actions::DropOff), Some(on_destination_reward));
+        assert_eq!(learner.predict(&w, &off_destination, Actions::DropOff), Some(off_destination_reward));
+        assert_eq!(learner.predict(&w, &no_passenger, Actions::DropOff), Some(no_passenger_reward));
     }
 }

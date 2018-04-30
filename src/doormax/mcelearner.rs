@@ -111,29 +111,33 @@ impl<E: Effect> CELearner<E> {
 
                     self.condition_effects
                         .push((condition_learner, observed_effect));
-                }
 
-                // Check for overlapping conditions.
-                if !self.condition_effects.is_empty() {
-                    let mut has_conflict = false;
+                } else {
 
-                    for i in 0..(self.condition_effects.len() - 1) {
-                        let &(ref condition_learner, _) = &self.condition_effects[i];
+                    // Check for overlapping conditions.
+                    if !self.condition_effects.is_empty() {
+                        let mut has_conflict = false;
 
-                        for j in (i + 1)..self.condition_effects.len() {
-                            let &(ref other_condition_learner, _) = &self.condition_effects[j];
+                        for i in 0..(self.condition_effects.len() - 1) {
+                            let &(ref condition_learner, _) = &self.condition_effects[i];
 
-                            if condition_learner.overlaps(other_condition_learner) {
-                                has_conflict = true;
-                                break;
+                            for j in (i + 1)..self.condition_effects.len() {
+                                let &(ref other_condition_learner, _) = &self.condition_effects[j];
+
+                                // overlaps checks if either learner's truth hypothesis
+                                // is contained in the other's
+                                if condition_learner.overlaps(other_condition_learner) {
+                                    has_conflict = true;
+                                    break;
+                                }
                             }
                         }
-                    }
 
-                    if has_conflict {
-                        self.condition_effects = Vec::new();
-                    }
-                }                
+                        if has_conflict {
+                            self.condition_effects = Vec::new();
+                        }
+                    }                
+                }
             }
         }
 
