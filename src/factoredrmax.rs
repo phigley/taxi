@@ -695,7 +695,7 @@ impl Runner for FactoredRMax {
     }
 
     fn report_training_result(&self, _world: &World) {
-        // let mut rng = Isaac64Rng::new_unseeded();
+        // let mut rng = Isaac64Rng::new_from_u64(0);
 
         // let num_states = self.state_indexer.num_states();
         // for state_index in 0..num_states {
@@ -914,7 +914,7 @@ mod test_factoredrmax {
         let initial_state = state.clone();
         assert_eq!(expected_initial_state, initial_state.display(&world));
 
-        let mut rng = Isaac64Rng::new_unseeded();
+        let mut rng = Isaac64Rng::new_from_u64(0);
 
         let result = factoredrmax.learn(&world, state, 100, &mut rng);
         assert!(result.is_some());
