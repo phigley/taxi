@@ -318,7 +318,7 @@ impl Runner for DoorMax {
     }
 
     fn report_training_result(&self, _world: &World) {
-        // let mut rng = Isaac64Rng::new_unseeded();
+        // let mut rng = Isaac64Rng::new_from_u64(0);
 
         // let num_states = self.state_indexer.num_states();
         // for state_index in 0..num_states {
