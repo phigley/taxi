@@ -1,4 +1,5 @@
-use rand::{Rand, Rng};
+use rand::Rng;
+use rand::distributions::{ Distribution, Standard};
 use std::fmt;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -37,9 +38,8 @@ impl Actions {
         }
     }
 }
-
-impl Rand for Actions {
-    fn rand<R: Rng>(rng: &mut R) -> Actions {
+impl Distribution<Actions> for Standard {
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Actions {
         let actions = [
             Actions::North,
             Actions::South,
