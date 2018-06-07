@@ -20,8 +20,8 @@ use state_indexer::StateIndexer;
 use world::World;
 
 use self::mcelearner::MCELearner;
-use self::reward::Rewards;
 use self::multirewardlearner::MultiRewardLearner;
+use self::reward::Rewards;
 
 use runner::{Attempt, Runner};
 
@@ -34,10 +34,10 @@ pub struct DoorMax {
 
     use_reward_learner: bool,
     rewardlearner: MultiRewardLearner,
-    
+
     rewards: Rewards,
     known_reward_count: f64,
-    
+
     value_table: Vec<f64>,
 
     gamma: f64,
@@ -45,7 +45,13 @@ pub struct DoorMax {
 }
 
 impl DoorMax {
-    pub fn new(world: &World, gamma: f64, use_reward_learner: bool, known_reward_count: f64, error_delta: f64) -> Self {
+    pub fn new(
+        world: &World,
+        gamma: f64,
+        use_reward_learner: bool,
+        known_reward_count: f64,
+        error_delta: f64,
+    ) -> Self {
         let state_indexer = StateIndexer::new(world);
         let num_states = state_indexer.num_states();
         let value_table = vec![0.0; num_states];
@@ -86,9 +92,10 @@ impl DoorMax {
     ) {
         self.mcelearner
             .apply_experience(world, state, action, new_state);
-        
+
         if self.use_reward_learner {
-            self.rewardlearner.apply_experience(world, state, action, reward);
+            self.rewardlearner
+                .apply_experience(world, state, action, reward);
         } else {
             self.rewards.apply_experience(reward, world, state, action);
         }

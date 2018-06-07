@@ -112,14 +112,7 @@ fn factored_rmax(c: &mut Criterion) {
             let mut factored_rmax = FactoredRMax::new(&data.world, 0.3, 1.0, 1.0e-6);
             let rng = &mut source_rng.clone();
 
-            run_training_session(
-                &data.world,
-                &data.probes,
-                1,
-                10,
-                &mut factored_rmax,
-                rng,
-            )
+            run_training_session(&data.world, &data.probes, 1, 10, &mut factored_rmax, rng)
         })
     });
 }

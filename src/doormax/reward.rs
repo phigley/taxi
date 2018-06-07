@@ -115,7 +115,8 @@ fn total_reward_parents(world: &World) -> usize {
     let num_destination_values = world.num_fixed_positions();
     let num_passenger_values = num_destination_values + 1;
 
-    num_taxi_values * 4 + num_passenger_values * num_taxi_values
+    num_taxi_values * 4
+        + num_passenger_values * num_taxi_values
         + num_destination_values * num_passenger_values * num_taxi_values
 }
 

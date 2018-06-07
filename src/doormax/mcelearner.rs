@@ -32,14 +32,13 @@ impl<E: Effect> CELearner<E> {
         for &(ref condition_learner, ref learned_effect) in &self.condition_effects {
             let matches_condition = condition_learner.predict(condition);
             match matches_condition {
-
                 // A condition learner returns None if it does not have enough
                 // information to know if this condition applies.  So we
                 // return None to show that this needs to be explored.
                 None => {
                     return Ok(None);
                 }
-                
+
                 // If the condition does not match this learner, ignore it.
                 Some(false) => (),
 
@@ -72,7 +71,7 @@ impl<E: Effect> CELearner<E> {
             // Hence, full_result == None does _not_ mean
             // unknown effect (which is what return Ok(None) means),
             // but instead it means that there is no effect on the
-            // state. 
+            // state.
             Ok(Some(*state))
         }
     }
@@ -90,9 +89,11 @@ impl<E: Effect> CELearner<E> {
                 }
             }
 
-            Some( observed_effect ) => {
+            Some(observed_effect) => {
                 let mut found_entry = false;
-                for &mut (ref mut condition_learner, ref learned_effect) in &mut self.condition_effects {
+                for &mut (ref mut condition_learner, ref learned_effect) in
+                    &mut self.condition_effects
+                {
                     if observed_effect == *learned_effect {
                         condition_learner.apply_experience(condition, true);
                         found_entry = true;
@@ -111,9 +112,7 @@ impl<E: Effect> CELearner<E> {
 
                     self.condition_effects
                         .push((condition_learner, observed_effect));
-
                 } else {
-
                     // Check for overlapping conditions.
                     if !self.condition_effects.is_empty() {
                         let mut has_conflict = false;
@@ -136,11 +135,10 @@ impl<E: Effect> CELearner<E> {
                         if has_conflict {
                             self.condition_effects = Vec::new();
                         }
-                    }                
+                    }
                 }
             }
         }
-
     }
 }
 

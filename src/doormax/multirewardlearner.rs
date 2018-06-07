@@ -7,7 +7,6 @@ use actions::Actions;
 use state::State;
 use world::World;
 
-
 #[derive(Debug, Clone)]
 pub struct RewardLearner {
     condition_rewards: Vec<(ConditionLearner, f64)>,
@@ -20,10 +19,7 @@ impl RewardLearner {
         }
     }
 
-    pub fn predict(
-        &self,
-        condition: &Condition,
-    ) -> Option<f64> {
+    pub fn predict(&self, condition: &Condition) -> Option<f64> {
         let mut full_result = None;
 
         for &(ref condition_learner, learned_reward) in &self.condition_rewards {
@@ -52,8 +48,7 @@ impl RewardLearner {
         full_result
     }
 
-    pub fn apply_experience(&mut self, condition: &Condition, reward: f64)
-    {
+    pub fn apply_experience(&mut self, condition: &Condition, reward: f64) {
         let mut found_entry = false;
         for &mut (ref mut condition_learner, learned_reward) in &mut self.condition_rewards {
             if reward == learned_reward {
@@ -85,13 +80,10 @@ impl RewardLearner {
             if has_conflict {
                 self.condition_rewards = Vec::new();
             }
-            
+
             // Now add our new condition_learner.
-            self.condition_rewards
-                .push((condition_learner, reward));
-
+            self.condition_rewards.push((condition_learner, reward));
         } else {
-
             // Check for overlapping conditions.
             if !self.condition_rewards.is_empty() {
                 let mut has_conflict = false;
@@ -112,8 +104,7 @@ impl RewardLearner {
                 if has_conflict {
                     self.condition_rewards = Vec::new();
                 }
-            }                
-
+            }
         }
     }
 }
@@ -148,25 +139,14 @@ impl MultiRewardLearner {
         }
     }
 
-    pub fn predict(
-        &self,
-        world: &World,
-        state: &State,
-        action: Actions,
-    ) -> Option<f64> {
+    pub fn predict(&self, world: &World, state: &State, action: Actions) -> Option<f64> {
         let condition = Condition::new(world, state);
         let action_index = action.to_index();
 
         self.reward_learners[action_index].predict(&condition)
     }
 
-    pub fn apply_experience(
-        &mut self,
-        world: &World,
-        state: &State,
-        action: Actions,
-        reward: f64,
-    ) {
+    pub fn apply_experience(&mut self, world: &World, state: &State, action: Actions, reward: f64) {
         let condition = Condition::new(world, state);
         let action_index = action.to_index();
 
@@ -185,7 +165,6 @@ impl fmt::Display for MultiRewardLearner {
         Ok(())
     }
 }
-
 
 #[cfg(test)]
 mod multirewardlearner_test {
@@ -220,19 +199,31 @@ mod multirewardlearner_test {
 
         learner.apply_experience(&w, &off_passenger, Actions::PickUp, off_passenger_reward);
 
-        assert_eq!(learner.predict(&w, &off_passenger, Actions::PickUp), Some(off_passenger_reward));
+        assert_eq!(
+            learner.predict(&w, &off_passenger, Actions::PickUp),
+            Some(off_passenger_reward)
+        );
 
         let on_passenger = State::build(&w, (0, 0), Some('R'), 'B').unwrap();
         let (on_passenger_reward, _) = on_passenger.apply_action(&w, Actions::PickUp);
         assert_eq!(on_passenger_reward, 0.0);
-        
+
         assert_eq!(learner.predict(&w, &on_passenger, Actions::PickUp), None);
-        assert_eq!(learner.predict(&w, &off_passenger, Actions::PickUp), Some(off_passenger_reward));
+        assert_eq!(
+            learner.predict(&w, &off_passenger, Actions::PickUp),
+            Some(off_passenger_reward)
+        );
 
         learner.apply_experience(&w, &on_passenger, Actions::PickUp, on_passenger_reward);
 
-        assert_eq!(learner.predict(&w, &on_passenger, Actions::PickUp), Some(on_passenger_reward));
-        assert_eq!(learner.predict(&w, &off_passenger, Actions::PickUp), Some(off_passenger_reward));
+        assert_eq!(
+            learner.predict(&w, &on_passenger, Actions::PickUp),
+            Some(on_passenger_reward)
+        );
+        assert_eq!(
+            learner.predict(&w, &off_passenger, Actions::PickUp),
+            Some(off_passenger_reward)
+        );
     }
 
     #[test]
@@ -253,7 +244,7 @@ mod multirewardlearner_test {
 
         let w = World::build_from_str(source_world).unwrap();
 
-        let no_passenger = State::build(&w, (3,3), Some('R'), 'B').unwrap();
+        let no_passenger = State::build(&w, (3, 3), Some('R'), 'B').unwrap();
         let (no_passenger_reward, _) = no_passenger.apply_action(&w, Actions::DropOff);
         assert_eq!(no_passenger_reward, -10.0);
 
@@ -263,23 +254,40 @@ mod multirewardlearner_test {
 
         learner.apply_experience(&w, &no_passenger, Actions::DropOff, no_passenger_reward);
 
-        assert_eq!(learner.predict(&w, &no_passenger, Actions::DropOff), Some(no_passenger_reward));
+        assert_eq!(
+            learner.predict(&w, &no_passenger, Actions::DropOff),
+            Some(no_passenger_reward)
+        );
 
-        let off_destination = State::build(&w, (1,3), None, 'B').unwrap();
+        let off_destination = State::build(&w, (1, 3), None, 'B').unwrap();
         let (off_destination_reward, _) = off_destination.apply_action(&w, Actions::DropOff);
         assert_eq!(off_destination_reward, -10.0);
-        
-        assert_eq!(learner.predict(&w, &off_destination, Actions::DropOff), None);
 
-        learner.apply_experience(&w, &off_destination, Actions::DropOff, off_destination_reward);
+        assert_eq!(
+            learner.predict(&w, &off_destination, Actions::DropOff),
+            None
+        );
 
-        assert_eq!(learner.predict(&w, &off_destination, Actions::DropOff), Some(off_destination_reward));
-        assert_eq!(learner.predict(&w, &no_passenger, Actions::DropOff), Some(no_passenger_reward));
+        learner.apply_experience(
+            &w,
+            &off_destination,
+            Actions::DropOff,
+            off_destination_reward,
+        );
 
-        let on_destination = State::build(&w, (3,3), None, 'B').unwrap();
+        assert_eq!(
+            learner.predict(&w, &off_destination, Actions::DropOff),
+            Some(off_destination_reward)
+        );
+        assert_eq!(
+            learner.predict(&w, &no_passenger, Actions::DropOff),
+            Some(no_passenger_reward)
+        );
+
+        let on_destination = State::build(&w, (3, 3), None, 'B').unwrap();
         let (on_destination_reward, _) = on_destination.apply_action(&w, Actions::DropOff);
         assert_eq!(on_destination_reward, 0.0);
-        
+
         // This fails, it will predict Some(-10) because no_passenger
         // and off_destination states have taught that those 2 conditions are **
         // for that effect.  This is what Diuk is talking about when he says
@@ -290,8 +298,17 @@ mod multirewardlearner_test {
 
         // off_destination and no_passenger will now be None because they were removed
         // as conflicts.
-        assert_eq!(learner.predict(&w, &on_destination, Actions::DropOff), Some(on_destination_reward));
-        assert_eq!(learner.predict(&w, &off_destination, Actions::DropOff), Some(off_destination_reward));
-        assert_eq!(learner.predict(&w, &no_passenger, Actions::DropOff), Some(no_passenger_reward));
+        assert_eq!(
+            learner.predict(&w, &on_destination, Actions::DropOff),
+            Some(on_destination_reward)
+        );
+        assert_eq!(
+            learner.predict(&w, &off_destination, Actions::DropOff),
+            Some(off_destination_reward)
+        );
+        assert_eq!(
+            learner.predict(&w, &no_passenger, Actions::DropOff),
+            Some(no_passenger_reward)
+        );
     }
 }

@@ -5,10 +5,10 @@ use std::io;
 use termion::event;
 use termion::input::TermRead;
 
-use tui::Terminal;
 use tui::backend::RawBackend;
 use tui::layout::{Direction, Group, Rect, Size};
 use tui::widgets::{Paragraph, Widget};
+use tui::Terminal;
 
 use taxi::actions::Actions;
 use taxi::runner::Attempt;

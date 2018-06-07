@@ -1,5 +1,5 @@
+use rand::distributions::{Distribution, Standard};
 use rand::Rng;
-use rand::distributions::{ Distribution, Standard};
 use std::fmt;
 
 #[derive(Debug, Clone, Copy, PartialEq)]

@@ -7,9 +7,9 @@ use actions::Actions;
 use state::State;
 use world::World;
 
-use maxq::MaxQParams;
 use maxq::nodestorage::NodeStorage;
 use maxq::qnode::{QNode, QNodeType};
+use maxq::MaxQParams;
 
 #[derive(Debug, Clone, Copy)]
 pub enum MaxNodeType {

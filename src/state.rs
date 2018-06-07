@@ -94,7 +94,9 @@ impl State {
         passenger: Option<char>,
         destination: char,
     ) -> Result<State, Error> {
-        if taxi_pos.0 < 0 || taxi_pos.0 >= world.width || taxi_pos.1 < 0
+        if taxi_pos.0 < 0
+            || taxi_pos.0 >= world.width
+            || taxi_pos.1 < 0
             || taxi_pos.1 >= world.height
         {
             return Err(Error::InvalidTaxi {

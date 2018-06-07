@@ -28,7 +28,8 @@ impl MeasureDistribution {
 
                 let delta = other.mean - self.mean;
 
-                let new_mean_2 = self.mean_2 + other.mean_2
+                let new_mean_2 = self.mean_2
+                    + other.mean_2
                     + (delta * delta * (self.count * other.count / total_count));
 
                 self.mean = new_mean;
