@@ -244,9 +244,9 @@ impl Runner for QLearner {
 #[cfg(test)]
 mod test_qlearner {
 
-    use rand::thread_rng;
-
     use super::*;
+    use rand::thread_rng;
+    use world::Costs;
 
     #[test]
     fn learns_go_north() {
@@ -258,7 +258,7 @@ mod test_qlearner {
                          └───┘\n\
                          ";
 
-        let world = World::build_from_str(world_str).unwrap();
+        let world = World::build_from_str(world_str, Costs::default()).unwrap();
 
         let expected_initial_str = "\
                                     ┌───┐\n\
@@ -314,7 +314,7 @@ mod test_qlearner {
                          └───┘\n\
                          ";
 
-        let world = World::build_from_str(world_str).unwrap();
+        let world = World::build_from_str(world_str, Costs::default()).unwrap();
 
         let qlearner = QLearner::new(&world, 1.0, 1.0, 0.0, false);
 
@@ -392,7 +392,7 @@ mod test_qlearner {
                          └───┘\n\
                          ";
 
-        let world = World::build_from_str(world_str).unwrap();
+        let world = World::build_from_str(world_str, Costs::default()).unwrap();
 
         let qlearner = QLearner::new(&world, 1.0, 1.0, 0.0, false);
 

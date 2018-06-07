@@ -2,7 +2,7 @@ extern crate taxi;
 
 use taxi::actions::Actions;
 use taxi::state::*;
-use taxi::world::World;
+use taxi::world::{Costs, World};
 
 #[test]
 #[should_panic(expected = "'C'")]
@@ -21,7 +21,7 @@ fn build_fails_unknown_passenger() {
                         └─┴───┴───┘\n\
                         ";
 
-    let w = World::build_from_str(source_world).unwrap();
+    let w = World::build_from_str(source_world, Costs::default()).unwrap();
     State::build(&w, (1, 3), Some('C'), 'B').unwrap();
 }
 
@@ -42,7 +42,7 @@ fn build_fails_unknown_destination() {
                         └─┴───┴───┘\n\
                         ";
 
-    let w = World::build_from_str(source_world).unwrap();
+    let w = World::build_from_str(source_world, Costs::default()).unwrap();
     State::build(&w, (1, 3), Some('Y'), 'Q').unwrap();
 }
 
@@ -63,7 +63,7 @@ fn build_fails_invalid_taxi() {
                         └─┴───┴───┘\n\
                         ";
 
-    let w = World::build_from_str(source_world).unwrap();
+    let w = World::build_from_str(source_world, Costs::default()).unwrap();
     State::build(&w, (1, 6), Some('R'), 'B').unwrap();
 }
 
@@ -83,7 +83,7 @@ fn output_matches_str_simple() {
     expected_str += " t p \n";
     expected_str += "     \n";
 
-    let w = World::build_from_str(&source_world).unwrap();
+    let w = World::build_from_str(&source_world, Costs::default()).unwrap();
     let state = State::build(&w, (0, 1), Some('G'), 'R').unwrap();
 
     let output = state.display(&w);
@@ -106,7 +106,7 @@ fn output_matches_str_passenger_in_taxi() {
     expected_str += " T . \n";
     expected_str += "     \n";
 
-    let w = World::build_from_str(&source_world).unwrap();
+    let w = World::build_from_str(&source_world, Costs::default()).unwrap();
     let state = State::build(&w, (0, 1), None, 'R').unwrap();
 
     let output = state.display(&w);
@@ -143,7 +143,7 @@ fn output_matches_str_complex() {
                                 └─┴───┴───┘\n\
                                 ";
 
-    let world = World::build_from_str(source_world).unwrap();
+    let world = World::build_from_str(source_world, Costs::default()).unwrap();
     let initial_state = State::build(&world, (1, 3), Some('R'), 'B').unwrap();
 
     let initial_str = initial_state.display(&world);
@@ -180,7 +180,7 @@ fn move_allowed_north() {
                           └─┴───┴───┘\n\
                           ";
 
-    let world = World::build_from_str(source_world).unwrap();
+    let world = World::build_from_str(source_world, Costs::default()).unwrap();
     let initial_state = State::build(&world, (1, 3), Some('R'), 'G').unwrap();
 
     let (_, state_north) = initial_state.apply_action(&world, Actions::North);
@@ -217,7 +217,7 @@ fn move_top_north() {
                           └─┴───┴───┘\n\
                           ";
 
-    match World::build_from_str(source_world) {
+    match World::build_from_str(source_world, Costs::default()) {
         Err(msg) => panic!(msg),
         Ok(w) => match State::build(&w, (1, 0), Some('R'), 'G') {
             Err(msg) => panic!(msg),
@@ -259,7 +259,7 @@ fn move_wall_north() {
                           └─┴───┴───┘\n\
                           ";
 
-    match World::build_from_str(source_world) {
+    match World::build_from_str(source_world, Costs::default()) {
         Err(msg) => panic!(msg),
         Ok(w) => match State::build(&w, (1, 3), Some('R'), 'G') {
             Err(msg) => panic!(msg),
@@ -301,7 +301,7 @@ fn move_allowed_south() {
                           └─┴───┴───┘\n\
                           ";
 
-    match World::build_from_str(source_world) {
+    match World::build_from_str(source_world, Costs::default()) {
         Err(msg) => panic!(msg),
         Ok(w) => match State::build(&w, (3, 1), Some('R'), 'G') {
             Err(msg) => panic!(msg),
@@ -343,7 +343,7 @@ fn move_bottom_south() {
                           └─┴───┴───┘\n\
                           ";
 
-    match World::build_from_str(source_world) {
+    match World::build_from_str(source_world, Costs::default()) {
         Err(msg) => panic!(msg),
         Ok(w) => match State::build(&w, (0, 4), Some('R'), 'G') {
             Err(msg) => panic!(msg),
@@ -385,7 +385,7 @@ fn move_wall_south() {
                           └─┴───┴───┘\n\
                           ";
 
-    match World::build_from_str(source_world) {
+    match World::build_from_str(source_world, Costs::default()) {
         Err(msg) => panic!(msg),
         Ok(w) => match State::build(&w, (1, 2), Some('R'), 'G') {
             Err(msg) => panic!(msg),
@@ -427,7 +427,7 @@ fn move_allowed_east() {
                          └─┴───┴───┘\n\
                          ";
 
-    match World::build_from_str(source_world) {
+    match World::build_from_str(source_world, Costs::default()) {
         Err(msg) => panic!(msg),
         Ok(w) => match State::build(&w, (1, 2), Some('R'), 'G') {
             Err(msg) => panic!(msg),
@@ -469,7 +469,7 @@ fn move_right_east() {
                          └─┴───┴───┘\n\
                          ";
 
-    match World::build_from_str(source_world) {
+    match World::build_from_str(source_world, Costs::default()) {
         Err(msg) => panic!(msg),
         Ok(w) => match State::build(&w, (3, 1), Some('R'), 'G') {
             Err(msg) => panic!(msg),
@@ -511,7 +511,7 @@ fn move_wall_east() {
                          └─┴───┴───┘\n\
                          ";
 
-    match World::build_from_str(source_world) {
+    match World::build_from_str(source_world, Costs::default()) {
         Err(msg) => panic!(msg),
         Ok(w) => match State::build(&w, (1, 1), Some('R'), 'G') {
             Err(msg) => panic!(msg),
@@ -553,7 +553,7 @@ fn move_allowed_west() {
                          └─┴───┴───┘\n\
                          ";
 
-    match World::build_from_str(source_world) {
+    match World::build_from_str(source_world, Costs::default()) {
         Err(msg) => panic!(msg),
         Ok(w) => match State::build(&w, (1, 1), Some('R'), 'G') {
             Err(msg) => panic!(msg),
@@ -595,7 +595,7 @@ fn move_left_west() {
                          └─┴───┴───┘\n\
                          ";
 
-    match World::build_from_str(source_world) {
+    match World::build_from_str(source_world, Costs::default()) {
         Err(msg) => panic!(msg),
         Ok(w) => match State::build(&w, (1, 2), Some('R'), 'G') {
             Err(msg) => panic!(msg),
@@ -637,7 +637,7 @@ fn move_wall_west() {
                          └─┴───┴───┘\n\
                          ";
 
-    match World::build_from_str(source_world) {
+    match World::build_from_str(source_world, Costs::default()) {
         Err(msg) => panic!(msg),
         Ok(w) => match State::build(&w, (3, 4), Some('R'), 'G') {
             Err(msg) => panic!(msg),
@@ -677,7 +677,7 @@ fn reaches_destination() {
     // │.│. .│. .│
     // └─┴───┴───┘
 
-    match World::build_from_str(source_world) {
+    match World::build_from_str(source_world, Costs::default()) {
         Err(msg) => panic!(msg),
         Ok(w) => match State::build(&w, (2, 1), Some('R'), 'G') {
             Err(msg) => panic!(msg),
@@ -731,7 +731,7 @@ fn movement_reward() {
                                 └─────┘\n\
                                 ";
 
-    let world = World::build_from_str(source_world).unwrap();
+    let world = World::build_from_str(source_world, Costs::default()).unwrap();
     let initial_state = State::build(&world, (1, 2), Some('R'), 'G').unwrap();
 
     assert_eq!(expected_initial_str, initial_state.display(&world));
@@ -771,7 +771,7 @@ fn correct_pickup_reward() {
                                 └─────┘\n\
                                 ";
 
-    let world = World::build_from_str(source_world).unwrap();
+    let world = World::build_from_str(source_world, Costs::default()).unwrap();
     let initial_state = State::build(&world, (0, 0), Some('R'), 'G').unwrap();
 
     assert_eq!(expected_initial_str, initial_state.display(&world));
@@ -792,7 +792,7 @@ fn incorrect_pickup_reward() {
                         └─────┘\n\
                         ";
 
-    let world = World::build_from_str(source_world).unwrap();
+    let world = World::build_from_str(source_world, Costs::default()).unwrap();
 
     let expected_off_passenger_str = "\
                                       ┌─────┐\n\
@@ -867,7 +867,7 @@ fn incorrect_dropoff_reward() {
                         └─────┘\n\
                         ";
 
-    let world = World::build_from_str(source_world).unwrap();
+    let world = World::build_from_str(source_world, Costs::default()).unwrap();
 
     let expected_no_passenger_str = "\
                                      ┌─────┐\n\
@@ -974,7 +974,7 @@ fn tiny_state_iterator_walks_all() {
                         └───┘\n\
                         ";
 
-    let world = World::build_from_str(source_world).unwrap();
+    let world = World::build_from_str(source_world, Costs::default()).unwrap();
 
     // 2 x positions, 2 y positions, 2 destations, 3 passenger states
     let num_states = 2 * 2 * 2 * 3;
@@ -1002,7 +1002,7 @@ fn state_iterator_walks_all() {
                         └─────┘\n\
                         ";
 
-    let world = World::build_from_str(source_world).unwrap();
+    let world = World::build_from_str(source_world, Costs::default()).unwrap();
 
     // 3 x positions, 3 y positions, 3 destations, 4 passenger states
     let num_states = 3 * 3 * 3 * 4;

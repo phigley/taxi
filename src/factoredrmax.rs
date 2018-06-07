@@ -895,6 +895,7 @@ mod test_factoredrmax {
 
     use super::*;
     use rand::Isaac64Rng;
+    use world::Costs;
 
     #[test]
     fn learn_simple() {
@@ -906,7 +907,7 @@ mod test_factoredrmax {
                          └───┘\n\
                          ";
 
-        let world = World::build_from_str(world_str).unwrap();
+        let world = World::build_from_str(world_str, Costs::default()).unwrap();
 
         let mut factoredrmax = FactoredRMax::new(&world, 0.3, 1.0, 1.0e-6);
 

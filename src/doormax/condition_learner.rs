@@ -99,7 +99,7 @@ impl fmt::Display for ConditionLearner {
 mod condition_learner_test {
     use super::*;
     use state::State;
-    use world::World;
+    use world::{Costs, World};
 
     #[test]
     fn learns_north() {
@@ -111,7 +111,7 @@ mod condition_learner_test {
                       └───────┘\n\
                       ";
 
-        let w = World::build_from_str(source).unwrap();
+        let w = World::build_from_str(source, Costs::default()).unwrap();
 
         let mut ce = ConditionLearner::new();
 
@@ -167,7 +167,7 @@ mod condition_learner_test {
                       └───────┘\n\
                       ";
 
-        let w = World::build_from_str(source).unwrap();
+        let w = World::build_from_str(source, Costs::default()).unwrap();
 
         let mut ce = ConditionLearner::new();
 
@@ -203,7 +203,7 @@ mod condition_learner_test {
                       └───────┘\n\
                       ";
 
-        let w = World::build_from_str(source).unwrap();
+        let w = World::build_from_str(source, Costs::default()).unwrap();
 
         let mut ce = ConditionLearner::new();
 

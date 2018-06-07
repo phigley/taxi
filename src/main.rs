@@ -28,7 +28,7 @@ use configuration::{Configuration, SolverChoice};
 
 use taxi::distribution::MeasureDistribution;
 use taxi::state::State;
-use taxi::world::World;
+use taxi::world::{Costs, World};
 
 use taxi::doormax::DoorMax;
 use taxi::factoredrmax::FactoredRMax;
@@ -123,7 +123,13 @@ fn run() -> Result<(), AppError> {
 
     let config = Configuration::from_file(&args[1]).map_err(AppError::Configuration)?;
 
-    let world = World::build_from_str(&config.world).map_err(AppError::World)?;
+    let costs = Costs::new(
+        config.costs.movement,
+        config.costs.miss_pickup,
+        config.costs.miss_dropoff,
+        config.costs.empty_dropoff,
+    );
+    let world = World::build_from_str(&config.world, costs).map_err(AppError::World)?;
     let probes = build_probes(&config, &world)?;
 
     if config.sessions > 0 {

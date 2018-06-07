@@ -13,7 +13,7 @@ use taxi::qlearner::QLearner;
 use taxi::rmax::RMax;
 use taxi::runner::{run_training_session, Probe};
 use taxi::state::State;
-use taxi::world::World;
+use taxi::world::{Costs, World};
 
 criterion_group!(trainers, qlearner, rmax, factored_rmax);
 criterion_main!(trainers);
@@ -39,7 +39,7 @@ impl Default for SessionData {
         //                  └─┴───┴───┘\n\
         //                  ";
 
-        // let world = World::build_from_str(world_str).unwrap();
+        // let world = World::build_from_str(world_str, Costs::default()).unwrap();
 
         // let probes = vec![
         //     Probe::new(State::build(&world, (2, 2), Some('Y'), 'R').unwrap(), 10),
@@ -60,7 +60,7 @@ impl Default for SessionData {
                          └─────┘\n\
                          ";
 
-        let world = World::build_from_str(world_str).unwrap();
+        let world = World::build_from_str(world_str, Costs::default()).unwrap();
 
         let probes = vec![
             Probe::new(State::build(&world, (1, 1), Some('Y'), 'R').unwrap(), 4),

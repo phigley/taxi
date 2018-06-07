@@ -53,6 +53,31 @@ struct FixedPosition {
     position: Position,
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct Costs {
+    pub movement: f64,
+    pub miss_pickup: f64,
+    pub miss_dropoff: f64,
+    pub empty_dropoff: f64,
+}
+
+impl Costs {
+    pub fn new(movement: f64, miss_pickup: f64, miss_dropoff: f64, empty_dropoff: f64) -> Self {
+        Costs {
+            movement,
+            miss_pickup,
+            miss_dropoff,
+            empty_dropoff,
+        }
+    }
+}
+
+impl Default for Costs {
+    fn default() -> Self {
+        Costs::new(-1.0, -10.0, -10.0, -10.0)
+    }
+}
+
 #[derive(Debug, PartialEq)]
 pub struct World {
     pub width: i32,
@@ -60,8 +85,7 @@ pub struct World {
     walls: Vec<Vec<Wall>>,
     fixed_positions: Vec<FixedPosition>,
 
-    pub movement_cost: f64,
-    pub miss_passenger_cost: f64,
+    pub costs: Costs,
 }
 
 #[derive(Debug, PartialEq)]
@@ -121,7 +145,7 @@ impl fmt::Debug for ParseError {
 }
 
 impl World {
-    pub fn build_from_str(source: &str) -> Result<World, Error> {
+    pub fn build_from_str(source: &str, costs: Costs) -> Result<World, Error> {
         let mut lines = source.lines();
 
         if let Some(first_line) = lines.next() {
@@ -184,8 +208,7 @@ impl World {
                 walls,
                 fixed_positions,
 
-                movement_cost: -1.0,
-                miss_passenger_cost: -10.0,
+                costs,
             })
         } else {
             Err(Error::EmptyString)
@@ -615,7 +638,7 @@ mod test_world {
                       │.│\n\
                       └─┘";
 
-        let res = World::build_from_str(source);
+        let res = World::build_from_str(source, Costs::default());
         assert_matches!(res, Ok(World { height: 4, .. }))
     }
 
@@ -627,7 +650,7 @@ mod test_world {
                       └─────────┘\n\
                       ";
 
-        let res = World::build_from_str(source);
+        let res = World::build_from_str(source, Costs::default());
         assert_matches!(res, Ok(World { width: 5, .. }))
     }
 
@@ -641,7 +664,7 @@ mod test_world {
                       └───────┘\n\
                       ";
 
-        let res = World::build_from_str(source);
+        let res = World::build_from_str(source, Costs::default());
         assert_matches!(res, Err(_))
     }
 
@@ -655,7 +678,7 @@ mod test_world {
                       └─────────┘\n\
                       ";
 
-        let res = World::build_from_str(source);
+        let res = World::build_from_str(source, Costs::default());
         assert_matches!(res, Err(_))
     }
 
@@ -669,7 +692,7 @@ mod test_world {
                       └─────────┘\n\
                       ";
 
-        let res = World::build_from_str(source);
+        let res = World::build_from_str(source, Costs::default());
         assert_matches!(res, Err(_))
     }
 
@@ -683,7 +706,7 @@ mod test_world {
                       └────────┘\n\
                       ";
 
-        let res = World::build_from_str(source);
+        let res = World::build_from_str(source, Costs::default());
         assert_matches!(res, Err(_))
     }
 
@@ -697,7 +720,7 @@ mod test_world {
                       └───────┘\n\
                       ";
 
-        let res = World::build_from_str(source);
+        let res = World::build_from_str(source, Costs::default());
         assert_matches!(res, Err(_))
     }
 
@@ -711,7 +734,7 @@ mod test_world {
                       └─────────┘\n\
                       ";
 
-        let res = World::build_from_str(source);
+        let res = World::build_from_str(source, Costs::default());
         assert_matches!(res, Err(_))
     }
 
@@ -725,7 +748,7 @@ mod test_world {
                       └─────────┘\n\
                       ";
 
-        let res = World::build_from_str(source);
+        let res = World::build_from_str(source, Costs::default());
         assert_matches!(res, Err(_))
     }
 
@@ -739,7 +762,7 @@ mod test_world {
                       └──────────┘\n\
                       ";
 
-        let res = World::build_from_str(source);
+        let res = World::build_from_str(source, Costs::default());
         assert_matches!(res, Err(_))
     }
 
@@ -766,8 +789,7 @@ mod test_world {
             walls: vec![],
             fixed_positions: vec![],
 
-            movement_cost: -1.0,
-            miss_passenger_cost: -10.0,
+            costs: Costs::default(),
         }
     }
 
@@ -784,7 +806,7 @@ mod test_world {
         expected_w.height = 1;
         expected_w.walls = vec![vec![build_wall("nsew")]];
 
-        match World::build_from_str(source) {
+        match World::build_from_str(source, Costs::default()) {
             Err(msg) => panic!(msg),
             Ok(w) => {
                 assert_eq!(w, expected_w);
@@ -816,7 +838,7 @@ mod test_world {
             vec![build_wall("sw"), build_wall("s"), build_wall("se")],
         ];
 
-        match World::build_from_str(source) {
+        match World::build_from_str(source, Costs::default()) {
             Err(msg) => panic!(msg),
             Ok(w) => {
                 assert_eq!(w, expected_w);
@@ -860,7 +882,7 @@ mod test_world {
             ],
         ];
 
-        match World::build_from_str(source) {
+        match World::build_from_str(source, Costs::default()) {
             Err(msg) => panic!(msg),
             Ok(w) => {
                 assert_eq!(w, expected_w);
@@ -925,7 +947,7 @@ mod test_world {
             ],
         ];
 
-        match World::build_from_str(source) {
+        match World::build_from_str(source, Costs::default()) {
             Err(msg) => panic!(msg),
             Ok(w) => {
                 assert_eq!(w, expected_w);
@@ -971,7 +993,7 @@ mod test_world {
             },
         ];
 
-        match World::build_from_str(source) {
+        match World::build_from_str(source, Costs::default()) {
             Err(msg) => panic!(msg),
             Ok(w) => {
                 assert_eq!(w, expected_w);

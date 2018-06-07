@@ -170,6 +170,7 @@ impl fmt::Display for MultiRewardLearner {
 mod multirewardlearner_test {
     use super::*;
     use actions::Actions;
+    use world::Costs;
 
     #[test]
     fn learns_pickup() {
@@ -187,7 +188,7 @@ mod multirewardlearner_test {
                             └─┴───┴───┘\n\
                             ";
 
-        let w = World::build_from_str(source_world).unwrap();
+        let w = World::build_from_str(source_world, Costs::default()).unwrap();
 
         let off_passenger = State::build(&w, (0, 1), Some('R'), 'B').unwrap();
         let (off_passenger_reward, _) = off_passenger.apply_action(&w, Actions::PickUp);
@@ -242,7 +243,7 @@ mod multirewardlearner_test {
                             └─┴───┴───┘\n\
                             ";
 
-        let w = World::build_from_str(source_world).unwrap();
+        let w = World::build_from_str(source_world, Costs::default()).unwrap();
 
         let no_passenger = State::build(&w, (3, 3), Some('R'), 'B').unwrap();
         let (no_passenger_reward, _) = no_passenger.apply_action(&w, Actions::DropOff);

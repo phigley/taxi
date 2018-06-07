@@ -4,6 +4,8 @@ use std::io::prelude::*;
 
 use toml;
 
+use taxi::world::Costs;
+
 #[derive(Deserialize, Debug, Clone, Copy)]
 pub enum SolverChoice {
     Random,
@@ -88,9 +90,18 @@ pub struct Replay {
 }
 
 #[derive(Deserialize, Debug)]
+pub struct CostsConfig {
+    pub movement: f64,
+    pub miss_pickup: f64,
+    pub miss_dropoff: f64,
+    pub empty_dropoff: f64,
+}
+
+#[derive(Deserialize, Debug)]
 #[serde(default)]
 pub struct Configuration {
     pub world: String,
+    pub costs: CostsConfig,
     pub probes: Vec<Probe>,
     pub max_trials: usize,
     pub max_trial_steps: usize,
@@ -174,8 +185,16 @@ impl Default for Configuration {
                          └─┴───┴───┘\n\
                          ";
 
+        let costs = CostsConfig {
+            movement: Costs::default().movement,
+            miss_pickup: Costs::default().miss_pickup,
+            miss_dropoff: Costs::default().miss_dropoff,
+            empty_dropoff: Costs::default().empty_dropoff,
+        };
+
         Configuration {
             world: String::from(world_str),
+            costs,
             probes: vec![],
             max_trials: 1,
             max_trial_steps: 100,

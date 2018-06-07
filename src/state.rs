@@ -223,12 +223,19 @@ impl State {
         match world.determine_affect(&self.taxi, action) {
             ActionAffect::Invalid => match action {
                 Actions::North | Actions::South | Actions::East | Actions::West => {
-                    (world.movement_cost, *self)
+                    (world.costs.movement, *self)
                 }
-                Actions::PickUp | Actions::DropOff => (world.miss_passenger_cost, *self),
+                Actions::PickUp => (world.costs.miss_pickup, *self),
+                Actions::DropOff => {
+                    if self.passenger == None {
+                        (world.costs.miss_dropoff, *self)
+                    } else {
+                        (world.costs.empty_dropoff, *self)
+                    }
+                }
             },
             ActionAffect::Move(delta) => (
-                world.movement_cost,
+                world.costs.movement,
                 State {
                     taxi: self.taxi + delta,
                     ..*self
@@ -245,7 +252,7 @@ impl State {
                         },
                     )
                 } else {
-                    (world.miss_passenger_cost, *self)
+                    (world.costs.miss_pickup, *self)
                 }
             }
 
@@ -260,10 +267,10 @@ impl State {
                             },
                         )
                     } else {
-                        (world.miss_passenger_cost, *self)
+                        (world.costs.miss_dropoff, *self)
                     }
                 } else {
-                    (world.miss_passenger_cost, *self)
+                    (world.costs.empty_dropoff, *self)
                 }
             }
         }
@@ -350,6 +357,7 @@ mod test_state {
 
     use super::*;
     use rand::thread_rng;
+    use world::Costs;
 
     #[test]
     fn build_correct() {
@@ -367,7 +375,7 @@ mod test_state {
                             └─┴───┴───┘\n\
                             ";
 
-        let w = World::build_from_str(source_world).unwrap();
+        let w = World::build_from_str(source_world, Costs::default()).unwrap();
         let expected_state = State {
             taxi: Position::new(1, 3),
             passenger: Some('R'),
@@ -394,7 +402,7 @@ mod test_state {
                             └─┴───┴───┘\n\
                             ";
 
-        let w = World::build_from_str(source_world).unwrap();
+        let w = World::build_from_str(source_world, Costs::default()).unwrap();
 
         let initial_state = State::build(&w, (2, 2), Some('R'), 'G').unwrap();
 
@@ -437,7 +445,7 @@ mod test_state {
                             └─┴───┴───┘\n\
                             ";
 
-        let w = World::build_from_str(source_world).unwrap();
+        let w = World::build_from_str(source_world, Costs::default()).unwrap();
 
         let initial_state = State::build(&w, (1, 3), Some('R'), 'G').unwrap();
 
@@ -591,7 +599,7 @@ mod test_state {
             ),
         ];
 
-        let w = World::build_from_str(source).unwrap();
+        let w = World::build_from_str(source, Costs::default()).unwrap();
 
         let mut state = State::build(&w, (1, 2), Some('R'), 'G').unwrap();
         println!("");
@@ -815,7 +823,7 @@ mod test_state {
             ),
         ];
 
-        let w = World::build_from_str(source).unwrap();
+        let w = World::build_from_str(source, Costs::default()).unwrap();
 
         let mut state = State::build(&w, (1, 3), Some('R'), 'G').unwrap();
         println!("");
@@ -856,7 +864,7 @@ mod test_state {
                             └─┴───┴───┘\n\
                             ";
 
-        let w = World::build_from_str(source_world).unwrap();
+        let w = World::build_from_str(source_world, Costs::default()).unwrap();
 
         let mut rng = thread_rng();
 

@@ -2,7 +2,7 @@ extern crate taxi;
 
 use taxi::state::State;
 use taxi::state_indexer::StateIndexer;
-use taxi::world::World;
+use taxi::world::{Costs, World};
 
 #[test]
 fn indices_unique() {
@@ -20,7 +20,7 @@ fn indices_unique() {
 
     let possible_destinations = ['R', 'Y', 'G'];
 
-    let world = World::build_from_str(source_world).unwrap();
+    let world = World::build_from_str(source_world, Costs::default()).unwrap();
 
     let state_indexer = StateIndexer::new(&world);
 
