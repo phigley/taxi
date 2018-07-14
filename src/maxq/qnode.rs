@@ -65,8 +65,7 @@ impl QNode {
         world: &World,
         state: &State,
     ) -> Option<(f64, f64, Actions)> {
-        let completion = self
-            .get_completion_index(world, state)
+        let completion = self.get_completion_index(world, state)
             .map(|completion_index| self.completions[completion_index])
             .unwrap_or(0.0);
 
@@ -96,8 +95,7 @@ impl QNode {
         world: &World,
         state: &State,
     ) -> Option<(f64, f64, f64)> {
-        let (learning_completion, completion) = self
-            .get_completion_index(world, state)
+        let (learning_completion, completion) = self.get_completion_index(world, state)
             .map(|completion_index| {
                 (
                     self.learning_completions[completion_index],
