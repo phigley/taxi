@@ -470,7 +470,7 @@ where
                             );
 
                             // This may overlap with other reports, should we guard with a mutex?
-                            // solver.report_training_result(world);
+                            // solver.report_training_result(world, None);
                             // println!("Report Reults #{} : END", session_number);
                         }
                     };
@@ -479,7 +479,7 @@ where
 
                     // This may overlap with other reports, should we guard with a mutex?
                     // println!("Report Reults #{} : BEGIN", session_number);
-                    solver.report_training_result(world);
+                    solver.report_training_result(world, training_step_count);
                     // println!("Report Reults #{} : END", session_number);
 
                     Ok(stats)

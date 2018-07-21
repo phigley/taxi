@@ -306,5 +306,5 @@ impl Runner for RMax {
         state.at_destination()
     }
 
-    fn report_training_result(&self, _world: &World) {}
+    fn report_training_result(&self, _world: &World, _steps: Option<usize>) {}
 }

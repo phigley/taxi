@@ -40,7 +40,7 @@ pub trait Runner {
 
     fn solves<R: Rng>(&self, world: &World, state: State, max_steps: usize, rng: &mut R) -> bool;
 
-    fn report_training_result(&self, _world: &World) {}
+    fn report_training_result(&self, _world: &World, _steps: Option<usize>) {}
 }
 
 pub struct Attempt {

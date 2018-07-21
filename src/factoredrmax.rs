@@ -691,7 +691,7 @@ impl Runner for FactoredRMax {
         state.at_destination()
     }
 
-    fn report_training_result(&self, _world: &World) {
+    fn report_training_result(&self, _world: &World, _steps: Option<usize>) {
         // let mut rng = Isaac64Rng::new_from_u64(0);
 
         // let num_states = self.state_indexer.num_states();

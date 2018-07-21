@@ -229,7 +229,7 @@ impl Runner for QLearner {
         state.at_destination()
     }
 
-    fn report_training_result(&self, world: &World) {
+    fn report_training_result(&self, world: &World, _steps: Option<usize>) {
         if self.show_table {
             println!();
             for (i, action_values) in self.qtable.iter().enumerate() {

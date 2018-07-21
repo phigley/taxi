@@ -287,7 +287,7 @@ impl Runner for MaxQ {
         state.at_destination()
     }
 
-    fn report_training_result(&self, world: &World) {
+    fn report_training_result(&self, world: &World, _steps: Option<usize>) {
         if !self.show_table {
             return;
         }

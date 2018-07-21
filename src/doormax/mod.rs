@@ -324,24 +324,26 @@ impl Runner for DoorMax {
         self.solves(world, state, max_steps, rng).unwrap()
     }
 
-    fn report_training_result(&self, _world: &World) {
+    fn report_training_result(&self, _world: &World, _steps: Option<usize>) {
         // let mut rng = Isaac64Rng::new_from_u64(0);
 
         // let num_states = self.state_indexer.num_states();
         // for state_index in 0..num_states {
-        //     let state = self.state_indexer.get_state(world, state_index).unwrap();
+        //     let state = self.state_indexer.get_state(_world, state_index).unwrap();
 
         //     if !state.at_destination() {
-        //         if let Some(next_action) = self.select_best_action(world, &state, &mut rng).unwrap()
+        //         if let Some(next_action) =
+        //             self.select_best_action(_world, &state, &mut rng).unwrap()
         //         {
         //             println!("===================");
-        //             println!("{}", state.display(world));
+        //             println!("{}", state.display(_world));
         //             println!("Best action: {}", next_action);
 
-        //             if let Some(next_state) =
-        //                 self.mcelearner.predict(world, &state, next_action).unwrap()
+        //             if let Some(next_state) = self.mcelearner
+        //                 .predict(_world, &state, next_action)
+        //                 .unwrap()
         //             {
-        //                 println!("{}", next_state.display(world));
+        //                 println!("{}", next_state.display(_world));
         //             } else {
         //                 println!("Situation unknown.");
         //             }
@@ -349,8 +351,8 @@ impl Runner for DoorMax {
         //             for action_index in 0..Actions::NUM_ELEMENTS {
         //                 let action = Actions::from_index(action_index).unwrap();
 
-        //                 let reward = self.measure_reward(world, &state, action);
-        //                 let action_value = self.measure_value(world, &state, action).unwrap();
+        //                 let reward = self.measure_reward(_world, &state, action);
+        //                 let action_value = self.measure_value(_world, &state, action).unwrap();
         //                 println!(
         //                     "{} - {} + {} = {}",
         //                     action,
@@ -366,9 +368,10 @@ impl Runner for DoorMax {
         // println!("MCELearner:");
         // println!("{}", self.mcelearner);
 
-        // if self.use_reward_learner {
-        //     println!("{}", self.rewardlearner);
+        // if _steps.is_none() {
+        //     if self.use_reward_learner {
+        //         println!("{}", self.rewardlearner);
+        //     }
         // }
-
     }
 }

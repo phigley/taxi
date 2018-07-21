@@ -70,8 +70,12 @@ impl RewardLearner {
             // check for overlaps and remove old conditions if they exist.
             let mut has_conflict = false;
 
-            for &(ref other_condition_learner, _) in &self.condition_rewards {
+            for &(ref other_condition_learner, _other_reward) in &self.condition_rewards {
                 if condition_learner.overlaps(other_condition_learner) {
+                    println!(
+                        "Conflict with new condition {} => {} overlaps {} => {}",
+                        condition_learner, reward, other_condition_learner, _other_reward
+                    );
                     has_conflict = true;
                     break;
                 }
@@ -92,9 +96,14 @@ impl RewardLearner {
                     let &(ref condition_learner, _) = &self.condition_rewards[i];
 
                     for j in (i + 1)..self.condition_rewards.len() {
-                        let &(ref other_condition_learner, _) = &self.condition_rewards[j];
+                        let &(ref other_condition_learner, _other_reward) =
+                            &self.condition_rewards[j];
 
                         if condition_learner.overlaps(other_condition_learner) {
+                            println!(
+                                "Conflict with existing condition {} => {} overlaps {} => {}",
+                                condition_learner, reward, other_condition_learner, _other_reward
+                            );
                             has_conflict = true;
                             break;
                         }
@@ -151,6 +160,13 @@ impl MultiRewardLearner {
         let action_index = action.to_index();
 
         self.reward_learners[action_index].apply_experience(&condition, reward);
+
+        // if action == Actions::DropOff {
+        //     println!(
+        //         "Applied experience, {} => {}, now {}",
+        //         condition, reward, self.reward_learners[action_index]
+        //     );
+        // }
     }
 }
 
