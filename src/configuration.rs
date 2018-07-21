@@ -172,6 +172,9 @@ pub struct CostsConfig {
 pub struct Configuration {
     pub world: String,
     pub costs: CostsConfig,
+    // TOML only allows for signed 64 bit integers, not unsigned.
+    pub root_seed: Option<i64>,
+    pub rerun_seeds: Vec<i64>,
     pub probes: Vec<Probe>,
     pub max_trials: usize,
     pub max_trial_steps: usize,
@@ -265,10 +268,12 @@ impl Default for Configuration {
         Configuration {
             world: String::from(world_str),
             costs,
-            probes: vec![],
+            root_seed: None,
+            rerun_seeds: Vec::new(),
+            probes: Vec::new(),
             max_trials: 1,
             max_trial_steps: 100,
-            sessions: 1,
+            sessions: 0,
             random_solver: None,
             q_learner: None,
             r_max: None,

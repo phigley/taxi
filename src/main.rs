@@ -16,11 +16,12 @@ extern crate taxi;
 mod configuration;
 mod replay;
 
+use rand::Rng;
 use std::env;
 use std::fmt;
 use std::time;
 
-use rand::thread_rng;
+use rand::Isaac64Rng;
 
 use rayon::prelude::*;
 
@@ -132,6 +133,12 @@ fn run() -> Result<(), AppError> {
     let world = World::build_from_str(&config.world, costs).map_err(AppError::World)?;
     let probes = build_probes(&config, &world)?;
 
+    let root_seed = if let Some(config_seed) = config.root_seed {
+        config_seed as u64
+    } else {
+        rand::random()
+    };
+
     if config.sessions > 0 {
         let mut results = Vec::new();
 
@@ -142,6 +149,7 @@ fn run() -> Result<(), AppError> {
                 &world,
                 &probes,
                 &config,
+                root_seed,
                 &mut results,
             )?;
         };
@@ -160,6 +168,7 @@ fn run() -> Result<(), AppError> {
                 &world,
                 &probes,
                 &config,
+                root_seed,
                 &mut results,
             )?;
         };
@@ -178,6 +187,7 @@ fn run() -> Result<(), AppError> {
                 &world,
                 &probes,
                 &config,
+                root_seed,
                 &mut results,
             )?;
         };
@@ -196,6 +206,7 @@ fn run() -> Result<(), AppError> {
                 &world,
                 &probes,
                 &config,
+                root_seed,
                 &mut results,
             )?;
         };
@@ -215,6 +226,7 @@ fn run() -> Result<(), AppError> {
                 &world,
                 &probes,
                 &config,
+                root_seed,
                 &mut results,
             )?;
         };
@@ -234,6 +246,7 @@ fn run() -> Result<(), AppError> {
                 &world,
                 &probes,
                 &config,
+                root_seed,
                 &mut results,
             )?;
         };
@@ -248,14 +261,120 @@ fn run() -> Result<(), AppError> {
 
             println!(
                 "{:?} - finished {} sessions in {:.1} average steps with stddev of {:.2} \
-                 in {:.3} secs.",
+                 in {:.3} secs. Using seed {}",
                 solver_choice,
                 stats.distribution.get_count() as usize,
                 avg_steps,
                 stddev_steps,
                 elapsed_time,
+                root_seed as i64,
             );
         }
+    }
+
+    for rerun_seed in config.rerun_seeds {
+        if let Some(ref random_config) = config.random_solver {
+            rerun_session(
+                RandomSolver::new,
+                random_config,
+                &world,
+                &probes,
+                (config.max_trials, config.max_trial_steps),
+                rerun_seed as u64,
+            )?;
+        };
+
+        if let Some(ref qlearner_config) = config.q_learner {
+            rerun_session(
+                || {
+                    QLearner::new(
+                        &world,
+                        qlearner_config.alpha,
+                        qlearner_config.gamma,
+                        qlearner_config.epsilon,
+                    )
+                },
+                qlearner_config,
+                &world,
+                &probes,
+                (config.max_trials, config.max_trial_steps),
+                rerun_seed as u64,
+            )?;
+        };
+
+        if let Some(ref rmax_config) = config.r_max {
+            rerun_session(
+                || {
+                    RMax::new(
+                        &world,
+                        rmax_config.gamma,
+                        rmax_config.known_count,
+                        rmax_config.error_delta,
+                    )
+                },
+                rmax_config,
+                &world,
+                &probes,
+                (config.max_trials, config.max_trial_steps),
+                rerun_seed as u64,
+            )?;
+        };
+
+        if let Some(ref factored_rmax_config) = config.factored_r_max {
+            rerun_session(
+                || {
+                    FactoredRMax::new(
+                        &world,
+                        factored_rmax_config.gamma,
+                        factored_rmax_config.known_count,
+                        factored_rmax_config.error_delta,
+                    )
+                },
+                factored_rmax_config,
+                &world,
+                &probes,
+                (config.max_trials, config.max_trial_steps),
+                rerun_seed as u64,
+            )?;
+        };
+
+        if let Some(ref maxq_config) = config.max_q {
+            rerun_session(
+                || {
+                    MaxQ::new(
+                        &world,
+                        maxq_config.alpha,
+                        maxq_config.gamma,
+                        maxq_config.epsilon,
+                        maxq_config.show_learning,
+                    )
+                },
+                maxq_config,
+                &world,
+                &probes,
+                (config.max_trials, config.max_trial_steps),
+                rerun_seed as u64,
+            )?;
+        };
+
+        if let Some(ref doormax_config) = config.door_max {
+            rerun_session(
+                || {
+                    DoorMax::new(
+                        &world,
+                        doormax_config.gamma,
+                        doormax_config.use_reward_learner,
+                        doormax_config.known_count,
+                        doormax_config.error_delta,
+                    )
+                },
+                doormax_config,
+                &world,
+                &probes,
+                (config.max_trials, config.max_trial_steps),
+                rerun_seed as u64,
+            )?;
+        };
     }
 
     #[cfg(not(windows))]
@@ -411,13 +530,17 @@ fn gather_stats<B, Rnr>(
     world: &World,
     probes: &[Probe],
     config: &Configuration,
+    root_seed: u64,
     results: &mut Vec<(SolverChoice, Stats)>,
 ) -> Result<(), AppError>
 where
     B: Fn() -> Rnr + Sync,
     Rnr: Runner + Sync,
 {
-    let session_ids: Vec<usize> = (0..config.sessions).collect();
+    let mut seed_generator = Isaac64Rng::new_from_u64(root_seed);
+    let session_ids: Vec<(usize, u64)> = (0..config.sessions)
+        .map(|session_id| (session_id, seed_generator.gen()))
+        .collect();
 
     let solver_choice = report_config.solver_choice();
     let report = report_config.report();
@@ -426,12 +549,13 @@ where
         .par_iter()
         .fold(
             || Ok(Stats::default()),
-            |current_result, session_number| -> Result<Stats, AppError> {
+            |current_result, (session_number, seed)| -> Result<Stats, AppError> {
                 current_result.and_then(|mut stats| {
                     let start_time = time::Instant::now();
 
                     let mut solver = builder();
-                    let mut rng = thread_rng();
+
+                    let mut rng = Isaac64Rng::new_from_u64(*seed);
 
                     let training_step_count = run_training_session(
                         world,
@@ -456,10 +580,11 @@ where
                         }
                         None => {
                             println!(
-                                "{:?} - Failed session {} with maximums {} trials of {} steps \
+                                "{:?} - Failed session {} [{}] with maximums {} trials of {} steps \
                                  in {:.3} secs.",
                                 solver_choice,
                                 session_number,
+                                *seed as i64,
                                 config.max_trials,
                                 config.max_trial_steps,
                                 elapsed_time,
@@ -496,6 +621,58 @@ where
         )?;
 
     results.push((solver_choice, stats));
+
+    Ok(())
+}
+
+fn rerun_session<B, Rnr>(
+    builder: B,
+    report_config: &ReportConfig,
+    world: &World,
+    probes: &[Probe],
+    (max_trials, max_trial_steps): (usize, usize),
+    seed: u64,
+) -> Result<(), AppError>
+where
+    B: Fn() -> Rnr,
+    Rnr: Runner,
+{
+    let solver_choice = report_config.solver_choice();
+
+    let start_time = time::Instant::now();
+
+    let mut solver = builder();
+    let mut rng = Isaac64Rng::new_from_u64(seed);
+
+    let training_step_count = run_training_session(
+        world,
+        probes,
+        max_trials,
+        max_trial_steps,
+        &mut solver,
+        &mut rng,
+    ).map_err(AppError::Runner)?;
+
+    let duration = start_time.elapsed();
+    let elapsed_time = duration.as_secs() as f64 + f64::from(duration.subsec_nanos()) * 1e-9;
+
+    match training_step_count {
+        Some(num_steps) => {
+            println!(
+                "{:?} - Finished seed {} in {} steps in {:.3} secs.",
+                solver_choice, seed as i64, num_steps, elapsed_time,
+            );
+        }
+        None => {
+            println!(
+                "{:?} - Failed seed {} with maximums {} trials of {} steps \
+                 in {:.3} secs.",
+                solver_choice, seed as i64, max_trials, max_trial_steps, elapsed_time,
+            );
+        }
+    };
+
+    solver.report_training_result(world, training_step_count);
 
     Ok(())
 }
