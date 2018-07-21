@@ -19,6 +19,7 @@ use state::{State, StateIterator};
 use state_indexer::StateIndexer;
 use world::World;
 
+use self::condition::Condition;
 use self::mcelearner::MCELearner;
 use self::multirewardlearner::MultiRewardLearner;
 use self::reward::Rewards;
@@ -101,19 +102,11 @@ impl DoorMax {
         }
     }
 
-    fn measure_reward(&self, world: &World, state: &State, action: Actions) -> f64 {
+    fn measure_reward(&self, world: &World, state: &State, action: Actions) -> Option<f64> {
         if self.use_reward_learner {
-            if let Some(reward) = self.rewardlearner.predict(world, state, action) {
-                reward
-            } else {
-                self.rmax
-            }
+            self.rewardlearner.predict(world, state, action)
         } else {
-            if let Some(reward) = self.rewards.get_reward(world, state, action) {
-                reward
-            } else {
-                self.rmax
-            }
+            self.rewards.get_reward(world, state, action)
         }
     }
 
@@ -125,17 +118,21 @@ impl DoorMax {
     ) -> Result<f64, effect::Error> {
         let state_index = self.state_indexer.get_index(world, state).unwrap();
 
-        let mut action_value = self.measure_reward(world, state, action);
+        if let Some(reward) = self.measure_reward(world, state, action) {
+            if let Some(next_state) = self.mcelearner.predict(world, state, action)? {
+                let mut action_value = reward;
 
-        if let Some(next_state) = self.mcelearner.predict(world, state, action)? {
-            let next_state_index = self.state_indexer.get_index(world, &next_state).unwrap();
-            action_value += self.gamma * self.value_table[next_state_index];
-        } else {
-            // Assume we will stay in our current state.
-            action_value += self.gamma * self.value_table[state_index];
+                let next_state_index = self.state_indexer.get_index(world, &next_state).unwrap();
+                action_value += self.gamma * self.value_table[next_state_index];
+
+                return Ok(action_value);
+            }
         }
 
-        Ok(action_value)
+        // Either reward or state is not known, so return max value to encourage
+        // exploration.  Assume we will stay at our current state, and add in our
+        // value.
+        Ok(self.rmax + self.gamma * self.value_table[state_index])
     }
 
     fn measure_best_value(&self, world: &World, state: &State) -> Result<f64, effect::Error> {
@@ -336,6 +333,7 @@ impl Runner for DoorMax {
                 {
                     println!("===================");
                     println!("{}", state.display(world));
+                    println!("Condition: {}", Condition::new(world, &state));
                     println!("Best action: {}", next_action);
 
                     if let Some(next_state) =
@@ -349,7 +347,13 @@ impl Runner for DoorMax {
                     for action_index in 0..Actions::NUM_ELEMENTS {
                         let action = Actions::from_index(action_index).unwrap();
 
-                        let reward = self.measure_reward(world, &state, action);
+                        let reward =
+                            if let Some(reward) = self.measure_reward(world, &state, action) {
+                                reward
+                            } else {
+                                self.rmax
+                            };
+
                         let action_value = self.measure_value(world, &state, action).unwrap();
                         println!(
                             "{} - {} + {} = {}",

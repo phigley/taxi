@@ -573,8 +573,12 @@ where
                     match training_step_count {
                         Some(num_steps) => {
                             println!(
-                                "{:?} - Finished session {} in {} steps in {:.3} secs.",
-                                solver_choice, session_number, num_steps, elapsed_time,
+                                "{:?} - Finished session {} [{}] in {} steps in {:.3} secs.",
+                                solver_choice,
+                                session_number,
+                                *seed as i64,
+                                num_steps,
+                                elapsed_time,
                             );
                             stats.distribution.add_value(num_steps as f64);
                         }

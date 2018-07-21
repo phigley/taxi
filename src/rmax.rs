@@ -112,24 +112,20 @@ impl RMax {
         let transition_entry = &self.transition_table[state_action_index];
         let reward_entry = &self.reward_table[state_action_index];
 
-        let mut action_value = if reward_entry.count >= self.known_count {
-            reward_entry.mean
-        } else {
-            self.rmax
-        };
+        if reward_entry.count >= self.known_count && transition_entry.count >= self.known_count {
+            let mut action_value = reward_entry.mean;
 
-        if transition_entry.count >= self.known_count {
             for (next_state_index, transition_count) in &transition_entry.destination_counts {
                 let transition = transition_count / self.known_count;
 
                 action_value += transition * self.gamma * self.value_table[*next_state_index];
             }
-        } else {
-            // Assume we will stay in our current state.
-            action_value += self.gamma * self.value_table[state_index];
-        }
 
-        action_value
+            action_value
+        } else {
+            // Return maximum reward and the value of staying in this current state.
+            self.rmax + self.gamma * self.value_table[state_index]
+        }
     }
 
     fn measure_best_value(&self, state_index: usize) -> f64 {

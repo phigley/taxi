@@ -72,10 +72,10 @@ impl RewardLearner {
 
             for &(ref other_condition_learner, _other_reward) in &self.condition_rewards {
                 if condition_learner.overlaps(other_condition_learner) {
-                    println!(
-                        "Conflict with new condition {} => {} overlaps {} => {}",
-                        condition_learner, reward, other_condition_learner, _other_reward
-                    );
+                    // println!(
+                    //     "Conflict with new condition {} => {} overlaps {} => {}",
+                    //     condition_learner, reward, other_condition_learner, _other_reward
+                    // );
                     has_conflict = true;
                     break;
                 }
@@ -100,10 +100,10 @@ impl RewardLearner {
                             &self.condition_rewards[j];
 
                         if condition_learner.overlaps(other_condition_learner) {
-                            println!(
-                                "Conflict with existing condition {} => {} overlaps {} => {}",
-                                condition_learner, reward, other_condition_learner, _other_reward
-                            );
+                            // println!(
+                            //     "Conflict with existing condition {} => {} overlaps {} => {}",
+                            //     condition_learner, reward, other_condition_learner, _other_reward
+                            // );
                             has_conflict = true;
                             break;
                         }
