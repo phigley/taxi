@@ -24,7 +24,7 @@ use rand::thread_rng;
 
 use rayon::prelude::*;
 
-use configuration::{Configuration, SolverChoice};
+use configuration::{Configuration, ReportConfig, SolverChoice};
 
 use taxi::distribution::MeasureDistribution;
 use taxi::state::State;
@@ -135,40 +135,37 @@ fn run() -> Result<(), AppError> {
     if config.sessions > 0 {
         let mut results = Vec::new();
 
-        if config.random_solver.is_some() {
-            let stats = gather_stats(
+        if let Some(ref random_config) = config.random_solver {
+            gather_stats(
                 RandomSolver::new,
-                SolverChoice::Random,
+                random_config,
                 &world,
                 &probes,
                 &config,
+                &mut results,
             )?;
-
-            results.push((SolverChoice::Random, stats));
         };
 
-        if let Some(qlearner_config) = config.q_learner.as_ref() {
-            let stats = gather_stats(
+        if let Some(ref qlearner_config) = config.q_learner {
+            gather_stats(
                 || {
                     QLearner::new(
                         &world,
                         qlearner_config.alpha,
                         qlearner_config.gamma,
                         qlearner_config.epsilon,
-                        qlearner_config.show_table,
                     )
                 },
-                SolverChoice::QLearner,
+                qlearner_config,
                 &world,
                 &probes,
                 &config,
+                &mut results,
             )?;
-
-            results.push((SolverChoice::QLearner, stats));
         };
 
-        if let Some(rmax_config) = config.r_max.as_ref() {
-            let stats = gather_stats(
+        if let Some(ref rmax_config) = config.r_max {
+            gather_stats(
                 || {
                     RMax::new(
                         &world,
@@ -177,17 +174,16 @@ fn run() -> Result<(), AppError> {
                         rmax_config.error_delta,
                     )
                 },
-                SolverChoice::RMax,
+                rmax_config,
                 &world,
                 &probes,
                 &config,
+                &mut results,
             )?;
-
-            results.push((SolverChoice::RMax, stats));
         };
 
-        if let Some(factored_rmax_config) = config.factored_r_max.as_ref() {
-            let stats = gather_stats(
+        if let Some(ref factored_rmax_config) = config.factored_r_max {
+            gather_stats(
                 || {
                     FactoredRMax::new(
                         &world,
@@ -196,38 +192,35 @@ fn run() -> Result<(), AppError> {
                         factored_rmax_config.error_delta,
                     )
                 },
-                SolverChoice::FactoredRMax,
+                factored_rmax_config,
                 &world,
                 &probes,
                 &config,
+                &mut results,
             )?;
-
-            results.push((SolverChoice::FactoredRMax, stats));
         };
 
-        if let Some(maxq_config) = config.max_q.as_ref() {
-            let stats = gather_stats(
+        if let Some(ref maxq_config) = config.max_q {
+            gather_stats(
                 || {
                     MaxQ::new(
                         &world,
                         maxq_config.alpha,
                         maxq_config.gamma,
                         maxq_config.epsilon,
-                        maxq_config.show_table,
                         maxq_config.show_learning,
                     )
                 },
-                SolverChoice::MaxQ,
+                maxq_config,
                 &world,
                 &probes,
                 &config,
+                &mut results,
             )?;
-
-            results.push((SolverChoice::MaxQ, stats));
         };
 
-        if let Some(doormax_config) = config.door_max.as_ref() {
-            let stats = gather_stats(
+        if let Some(ref doormax_config) = config.door_max {
+            gather_stats(
                 || {
                     DoorMax::new(
                         &world,
@@ -237,13 +230,12 @@ fn run() -> Result<(), AppError> {
                         doormax_config.error_delta,
                     )
                 },
-                SolverChoice::DoorMax,
+                doormax_config,
                 &world,
                 &probes,
                 &config,
+                &mut results,
             )?;
-
-            results.push((SolverChoice::DoorMax, stats));
         };
 
         println!();
@@ -270,7 +262,7 @@ fn run() -> Result<(), AppError> {
     {
         let mut rng = thread_rng();
 
-        if let Some(replay_config) = config.replay.as_ref() {
+        if let Some(ref replay_config) = config.replay {
             match replay_config.solver {
                 SolverChoice::Random => if config.random_solver.is_some() {
                     run_replay(
@@ -286,7 +278,7 @@ fn run() -> Result<(), AppError> {
                     return Err(AppError::ReplayRunnerNotConfigured(replay_config.solver));
                 },
                 SolverChoice::QLearner => {
-                    if let Some(qlearner_config) = config.q_learner.as_ref() {
+                    if let Some(ref qlearner_config) = config.q_learner {
                         run_replay(
                             &mut QLearner::new(
                                 &world,
@@ -306,7 +298,7 @@ fn run() -> Result<(), AppError> {
                         return Err(AppError::ReplayRunnerNotConfigured(replay_config.solver));
                     }
                 }
-                SolverChoice::RMax => if let Some(rmax_config) = config.r_max.as_ref() {
+                SolverChoice::RMax => if let Some(ref rmax_config) = config.r_max {
                     run_replay(
                         &mut RMax::new(
                             &world,
@@ -325,7 +317,7 @@ fn run() -> Result<(), AppError> {
                     return Err(AppError::ReplayRunnerNotConfigured(replay_config.solver));
                 },
                 SolverChoice::FactoredRMax => {
-                    if let Some(factored_rmax_config) = config.factored_r_max.as_ref() {
+                    if let Some(ref factored_rmax_config) = config.factored_r_max {
                         run_replay(
                             &mut FactoredRMax::new(
                                 &world,
@@ -344,7 +336,7 @@ fn run() -> Result<(), AppError> {
                         return Err(AppError::ReplayRunnerNotConfigured(replay_config.solver));
                     }
                 }
-                SolverChoice::MaxQ => if let Some(maxq_config) = config.max_q.as_ref() {
+                SolverChoice::MaxQ => if let Some(ref maxq_config) = config.max_q {
                     run_replay(
                         &mut MaxQ::new(
                             &world,
@@ -364,7 +356,7 @@ fn run() -> Result<(), AppError> {
                 } else {
                     return Err(AppError::ReplayRunnerNotConfigured(replay_config.solver));
                 },
-                SolverChoice::DoorMax => if let Some(doormax_config) = config.door_max.as_ref() {
+                SolverChoice::DoorMax => if let Some(ref doormax_config) = config.door_max {
                     run_replay(
                         &mut DoorMax::new(
                             &world,
@@ -415,18 +407,22 @@ struct Stats {
 
 fn gather_stats<B, Rnr>(
     builder: B,
-    solver_choice: SolverChoice,
+    report_config: &ReportConfig,
     world: &World,
     probes: &[Probe],
     config: &Configuration,
-) -> Result<Stats, AppError>
+    results: &mut Vec<(SolverChoice, Stats)>,
+) -> Result<(), AppError>
 where
     B: Fn() -> Rnr + Sync,
     Rnr: Runner + Sync,
 {
     let session_ids: Vec<usize> = (0..config.sessions).collect();
 
-    session_ids
+    let solver_choice = report_config.solver_choice();
+    let report = report_config.report();
+
+    let stats = session_ids
         .par_iter()
         .fold(
             || Ok(Stats::default()),
@@ -468,19 +464,17 @@ where
                                 config.max_trial_steps,
                                 elapsed_time,
                             );
-
-                            // This may overlap with other reports, should we guard with a mutex?
-                            // solver.report_training_result(world, None);
-                            // println!("Report Reults #{} : END", session_number);
                         }
                     };
 
                     stats.duration += duration;
 
                     // This may overlap with other reports, should we guard with a mutex?
-                    // println!("Report Reults #{} : BEGIN", session_number);
-                    solver.report_training_result(world, training_step_count);
-                    // println!("Report Reults #{} : END", session_number);
+                    if report {
+                        // println!("Report Reults #{} : BEGIN", session_number);
+                        solver.report_training_result(world, training_step_count);
+                        // println!("Report Reults #{} : END", session_number);
+                    }
 
                     Ok(stats)
                 })
@@ -499,7 +493,11 @@ where
                     })
                 })
             },
-        )
+        )?;
+
+    results.push((solver_choice, stats));
+
+    Ok(())
 }
 
 #[cfg(not(windows))]

@@ -18,11 +18,10 @@ pub struct QLearner {
 
     state_indexer: StateIndexer,
     qtable: Vec<[f64; Actions::NUM_ELEMENTS]>,
-    show_table: bool,
 }
 
 impl QLearner {
-    pub fn new(world: &World, alpha: f64, gamma: f64, epsilon: f64, show_table: bool) -> QLearner {
+    pub fn new(world: &World, alpha: f64, gamma: f64, epsilon: f64) -> QLearner {
         let initial_q_value = world.max_reward() / (1.0 - gamma);
 
         let state_indexer = StateIndexer::new(world);
@@ -36,7 +35,6 @@ impl QLearner {
 
             state_indexer,
             qtable,
-            show_table,
         }
     }
 
@@ -230,13 +228,11 @@ impl Runner for QLearner {
     }
 
     fn report_training_result(&self, world: &World, _steps: Option<usize>) {
-        if self.show_table {
-            println!();
-            for (i, action_values) in self.qtable.iter().enumerate() {
-                let state = self.state_indexer.get_state(world, i).unwrap();
-                println!("{}", state.display(world));
-                println!("{:?}", action_values);
-            }
+        println!();
+        for (i, action_values) in self.qtable.iter().enumerate() {
+            let state = self.state_indexer.get_state(world, i).unwrap();
+            println!("{}", state.display(world));
+            println!("{:?}", action_values);
         }
     }
 }
@@ -273,7 +269,7 @@ mod test_qlearner {
         let initial_state = State::build(&world, (0, 1), Some('R'), 'G').unwrap();
         assert_eq!(expected_initial_str, initial_state.display(&world));
 
-        let mut qlearner = QLearner::new(&world, 1.0, 1.0, 0.0, false);
+        let mut qlearner = QLearner::new(&world, 1.0, 1.0, 0.0);
 
         let initial_index = qlearner
             .state_indexer
@@ -316,7 +312,7 @@ mod test_qlearner {
 
         let world = World::build_from_str(world_str, Costs::default()).unwrap();
 
-        let qlearner = QLearner::new(&world, 1.0, 1.0, 0.0, false);
+        let qlearner = QLearner::new(&world, 1.0, 1.0, 0.0);
 
         let mut counts = vec![0.0f64; Actions::NUM_ELEMENTS];
 
@@ -394,7 +390,7 @@ mod test_qlearner {
 
         let world = World::build_from_str(world_str, Costs::default()).unwrap();
 
-        let qlearner = QLearner::new(&world, 1.0, 1.0, 0.0, false);
+        let qlearner = QLearner::new(&world, 1.0, 1.0, 0.0);
 
         let mut counts = vec![0.0f64; Actions::NUM_ELEMENTS];
 

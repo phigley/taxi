@@ -27,19 +27,11 @@ pub struct MaxQParams {
 #[derive(Debug, Clone)]
 pub struct MaxQ {
     params: MaxQParams,
-    show_table: bool,
     nodes: NodeStorage,
 }
 
 impl MaxQ {
-    pub fn new(
-        world: &World,
-        alpha: f64,
-        gamma: f64,
-        epsilon: f64,
-        show_table: bool,
-        show_learning: bool,
-    ) -> MaxQ {
+    pub fn new(world: &World, alpha: f64, gamma: f64, epsilon: f64, show_learning: bool) -> MaxQ {
         let initial_q_value = if gamma < 1.0 {
             world.max_reward() / (1.0 - gamma)
         } else {
@@ -56,11 +48,7 @@ impl MaxQ {
             show_learning,
         };
 
-        MaxQ {
-            params,
-            show_table,
-            nodes,
-        }
+        MaxQ { params, nodes }
     }
 
     fn evaluate(&self, world: &World, state: &State) -> Option<Actions> {
@@ -288,10 +276,6 @@ impl Runner for MaxQ {
     }
 
     fn report_training_result(&self, world: &World, _steps: Option<usize>) {
-        if !self.show_table {
-            return;
-        }
-
         let state_indexer = StateIndexer::new(world);
 
         for si in 0..state_indexer.num_states() {

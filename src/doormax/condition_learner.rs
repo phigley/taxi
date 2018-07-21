@@ -52,10 +52,10 @@ impl ConditionLearner {
                 }
             }
 
-            let best_hypothesis = self.best.as_ref().unwrap();
-
-            self.false_conditions
-                .retain(|c| !best_hypothesis.matches_cond(c));
+            if let Some(ref best_hypothesis) = self.best {
+                self.false_conditions
+                    .retain(|c| !best_hypothesis.matches_cond(c));
+            }
         } else {
             self.true_conditions.retain(|c| c != condition);
         }

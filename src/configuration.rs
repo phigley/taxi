@@ -29,8 +29,22 @@ impl fmt::Display for SolverChoice {
     }
 }
 
+pub trait ReportConfig {
+    fn solver_choice(&self) -> SolverChoice;
+
+    fn report(&self) -> bool {
+        false
+    }
+}
+
 #[derive(Deserialize, Debug)]
 pub struct RandomSolverConfig {}
+
+impl ReportConfig for RandomSolverConfig {
+    fn solver_choice(&self) -> SolverChoice {
+        SolverChoice::Random
+    }
+}
 
 #[derive(Deserialize, Debug)]
 pub struct QLearnerConfig {
@@ -38,7 +52,17 @@ pub struct QLearnerConfig {
     pub gamma: f64,
     pub epsilon: f64,
 
-    pub show_table: bool,
+    pub report: bool,
+}
+
+impl ReportConfig for QLearnerConfig {
+    fn solver_choice(&self) -> SolverChoice {
+        SolverChoice::QLearner
+    }
+
+    fn report(&self) -> bool {
+        self.report
+    }
 }
 
 #[derive(Deserialize, Debug)]
@@ -46,6 +70,18 @@ pub struct RMaxConfig {
     pub gamma: f64,
     pub known_count: f64,
     pub error_delta: f64,
+
+    pub report: bool,
+}
+
+impl ReportConfig for RMaxConfig {
+    fn solver_choice(&self) -> SolverChoice {
+        SolverChoice::RMax
+    }
+
+    fn report(&self) -> bool {
+        self.report
+    }
 }
 
 #[derive(Deserialize, Debug)]
@@ -53,6 +89,18 @@ pub struct FactoredRMaxConfig {
     pub gamma: f64,
     pub known_count: f64,
     pub error_delta: f64,
+
+    pub report: bool,
+}
+
+impl ReportConfig for FactoredRMaxConfig {
+    fn solver_choice(&self) -> SolverChoice {
+        SolverChoice::FactoredRMax
+    }
+
+    fn report(&self) -> bool {
+        self.report
+    }
 }
 
 #[derive(Deserialize, Debug)]
@@ -60,8 +108,18 @@ pub struct MaxQConfig {
     pub alpha: f64,
     pub gamma: f64,
     pub epsilon: f64,
-    pub show_table: bool,
+    pub report: bool,
     pub show_learning: bool,
+}
+
+impl ReportConfig for MaxQConfig {
+    fn solver_choice(&self) -> SolverChoice {
+        SolverChoice::MaxQ
+    }
+
+    fn report(&self) -> bool {
+        self.report || self.show_learning
+    }
 }
 
 #[derive(Deserialize, Debug)]
@@ -70,6 +128,18 @@ pub struct DoorMaxConfig {
     pub use_reward_learner: bool,
     pub known_count: f64,
     pub error_delta: f64,
+
+    pub report: bool,
+}
+
+impl ReportConfig for DoorMaxConfig {
+    fn solver_choice(&self) -> SolverChoice {
+        SolverChoice::DoorMax
+    }
+
+    fn report(&self) -> bool {
+        self.report
+    }
 }
 
 #[derive(Deserialize, Debug)]

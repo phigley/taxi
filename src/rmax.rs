@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::f64;
 
 use float_cmp::ApproxOrdUlps;
-use rand::Rng;
+use rand::{Isaac64Rng, Rng};
 
 use actions::Actions;
 use state::State;
@@ -306,5 +306,28 @@ impl Runner for RMax {
         state.at_destination()
     }
 
-    fn report_training_result(&self, _world: &World, _steps: Option<usize>) {}
+    fn report_training_result(&self, world: &World, _steps: Option<usize>) {
+        let mut rng = Isaac64Rng::new_from_u64(0);
+
+        let num_states = self.state_indexer.num_states();
+        for state_index in 0..num_states {
+            let state = self.state_indexer.get_state(world, state_index).unwrap();
+
+            if !state.at_destination() {
+                if let Some(next_action) = self.select_best_action(state_index, &mut rng) {
+                    println!("===================");
+                    println!("{}", state.display(world));
+                    println!("Best action: {}", next_action);
+
+                    for action_index in 0..Actions::NUM_ELEMENTS {
+                        let action = Actions::from_index(action_index).unwrap();
+
+                        let action_value = self.measure_value(state_index, action_index);
+
+                        println!("{} - {}", action, action_value);
+                    }
+                }
+            }
+        }
+    }
 }

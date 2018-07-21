@@ -1,9 +1,9 @@
 use std::cmp;
 use std::f64;
 
-use rand::Rng;
-//use rand::Isaac64Rng;
 use float_cmp::ApproxOrdUlps;
+use rand::Isaac64Rng;
+use rand::Rng;
 
 use actions::Actions;
 use state::{State, StateIterator};
@@ -691,48 +691,29 @@ impl Runner for FactoredRMax {
         state.at_destination()
     }
 
-    fn report_training_result(&self, _world: &World, _steps: Option<usize>) {
-        // let mut rng = Isaac64Rng::new_from_u64(0);
+    fn report_training_result(&self, world: &World, _steps: Option<usize>) {
+        let mut rng = Isaac64Rng::new_from_u64(0);
 
-        // let num_states = self.state_indexer.num_states();
-        // for state_index in 0..num_states {
-        //     let state = self.state_indexer.get_state(world, state_index).unwrap();
+        let num_states = self.state_indexer.num_states();
+        for state_index in 0..num_states {
+            let state = self.state_indexer.get_state(world, state_index).unwrap();
 
-        //     if !state.at_destination() {
-        //         if let Some(next_action) = self.select_best_action(world, &state, &mut rng) {
-        //             println!("===================");
-        //             println!("{}", state.display(world));
-        //             println!("Best action: {}", next_action);
+            if !state.at_destination() {
+                if let Some(next_action) = self.select_best_action(world, &state, &mut rng) {
+                    println!("===================");
+                    println!("{}", state.display(world));
+                    println!("Best action: {}", next_action);
 
-        //             for action_index in 0..Actions::NUM_ELEMENTS {
-        //                 let action = Actions::from_index(action_index).unwrap();
+                    for action_index in 0..Actions::NUM_ELEMENTS {
+                        let action = Actions::from_index(action_index).unwrap();
 
-        //                 let reward = self.get_reward(world, &state, action);
-        //                 let mut action_value = 0.0;
+                        let action_value = self.measure_value(world, &state, action);
 
-        //                 for next_state_index in 0..self.state_indexer.num_states() {
-        //                     let next_state = self.state_indexer
-        //                         .get_state(world, next_state_index)
-        //                         .unwrap();
-
-        //                     let (transition, reward) =
-        //                         self.predict_transition_reward(world, &state, action, &next_state);
-
-        //                     action_value += transition
-        //                         * (reward + self.gamma * self.value_table[next_state_index]);
-        //                 }
-
-        //                 println!(
-        //                     "{} - {} + {} = {}",
-        //                     action,
-        //                     reward,
-        //                     action_value,
-        //                     reward + action_value
-        //                 );
-        //             }
-        //         }
-        //     }
-        // }
+                        println!("{} - {}", action, action_value);
+                    }
+                }
+            }
+        }
     }
 }
 

@@ -81,7 +81,7 @@ fn qlearner(c: &mut Criterion) {
 
     c.bench_function("qmax", move |b| {
         b.iter(|| {
-            let mut qlearner = QLearner::new(&data.world, 0.1, 0.3, 0.6, false);
+            let mut qlearner = QLearner::new(&data.world, 0.1, 0.3, 0.6);
             let rng = &mut source_rng.clone();
 
             run_training_session(&data.world, &data.probes, 1, 100, &mut qlearner, rng)
