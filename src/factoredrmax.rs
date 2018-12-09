@@ -359,10 +359,12 @@ impl FactoredRMax {
         let x_index = state.get_taxi().x as usize;
         let y_index = state.get_taxi().y as usize;
 
-        let x_parent_index = self.transitions
+        let x_parent_index = self
+            .transitions
             .generate_x_parent_index(world, action, x_index, y_index);
 
-        let y_parent_index = self.transitions
+        let y_parent_index = self
+            .transitions
             .generate_y_parent_index(world, action, y_index);
 
         if let Some(passenger_index) = generate_passenger_index(world, state) {
@@ -432,19 +434,23 @@ impl FactoredRMax {
         next_state: &State,
     ) -> Option<f64> {
         let next_x_index = next_state.get_taxi().x as usize;
-        let x_transition = self.transitions
+        let x_transition = self
+            .transitions
             .get_transition(x_parent_index, next_x_index)?;
 
         let next_y_index = next_state.get_taxi().y as usize;
-        let y_transition = self.transitions
+        let y_transition = self
+            .transitions
             .get_transition(y_parent_index, next_y_index)?;
 
         let next_passenger_index = generate_passenger_index(world, next_state)?;
-        let passenger_transition = self.transitions
+        let passenger_transition = self
+            .transitions
             .get_transition(passenger_parent_index, next_passenger_index)?;
 
         let next_destination_index = generate_destination_index(world, next_state)?;
-        let destination_transition = self.transitions
+        let destination_transition = self
+            .transitions
             .get_transition(destination_parent_index, next_destination_index)?;
 
         Some(x_transition * y_transition * destination_transition * passenger_transition)
@@ -468,10 +474,12 @@ impl FactoredRMax {
                     None => self.rmax,
                 };
 
-                let x_parent_index = self.transitions
+                let x_parent_index = self
+                    .transitions
                     .generate_x_parent_index(world, action, x_index, y_index);
 
-                let y_parent_index = self.transitions
+                let y_parent_index = self
+                    .transitions
                     .generate_y_parent_index(world, action, y_index);
 
                 let passenger_parent_index = self.transitions.generate_passenger_parent_index(

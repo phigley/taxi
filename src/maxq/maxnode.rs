@@ -86,11 +86,13 @@ impl MaxNode {
 
     pub fn learning_reward(&self, _world: &World, state: &State) -> f64 {
         match self.node_type {
-            MaxNodeType::Put => if state.at_destination() {
-                0.0
-            } else {
-                -100.0
-            },
+            MaxNodeType::Put => {
+                if state.at_destination() {
+                    0.0
+                } else {
+                    -100.0
+                }
+            }
             _ => 0.0,
         }
     }

@@ -383,19 +383,21 @@ fn run() -> Result<(), AppError> {
 
         if let Some(ref replay_config) = config.replay {
             match replay_config.solver {
-                SolverChoice::Random => if config.random_solver.is_some() {
-                    run_replay(
-                        &mut RandomSolver::new(),
-                        replay_config,
-                        &world,
-                        &probes,
-                        config.max_trials,
-                        config.max_trial_steps,
-                        &mut rng,
-                    )?
-                } else {
-                    return Err(AppError::ReplayRunnerNotConfigured(replay_config.solver));
-                },
+                SolverChoice::Random => {
+                    if config.random_solver.is_some() {
+                        run_replay(
+                            &mut RandomSolver::new(),
+                            replay_config,
+                            &world,
+                            &probes,
+                            config.max_trials,
+                            config.max_trial_steps,
+                            &mut rng,
+                        )?
+                    } else {
+                        return Err(AppError::ReplayRunnerNotConfigured(replay_config.solver));
+                    }
+                }
                 SolverChoice::QLearner => {
                     if let Some(ref qlearner_config) = config.q_learner {
                         run_replay(
@@ -417,24 +419,26 @@ fn run() -> Result<(), AppError> {
                         return Err(AppError::ReplayRunnerNotConfigured(replay_config.solver));
                     }
                 }
-                SolverChoice::RMax => if let Some(ref rmax_config) = config.r_max {
-                    run_replay(
-                        &mut RMax::new(
+                SolverChoice::RMax => {
+                    if let Some(ref rmax_config) = config.r_max {
+                        run_replay(
+                            &mut RMax::new(
+                                &world,
+                                rmax_config.gamma,
+                                rmax_config.known_count,
+                                rmax_config.error_delta,
+                            ),
+                            replay_config,
                             &world,
-                            rmax_config.gamma,
-                            rmax_config.known_count,
-                            rmax_config.error_delta,
-                        ),
-                        replay_config,
-                        &world,
-                        &probes,
-                        config.max_trials,
-                        config.max_trial_steps,
-                        &mut rng,
-                    )?
-                } else {
-                    return Err(AppError::ReplayRunnerNotConfigured(replay_config.solver));
-                },
+                            &probes,
+                            config.max_trials,
+                            config.max_trial_steps,
+                            &mut rng,
+                        )?
+                    } else {
+                        return Err(AppError::ReplayRunnerNotConfigured(replay_config.solver));
+                    }
+                }
                 SolverChoice::FactoredRMax => {
                     if let Some(ref factored_rmax_config) = config.factored_r_max {
                         run_replay(
@@ -455,45 +459,49 @@ fn run() -> Result<(), AppError> {
                         return Err(AppError::ReplayRunnerNotConfigured(replay_config.solver));
                     }
                 }
-                SolverChoice::MaxQ => if let Some(ref maxq_config) = config.max_q {
-                    run_replay(
-                        &mut MaxQ::new(
+                SolverChoice::MaxQ => {
+                    if let Some(ref maxq_config) = config.max_q {
+                        run_replay(
+                            &mut MaxQ::new(
+                                &world,
+                                maxq_config.alpha,
+                                maxq_config.gamma,
+                                maxq_config.epsilon,
+                                maxq_config.show_table,
+                                maxq_config.show_learning,
+                            ),
+                            replay_config,
                             &world,
-                            maxq_config.alpha,
-                            maxq_config.gamma,
-                            maxq_config.epsilon,
-                            maxq_config.show_table,
-                            maxq_config.show_learning,
-                        ),
-                        replay_config,
-                        &world,
-                        &probes,
-                        config.max_trials,
-                        config.max_trial_steps,
-                        &mut rng,
-                    )?
-                } else {
-                    return Err(AppError::ReplayRunnerNotConfigured(replay_config.solver));
-                },
-                SolverChoice::DoorMax => if let Some(ref doormax_config) = config.door_max {
-                    run_replay(
-                        &mut DoorMax::new(
+                            &probes,
+                            config.max_trials,
+                            config.max_trial_steps,
+                            &mut rng,
+                        )?
+                    } else {
+                        return Err(AppError::ReplayRunnerNotConfigured(replay_config.solver));
+                    }
+                }
+                SolverChoice::DoorMax => {
+                    if let Some(ref doormax_config) = config.door_max {
+                        run_replay(
+                            &mut DoorMax::new(
+                                &world,
+                                doormax_config.gamma,
+                                doormax_config.use_reward_learner,
+                                doormax_config.known_count,
+                                doormax_config.error_delta,
+                            ),
+                            replay_config,
                             &world,
-                            doormax_config.gamma,
-                            doormax_config.use_reward_learner,
-                            doormax_config.known_count,
-                            doormax_config.error_delta,
-                        ),
-                        replay_config,
-                        &world,
-                        &probes,
-                        config.max_trials,
-                        config.max_trial_steps,
-                        &mut rng,
-                    )?
-                } else {
-                    return Err(AppError::ReplayRunnerNotConfigured(replay_config.solver));
-                },
+                            &probes,
+                            config.max_trials,
+                            config.max_trial_steps,
+                            &mut rng,
+                        )?
+                    } else {
+                        return Err(AppError::ReplayRunnerNotConfigured(replay_config.solver));
+                    }
+                }
             };
         }
     }
@@ -510,7 +518,8 @@ fn build_probes(config: &Configuration, world: &World) -> Result<Vec<Probe>, App
             probe_config.taxi_pos,
             probe_config.passenger_loc,
             probe_config.destination_loc,
-        ).map_err(AppError::BuildProbes)?;
+        )
+        .map_err(AppError::BuildProbes)?;
 
         probes.push(Probe::new(state, probe_config.max_steps));
     }
@@ -564,7 +573,8 @@ where
                         config.max_trial_steps,
                         &mut solver,
                         &mut rng,
-                    ).map_err(AppError::Runner)?;
+                    )
+                    .map_err(AppError::Runner)?;
 
                     let duration = start_time.elapsed();
                     let elapsed_time =
@@ -655,7 +665,8 @@ where
         max_trial_steps,
         &mut solver,
         &mut rng,
-    ).map_err(AppError::Runner)?;
+    )
+    .map_err(AppError::Runner)?;
 
     let duration = start_time.elapsed();
     let elapsed_time = duration.as_secs() as f64 + f64::from(duration.subsec_nanos()) * 1e-9;
@@ -704,7 +715,8 @@ where
             replay_config.taxi_pos,
             replay_config.passenger_loc,
             replay_config.destination_loc,
-        ).map_err(AppError::ReplayState)?;
+        )
+        .map_err(AppError::ReplayState)?;
 
         let attempt = solver.attempt(world, replay_state, replay_config.max_steps, &mut rng);
 

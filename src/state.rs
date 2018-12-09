@@ -210,11 +210,13 @@ impl State {
                         '.'
                     }
                 }
-                None => if self.taxi == *position {
-                    'T'
-                } else {
-                    '.'
-                },
+                None => {
+                    if self.taxi == *position {
+                        'T'
+                    } else {
+                        '.'
+                    }
+                }
             }
         }
     }

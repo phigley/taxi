@@ -179,7 +179,8 @@ impl World {
                     width,
                     &mut wall_row,
                     &mut fixed_positions,
-                ).map_err(|error| Error::Parse {
+                )
+                .map_err(|error| Error::Parse {
                     source: String::from(source),
                     error,
                 })?;
@@ -191,7 +192,8 @@ impl World {
                     width,
                     Some(&mut wall_row),
                     Some(&mut next_wall_row),
-                ).map_err(|error| Error::Parse {
+                )
+                .map_err(|error| Error::Parse {
                     source: String::from(source),
                     error,
                 })?;

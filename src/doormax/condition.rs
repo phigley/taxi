@@ -172,7 +172,7 @@ mod condition_test {
 
         let state0 = State::build(&w, (1, 2), Some('R'), 'G').unwrap();
         let cond0 = Condition::new(&w, &state0);
-        let expected_cond0 = Condition(enum_map!{
+        let expected_cond0 = Condition(enum_map! {
             Term::TouchWallN => false,
             Term::TouchWallS => false,
             Term::TouchWallE => false,
@@ -185,7 +185,7 @@ mod condition_test {
 
         let state1 = State::build(&w, (1, 3), Some('R'), 'G').unwrap();
         let cond1 = Condition::new(&w, &state1);
-        let expected_cond1 = Condition(enum_map!{
+        let expected_cond1 = Condition(enum_map! {
             Term::TouchWallN => false,
             Term::TouchWallS => false,
             Term::TouchWallE => false,
@@ -198,7 +198,7 @@ mod condition_test {
 
         let state2 = State::build(&w, (1, 4), None, 'G').unwrap();
         let cond2 = Condition::new(&w, &state2);
-        let expected_cond2 = Condition(enum_map!{
+        let expected_cond2 = Condition(enum_map! {
             Term::TouchWallN => false,
             Term::TouchWallS => true,
             Term::TouchWallE => false,
@@ -211,7 +211,7 @@ mod condition_test {
 
         let state3 = State::build(&w, (4, 0), None, 'G').unwrap();
         let cond3 = Condition::new(&w, &state3);
-        let expected_cond3 = Condition(enum_map!{
+        let expected_cond3 = Condition(enum_map! {
             Term::TouchWallN => true,
             Term::TouchWallS => false,
             Term::TouchWallE => true,

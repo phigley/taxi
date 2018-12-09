@@ -73,7 +73,8 @@ impl StateIndexer {
                 (taxi_x as i32, taxi_y as i32),
                 passenger,
                 destination,
-            ).ok()
+            )
+            .ok()
         } else {
             None
         }
