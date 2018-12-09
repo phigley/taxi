@@ -7,7 +7,7 @@ authors = ["Peter Higley <phigley@gmail.com>"]
 name = "taxi"
 
 [dependencies]
-rand = "*"
+rand = "0.5"
 serde = "1.0"
 serde_derive = "1.0"
 toml = "0.4"
@@ -16,8 +16,8 @@ float-cmp = "0.3"
 enum-map = "0.2"
 
 [target.'cfg(not(windows))'.dependencies]
-tui = "*"
-termion = "*"
+tui = "0.2"
+termion = "1.5"
 
 [dev-dependencies]
 assert_matches = "1.2"
