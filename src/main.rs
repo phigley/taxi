@@ -43,9 +43,6 @@ use taxi::runner::{run_training_session, Probe, Runner};
 use std::io;
 
 #[cfg(not(windows))]
-use rand::Rng;
-
-#[cfg(not(windows))]
 use termion::event;
 
 #[cfg(not(windows))]
@@ -379,7 +376,7 @@ fn run() -> Result<(), AppError> {
 
     #[cfg(not(windows))]
     {
-        let mut rng = thread_rng();
+        let mut rng = rand::thread_rng();
 
         if let Some(ref replay_config) = config.replay {
             match replay_config.solver {
@@ -406,7 +403,6 @@ fn run() -> Result<(), AppError> {
                                 qlearner_config.alpha,
                                 qlearner_config.gamma,
                                 qlearner_config.epsilon,
-                                qlearner_config.show_table,
                             ),
                             replay_config,
                             &world,
@@ -467,7 +463,6 @@ fn run() -> Result<(), AppError> {
                                 maxq_config.alpha,
                                 maxq_config.gamma,
                                 maxq_config.epsilon,
-                                maxq_config.show_table,
                                 maxq_config.show_learning,
                             ),
                             replay_config,
