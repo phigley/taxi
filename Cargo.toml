@@ -12,8 +12,8 @@ serde = "1.0"
 serde_derive = "1.0"
 toml = "0.4"
 rayon = "1.0"
-float-cmp = "0.3"
-enum-map = "0.2"
+float-cmp = "0.4"
+enum-map = "0.4"
 
 [target.'cfg(not(windows))'.dependencies]
 tui = "0.2"

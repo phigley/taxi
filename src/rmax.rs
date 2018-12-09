@@ -150,7 +150,7 @@ impl RMax {
         for action_index in 0..Actions::NUM_ELEMENTS {
             let action_value = self.measure_value(state_index, action_index);
 
-            match action_value.approx_cmp(&best_value, 2) {
+            match action_value.approx_cmp_ulps(&best_value, 2) {
                 cmp::Ordering::Greater => {
                     best_value = action_value;
                     best_action_index = action_index;

@@ -1,4 +1,4 @@
-#[derive(Debug, Clone, Copy, EnumMap)]
+#[derive(Debug, Clone, Copy, Enum)]
 pub enum Term {
     TouchWallN,
     TouchWallS,

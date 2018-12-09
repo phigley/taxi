@@ -51,7 +51,7 @@ impl QLearner {
                 best_value = *value;
                 num_found = 1;
             } else {
-                match value.approx_cmp(&best_value, 2) {
+                match value.approx_cmp_ulps(&best_value, 2) {
                     cmp::Ordering::Greater => {
                         best_action = Actions::from_index(i);
                         best_value = *value;

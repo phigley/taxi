@@ -558,7 +558,7 @@ impl FactoredRMax {
 
             let action_value = self.measure_value(world, state, action);
 
-            match action_value.approx_cmp(&best_value, 2) {
+            match action_value.approx_cmp_ulps(&best_value, 2) {
                 cmp::Ordering::Greater => {
                     best_value = action_value;
                     best_action_index = action_index;
