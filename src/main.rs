@@ -1,17 +1,6 @@
 #[macro_use]
 extern crate serde_derive;
 
-use rand;
-
-
-use toml;
-
-
-
-
-
-use taxi;
-
 mod configuration;
 mod replay;
 
@@ -49,12 +38,6 @@ use termion::input::TermRead;
 
 #[cfg(not(windows))]
 use crate::replay::Replay;
-
-fn main() {
-    if let Err(error) = run() {
-        println!("{:?}", error);
-    }
-}
 
 enum AppError {
     NoConfiguration,
@@ -111,7 +94,7 @@ impl fmt::Debug for AppError {
     }
 }
 
-fn run() -> Result<(), AppError> {
+fn main() -> Result<(), AppError> {
     let args: Vec<String> = env::args().collect();
 
     if args.len() < 2 {
