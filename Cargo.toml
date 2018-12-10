@@ -17,7 +17,7 @@ float-cmp = "0.4"
 enum-map = "0.4"
 
 [target.'cfg(not(windows))'.dependencies]
-tui = "0.2"
+tui = "0.3"
 termion = "1.5"
 
 [dev-dependencies]
