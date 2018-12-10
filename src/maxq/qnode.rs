@@ -309,7 +309,7 @@ impl QNode {
 }
 
 impl fmt::Display for QNode {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.node_type {
             QNodeType::Get => write!(f, "Get"),
             QNodeType::NavigateForGet => write!(f, "NavigateForGet"),

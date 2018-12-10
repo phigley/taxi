@@ -96,7 +96,7 @@ impl Hypothesis {
 }
 
 impl fmt::Display for Hypothesis {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let &Hypothesis(ref hyp_map) = self;
 
         fn show_require(r: Require) -> &'static str {

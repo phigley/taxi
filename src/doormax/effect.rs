@@ -10,7 +10,7 @@ pub enum Error {
 }
 
 impl fmt::Debug for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             Error::InvalidState(ref state_error) => {
                 write!(f, "Failed to create state from effect: {:?}", state_error)
@@ -71,7 +71,7 @@ impl Effect for ChangeTaxiX {
 }
 
 impl fmt::Display for ChangeTaxiX {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "ChangeTaxiX({})", self.delta)
     }
 }
@@ -113,7 +113,7 @@ impl Effect for ChangeTaxiY {
 }
 
 impl fmt::Display for ChangeTaxiY {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "ChangeTaxiY({})", self.delta)
     }
 }
@@ -160,7 +160,7 @@ impl Effect for ChangePassenger {
 }
 
 impl fmt::Display for ChangePassenger {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "ChangePassenger({:#?})", self.on_destination)
     }
 }

@@ -149,7 +149,7 @@ impl<E: Effect> Default for CELearner<E> {
 }
 
 impl<E: Effect + fmt::Display> fmt::Display for CELearner<E> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "CL(")?;
         let mut leader = " ";
         for &(ref condition_learner, ref learned_effect) in &self.condition_effects {
@@ -224,7 +224,7 @@ impl MCELearner {
 }
 
 impl fmt::Display for MCELearner {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "taxi_x:\n")?;
         for action_index in 0..Actions::NUM_ELEMENTS {
             let action = Actions::from_index(action_index).unwrap();

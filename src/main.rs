@@ -1,18 +1,16 @@
 #[macro_use]
 extern crate serde_derive;
 
-extern crate rand;
-extern crate rand_pcg;
-extern crate rayon;
-extern crate toml;
+use rand;
 
-#[cfg(not(windows))]
-extern crate termion;
 
-#[cfg(not(windows))]
-extern crate tui;
+use toml;
 
-extern crate taxi;
+
+
+
+
+use taxi;
 
 mod configuration;
 mod replay;
@@ -75,7 +73,7 @@ enum AppError {
 }
 
 impl fmt::Debug for AppError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             AppError::NoConfiguration => write!(f, "Configuration file not specified."),
             AppError::Configuration(ref config_error) => {
@@ -534,7 +532,7 @@ struct Stats {
 
 fn gather_stats<B, Rnr>(
     builder: B,
-    report_config: &ReportConfig,
+    report_config: &dyn ReportConfig,
     world: &World,
     probes: &[Probe],
     config: &Configuration,
@@ -642,7 +640,7 @@ where
 
 fn rerun_session<B, Rnr>(
     builder: B,
-    report_config: &ReportConfig,
+    report_config: &dyn ReportConfig,
     world: &World,
     probes: &[Probe],
     (max_trials, max_trial_steps): (usize, usize),

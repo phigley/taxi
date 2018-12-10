@@ -24,7 +24,7 @@ impl Wall {
 }
 
 impl fmt::Display for Wall {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Wall('")?;
 
         if self.north {
@@ -102,7 +102,7 @@ pub enum Error {
 }
 
 impl fmt::Debug for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             Error::EmptyString => write!(f, "Attempted to build world from empty string."),
             Error::Parse {
@@ -125,7 +125,7 @@ pub enum ParseError {
 }
 
 impl fmt::Debug for ParseError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             ParseError::LineTooLong {
                 line,

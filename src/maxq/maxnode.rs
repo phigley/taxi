@@ -205,13 +205,13 @@ impl MaxNode {
         3 + world.num_fixed_positions()
     }
 
-    pub fn qnode_index_iter(&self) -> Iter<usize> {
+    pub fn qnode_index_iter(&self) -> Iter<'_, usize> {
         self.qnodes.iter()
     }
 }
 
 impl fmt::Display for MaxNode {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.node_type {
             MaxNodeType::Root => write!(f, "Root"),
             MaxNodeType::Get => write!(f, "Get"),

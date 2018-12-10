@@ -125,7 +125,7 @@ impl Default for RewardLearner {
 }
 
 impl fmt::Display for RewardLearner {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "CL(")?;
         let mut leader = " ";
         for &(ref condition_learner, learned_reward) in &self.condition_rewards {
@@ -171,7 +171,7 @@ impl MultiRewardLearner {
 }
 
 impl fmt::Display for MultiRewardLearner {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "reward:\n")?;
         for action_index in 0..Actions::NUM_ELEMENTS {
             let action = Actions::from_index(action_index).unwrap();

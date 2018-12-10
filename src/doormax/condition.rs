@@ -108,7 +108,7 @@ impl Condition {
 }
 
 impl fmt::Display for Condition {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let &Condition(ref cond_map) = self;
 
         fn show_bool(b: bool) -> &'static str {

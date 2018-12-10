@@ -41,7 +41,7 @@ pub enum Error {
 }
 
 impl fmt::Debug for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             Error::InvalidTaxi {
                 taxi_pos,
@@ -305,7 +305,7 @@ pub struct StateIterator<'a> {
 }
 
 impl<'a> StateIterator<'a> {
-    pub fn new(world: &World) -> StateIterator {
+    pub fn new(world: &World) -> StateIterator<'_> {
         let first_fp = world.get_fixed_id_from_index(0).unwrap();
 
         StateIterator {

@@ -87,7 +87,7 @@ impl Default for ConditionLearner {
 }
 
 impl fmt::Display for ConditionLearner {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.best {
             Some(ref hyp) => write!(f, "{}", hyp),
             None => write!(f, "None"),

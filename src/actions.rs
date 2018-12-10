@@ -54,7 +54,7 @@ impl Distribution<Actions> for Standard {
 }
 
 impl fmt::Display for Actions {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             Actions::North => write!(f, "N"),
             Actions::South => write!(f, "S"),

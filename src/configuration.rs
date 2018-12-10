@@ -17,7 +17,7 @@ pub enum SolverChoice {
 }
 
 impl fmt::Display for SolverChoice {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             SolverChoice::Random => write!(f, "Random"),
             SolverChoice::QLearner => write!(f, "Q-Learner"),
@@ -222,7 +222,7 @@ pub enum Error {
 }
 
 impl fmt::Debug for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             Error::OpenFailure { ref filename } => {
                 write!(f, "Configuration - Failed to open file '{}'", filename)
