@@ -3,7 +3,8 @@ use std::collections::HashMap;
 use std::f64;
 
 use float_cmp::ApproxOrdUlps;
-use rand::{Isaac64Rng, Rng};
+use rand::Rng;
+use rand_pcg::Pcg64Mcg;
 
 use actions::Actions;
 use state::State;
@@ -303,7 +304,7 @@ impl Runner for RMax {
     }
 
     fn report_training_result(&self, world: &World, _steps: Option<usize>) {
-        let mut rng = Isaac64Rng::new_from_u64(0);
+        let mut rng = Pcg64Mcg::new(0xcafef00dd15ea5e5);
 
         let num_states = self.state_indexer.num_states();
         for state_index in 0..num_states {

@@ -2,8 +2,8 @@ use std::cmp;
 use std::f64;
 
 use float_cmp::ApproxOrdUlps;
-use rand::Isaac64Rng;
 use rand::Rng;
+use rand_pcg::Pcg64Mcg;
 
 use actions::Actions;
 use state::{State, StateIterator};
@@ -700,7 +700,7 @@ impl Runner for FactoredRMax {
     }
 
     fn report_training_result(&self, world: &World, _steps: Option<usize>) {
-        let mut rng = Isaac64Rng::new_from_u64(0);
+        let mut rng = Pcg64Mcg::new(0xcafef00dd15ea5e5);
 
         let num_states = self.state_indexer.num_states();
         for state_index in 0..num_states {
@@ -875,7 +875,6 @@ fn generate_reward_parent_index(
 mod test_factoredrmax {
 
     use super::*;
-    use rand::Isaac64Rng;
     use world::Costs;
 
     #[test]
@@ -905,7 +904,7 @@ mod test_factoredrmax {
         let initial_state = state.clone();
         assert_eq!(expected_initial_state, initial_state.display(&world));
 
-        let mut rng = Isaac64Rng::new_from_u64(0);
+        let mut rng = Pcg64Mcg::new(0xcafef00dd15ea5e5);
 
         let result = factoredrmax.learn(&world, state, 100, &mut rng);
         assert!(result.is_some());

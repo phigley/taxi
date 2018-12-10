@@ -1,6 +1,7 @@
 use std::fmt;
 use std::slice::Iter;
 
+use rand::seq::SliceRandom;
 use rand::Rng;
 
 use actions::Actions;
@@ -108,7 +109,7 @@ impl MaxNode {
         let nongreedy_roll = rng.gen_range(0.0f64, 1.0f64);
 
         if nongreedy_roll < params.epsilon {
-            rng.choose(&self.qnodes).cloned()
+            self.qnodes.choose(rng).cloned()
         } else {
             self.evaluate(nodes, world, state)
                 .map(|(_, child_index, _)| child_index)

@@ -1,10 +1,11 @@
 extern crate rand;
+extern crate rand_pcg;
 extern crate taxi;
 
 #[macro_use]
 extern crate criterion;
 
-use rand::Isaac64Rng;
+use rand_pcg::Pcg64Mcg;
 
 use criterion::Criterion;
 
@@ -77,7 +78,7 @@ impl Default for SessionData {
 
 fn qlearner(c: &mut Criterion) {
     let data = SessionData::default();
-    let source_rng = Isaac64Rng::new_from_u64(0);
+    let source_rng = Pcg64Mcg::new(0xcafef00dd15ea5e5);
 
     c.bench_function("qmax", move |b| {
         b.iter(|| {
@@ -91,7 +92,7 @@ fn qlearner(c: &mut Criterion) {
 
 fn rmax(c: &mut Criterion) {
     let data = SessionData::default();
-    let source_rng = Isaac64Rng::new_from_u64(0);
+    let source_rng = Pcg64Mcg::new(0xcafef00dd15ea5e5);
 
     c.bench_function("rmax", move |b| {
         b.iter(|| {
@@ -105,7 +106,7 @@ fn rmax(c: &mut Criterion) {
 
 fn factored_rmax(c: &mut Criterion) {
     let data = SessionData::default();
-    let source_rng = Isaac64Rng::new_from_u64(0);
+    let source_rng = Pcg64Mcg::new(0xcafef00dd15ea5e5);
 
     c.bench_function("factored_rmax", move |b| {
         b.iter(|| {

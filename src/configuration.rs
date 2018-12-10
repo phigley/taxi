@@ -173,8 +173,8 @@ pub struct Configuration {
     pub world: String,
     pub costs: CostsConfig,
     // TOML only allows for signed 64 bit integers, not unsigned.
-    pub root_seed: Option<i64>,
-    pub rerun_seeds: Vec<i64>,
+    pub root_seed: Option<(i64, i64)>,
+    pub rerun_seeds: Vec<(i64, i64)>,
     pub probes: Vec<Probe>,
     pub max_trials: usize,
     pub max_trial_steps: usize,
