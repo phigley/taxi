@@ -217,10 +217,10 @@ impl World {
         }
     }
 
-    pub fn get_fixed_position(&self, id: char) -> Option<&Position> {
+    pub fn get_fixed_position(&self, id: char) -> Option<Position> {
         for fp in &self.fixed_positions {
             if fp.id == id {
-                return Some(&fp.position);
+                return Some(fp.position);
             }
         }
 
@@ -237,9 +237,9 @@ impl World {
         None
     }
 
-    pub fn get_fixed_id(&self, position: &Position) -> Option<char> {
+    pub fn get_fixed_id(&self, position: Position) -> Option<char> {
         for fp in &self.fixed_positions {
-            if fp.position == *position {
+            if fp.position == position {
                 return Some(fp.id);
             }
         }
@@ -263,11 +263,11 @@ impl World {
         }
     }
 
-    pub fn get_wall(&self, position: &Position) -> &Wall {
+    pub fn get_wall(&self, position: Position) -> &Wall {
         &self.walls[position.y as usize][position.x as usize]
     }
 
-    pub fn determine_affect(&self, position: &Position, action: Actions) -> ActionAffect {
+    pub fn determine_affect(&self, position: Position, action: Actions) -> ActionAffect {
         match action {
             Actions::North => {
                 if position.y > 0 && !self.get_wall(position).north {

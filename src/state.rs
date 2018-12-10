@@ -173,7 +173,7 @@ impl State {
             if i_r % 2 == 1 {
                 for (i_c, c) in r.chars().enumerate() {
                     if i_c % 2 == 1 {
-                        result.push(self.calc_character(c, &current_position));
+                        result.push(self.calc_character(c, current_position));
 
                         current_position.x += 1;
                     } else {
@@ -193,7 +193,7 @@ impl State {
         result
     }
 
-    fn calc_character(&self, id: char, position: &Position) -> char {
+    fn calc_character(&self, id: char, position: Position) -> char {
         if id == self.destination {
             match self.passenger {
                 Some(passenger_id) if passenger_id == self.destination => 'D',
@@ -204,14 +204,14 @@ impl State {
                 Some(passenger_id) => {
                     if passenger_id == id {
                         'p'
-                    } else if self.taxi == *position {
+                    } else if self.taxi == position {
                         't'
                     } else {
                         '.'
                     }
                 }
                 None => {
-                    if self.taxi == *position {
+                    if self.taxi == position {
                         'T'
                     } else {
                         '.'
@@ -222,7 +222,7 @@ impl State {
     }
 
     pub fn apply_action(&self, world: &World, action: Actions) -> (f64, State) {
-        match world.determine_affect(&self.taxi, action) {
+        match world.determine_affect(self.taxi, action) {
             ActionAffect::Invalid => match action {
                 Actions::North | Actions::South | Actions::East | Actions::West => {
                     (world.costs.movement, *self)
@@ -294,8 +294,8 @@ impl State {
         self.destination
     }
 
-    pub fn get_taxi(&self) -> &Position {
-        &self.taxi
+    pub fn get_taxi(&self) -> Position {
+        self.taxi
     }
 }
 
@@ -358,8 +358,8 @@ impl<'a> Iterator for StateIterator<'a> {
 mod test_state {
 
     use super::*;
-    use rand::thread_rng;
     use crate::world::Costs;
+    use rand::thread_rng;
 
     #[test]
     fn build_correct() {
@@ -604,7 +604,7 @@ mod test_state {
         let w = World::build_from_str(source, Costs::default()).unwrap();
 
         let mut state = State::build(&w, (1, 2), Some('R'), 'G').unwrap();
-        println!("");
+        println!();
 
         for &(expected_str, expected_passenger, expected_at_destination, next_action) in
             script.iter()
@@ -828,7 +828,7 @@ mod test_state {
         let w = World::build_from_str(source, Costs::default()).unwrap();
 
         let mut state = State::build(&w, (1, 3), Some('R'), 'G').unwrap();
-        println!("");
+        println!();
 
         for &(expected_str, expected_passenger, expected_at_destination, next_action) in
             script.iter()

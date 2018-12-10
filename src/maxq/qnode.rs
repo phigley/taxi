@@ -65,10 +65,11 @@ impl QNode {
         world: &World,
         state: &State,
     ) -> Option<(f64, f64, Actions)> {
-        let completion = self
-            .get_completion_index(world, state)
-            .map(|completion_index| self.completions[completion_index])
-            .unwrap_or(0.0);
+        let completion = if let Some(completion_index) = self.get_completion_index(world, state) {
+            self.completions[completion_index]
+        } else {
+            0.0
+        };
 
         let qchild = self.get_child(world, state)?;
 
@@ -139,28 +140,27 @@ impl QNode {
             println!("Updating completion for {}", self);
         }
 
-        self.get_completion_index(world, state)
-            .map(|completion_index| {
-                let old_completion = self.completions[completion_index];
+        if let Some(completion_index) = self.get_completion_index(world, state) {
+            let old_completion = self.completions[completion_index];
 
-                self.learning_completions[completion_index] *= 1.0 - params.alpha;
-                self.learning_completions[completion_index] +=
-                    params.alpha * gamma * result_learning_completion;
+            self.learning_completions[completion_index] *= 1.0 - params.alpha;
+            self.learning_completions[completion_index] +=
+                params.alpha * gamma * result_learning_completion;
 
-                self.completions[completion_index] *= 1.0 - params.alpha;
-                self.completions[completion_index] += params.alpha * gamma * result_completion;
+            self.completions[completion_index] *= 1.0 - params.alpha;
+            self.completions[completion_index] += params.alpha * gamma * result_completion;
 
-                if params.show_learning {
-                    println!(
-                        "{} completion {} - was {} applied {} -> {}",
-                        self,
-                        completion_index,
-                        old_completion,
-                        result_completion,
-                        self.completions[completion_index]
-                    );
-                }
-            });
+            if params.show_learning {
+                println!(
+                    "{} completion {} - was {} applied {} -> {}",
+                    self,
+                    completion_index,
+                    old_completion,
+                    result_completion,
+                    self.completions[completion_index]
+                );
+            }
+        }
     }
 
     pub fn get_completion_index(&self, world: &World, state: &State) -> Option<usize> {

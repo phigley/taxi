@@ -225,30 +225,26 @@ impl MCELearner {
 
 impl fmt::Display for MCELearner {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "taxi_x:\n")?;
+        writeln!(f, "taxi_x:")?;
         for action_index in 0..Actions::NUM_ELEMENTS {
             let action = Actions::from_index(action_index).unwrap();
-            write!(f, "{} - {}\n", action, self.taxi_x_learners[action_index])?;
+            writeln!(f, "{} - {}", action, self.taxi_x_learners[action_index])?;
         }
-        write!(f, "\n")?;
+        writeln!(f)?;
 
-        write!(f, "taxi_y:\n")?;
+        writeln!(f, "taxi_y:")?;
         for action_index in 0..Actions::NUM_ELEMENTS {
             let action = Actions::from_index(action_index).unwrap();
-            write!(f, "{} - {}\n", action, self.taxi_y_learners[action_index])?;
+            writeln!(f, "{} - {}", action, self.taxi_y_learners[action_index])?;
         }
-        write!(f, "\n")?;
+        writeln!(f)?;
 
-        write!(f, "passenger:\n")?;
+        writeln!(f, "passenger:")?;
         for action_index in 0..Actions::NUM_ELEMENTS {
             let action = Actions::from_index(action_index).unwrap();
-            write!(
-                f,
-                "{} - {}\n",
-                action, self.passenger_learners[action_index]
-            )?;
+            writeln!(f, "{} - {}", action, self.passenger_learners[action_index])?;
         }
-        write!(f, "\n")?;
+        writeln!(f)?;
 
         Ok(())
     }

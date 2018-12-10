@@ -172,12 +172,12 @@ impl MultiRewardLearner {
 
 impl fmt::Display for MultiRewardLearner {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "reward:\n")?;
+        writeln!(f, "reward:")?;
         for action_index in 0..Actions::NUM_ELEMENTS {
             let action = Actions::from_index(action_index).unwrap();
-            write!(f, "{} - {}\n", action, self.reward_learners[action_index])?;
+            writeln!(f, "{} - {}", action, self.reward_learners[action_index])?;
         }
-        write!(f, "\n")?;
+        writeln!(f)?;
         Ok(())
     }
 }

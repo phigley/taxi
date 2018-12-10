@@ -241,8 +241,8 @@ impl Runner for QLearner {
 mod test_qlearner {
 
     use super::*;
-    use rand::thread_rng;
     use crate::world::Costs;
+    use rand::thread_rng;
 
     #[test]
     fn learns_go_north() {
@@ -294,7 +294,7 @@ mod test_qlearner {
         assert!(best_action != Actions::South);
         println!("Chose action {:?}", best_action);
 
-        println!("");
+        println!();
         for row in qlearner.qtable {
             println!("{:?}", row);
         }
@@ -336,7 +336,7 @@ mod test_qlearner {
             chi_sqr += (delta * delta) / expected_count;
         }
 
-        println!("");
+        println!();
         println!(
             "north count = {}, ratio = {}",
             counts[Actions::North.to_index()],
@@ -416,7 +416,7 @@ mod test_qlearner {
             chi_sqr += (delta * delta) / expected_count;
         }
 
-        println!("");
+        println!();
         println!(
             "north count = {}, ratio = {}",
             counts[Actions::North.to_index()],

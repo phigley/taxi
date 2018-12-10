@@ -322,7 +322,7 @@ impl Runner for DoorMax {
     }
 
     fn report_training_result(&self, world: &World, _steps: Option<usize>) {
-        let mut rng = Pcg64Mcg::new(0xcafef00dd15ea5e5);
+        let mut rng = Pcg64Mcg::new(0xcafe_f00d_d15e_a5e5);
 
         let num_states = self.state_indexer.num_states();
         for state_index in 0..num_states {
