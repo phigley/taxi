@@ -5,12 +5,12 @@ use float_cmp::ApproxOrdUlps;
 use rand::Rng;
 use rand_pcg::Pcg64Mcg;
 
-use actions::Actions;
-use state::{State, StateIterator};
-use world::World;
+use crate::actions::Actions;
+use crate::state::{State, StateIterator};
+use crate::world::World;
 
-use runner::{Attempt, Runner};
-use state_indexer::StateIndexer;
+use crate::runner::{Attempt, Runner};
+use crate::state_indexer::StateIndexer;
 
 #[derive(Debug, Clone)]
 struct Transitions {
@@ -875,7 +875,7 @@ fn generate_reward_parent_index(
 mod test_factoredrmax {
 
     use super::*;
-    use world::Costs;
+    use crate::world::Costs;
 
     #[test]
     fn learn_simple() {

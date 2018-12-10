@@ -1,13 +1,13 @@
 use std::fmt;
 
-use actions::Actions;
-use state::State;
-use world::World;
+use crate::actions::Actions;
+use crate::state::State;
+use crate::world::World;
 
-use maxq::maxnode::{MaxNode, MaxNodeType};
-use maxq::nodestorage::NodeStorage;
+use crate::maxq::maxnode::{MaxNode, MaxNodeType};
+use crate::maxq::nodestorage::NodeStorage;
 
-use maxq::MaxQParams;
+use crate::maxq::MaxQParams;
 
 #[derive(Debug, Clone, Copy)]
 pub enum QNodeType {

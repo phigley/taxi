@@ -1,8 +1,8 @@
 use std::fmt;
 use std::iter;
 
-use actions::Actions;
-use position::Position;
+use crate::actions::Actions;
+use crate::position::Position;
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct Wall {

@@ -1,5 +1,5 @@
-use state::State;
-use world::World;
+use crate::state::State;
+use crate::world::World;
 
 #[derive(Debug, Clone, Copy)]
 pub struct StateIndexer {

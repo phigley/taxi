@@ -1,8 +1,8 @@
-use world::World;
+use crate::world::World;
 
-use maxq::maxnode::MaxNode;
-use maxq::primitivenode::PrimitiveNode;
-use maxq::qnode::QNode;
+use crate::maxq::maxnode::MaxNode;
+use crate::maxq::primitivenode::PrimitiveNode;
+use crate::maxq::qnode::QNode;
 
 #[derive(Debug, Clone)]
 pub struct NodeStorage {

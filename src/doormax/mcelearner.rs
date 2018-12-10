@@ -1,13 +1,13 @@
 use std::fmt;
 
-use doormax::condition::Condition;
-use doormax::condition_learner::ConditionLearner;
-use doormax::effect;
-use doormax::effect::{ChangePassenger, ChangeTaxiX, ChangeTaxiY, Effect};
+use crate::doormax::condition::Condition;
+use crate::doormax::condition_learner::ConditionLearner;
+use crate::doormax::effect;
+use crate::doormax::effect::{ChangePassenger, ChangeTaxiX, ChangeTaxiY, Effect};
 
-use actions::Actions;
-use state::State;
-use world::World;
+use crate::actions::Actions;
+use crate::state::State;
+use crate::world::World;
 
 #[derive(Debug, Clone)]
 pub struct CELearner<E: Effect> {
@@ -257,8 +257,8 @@ impl fmt::Display for MCELearner {
 #[cfg(test)]
 mod mcelearner_test {
     use super::*;
-    use position::Position;
-    use world::Costs;
+    use crate::position::Position;
+    use crate::world::Costs;
 
     #[test]
     fn learns_taxi_east_simple() {

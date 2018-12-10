@@ -1,11 +1,11 @@
 use std::fmt;
 
-use doormax::condition::Condition;
-use doormax::condition_learner::ConditionLearner;
+use crate::doormax::condition::Condition;
+use crate::doormax::condition_learner::ConditionLearner;
 
-use actions::Actions;
-use state::State;
-use world::World;
+use crate::actions::Actions;
+use crate::state::State;
+use crate::world::World;
 
 #[derive(Debug, Clone)]
 pub struct RewardLearner {
@@ -185,8 +185,8 @@ impl fmt::Display for MultiRewardLearner {
 #[cfg(test)]
 mod multirewardlearner_test {
     use super::*;
-    use actions::Actions;
-    use world::Costs;
+    use crate::actions::Actions;
+    use crate::world::Costs;
 
     #[test]
     fn learns_pickup() {

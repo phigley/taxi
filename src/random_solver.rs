@@ -1,10 +1,10 @@
 use rand::Rng;
 
-use actions::Actions;
-use state::State;
-use world::World;
+use crate::actions::Actions;
+use crate::state::State;
+use crate::world::World;
 
-use runner::{Attempt, Runner};
+use crate::runner::{Attempt, Runner};
 
 #[derive(Default)]
 pub struct RandomSolver {}

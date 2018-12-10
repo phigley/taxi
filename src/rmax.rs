@@ -6,12 +6,12 @@ use float_cmp::ApproxOrdUlps;
 use rand::Rng;
 use rand_pcg::Pcg64Mcg;
 
-use actions::Actions;
-use state::State;
-use world::World;
+use crate::actions::Actions;
+use crate::state::State;
+use crate::world::World;
 
-use runner::{Attempt, Runner};
-use state_indexer::StateIndexer;
+use crate::runner::{Attempt, Runner};
+use crate::state_indexer::StateIndexer;
 
 #[derive(Debug, Clone)]
 struct TransitionEntry {

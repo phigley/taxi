@@ -3,12 +3,12 @@ use std::cmp;
 use float_cmp::ApproxOrdUlps;
 use rand::Rng;
 
-use actions::Actions;
-use state::State;
-use state_indexer::StateIndexer;
-use world::World;
+use crate::actions::Actions;
+use crate::state::State;
+use crate::state_indexer::StateIndexer;
+use crate::world::World;
 
-use runner::{Attempt, Runner};
+use crate::runner::{Attempt, Runner};
 
 #[derive(Debug, Clone)]
 pub struct QLearner {
@@ -242,7 +242,7 @@ mod test_qlearner {
 
     use super::*;
     use rand::thread_rng;
-    use world::Costs;
+    use crate::world::Costs;
 
     #[test]
     fn learns_go_north() {

@@ -26,7 +26,7 @@ use rand_pcg::Pcg64Mcg;
 
 use rayon::prelude::*;
 
-use configuration::{Configuration, ReportConfig, SolverChoice};
+use crate::configuration::{Configuration, ReportConfig, SolverChoice};
 
 use taxi::distribution::MeasureDistribution;
 use taxi::state::State;
@@ -50,7 +50,7 @@ use termion::event;
 use termion::input::TermRead;
 
 #[cfg(not(windows))]
-use replay::Replay;
+use crate::replay::Replay;
 
 fn main() {
     if let Err(error) = run() {

@@ -2,10 +2,10 @@ use std::fmt;
 
 use enum_map::EnumMap;
 
-use state::State;
-use world::World;
+use crate::state::State;
+use crate::world::World;
 
-use doormax::term::Term;
+use crate::doormax::term::Term;
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Condition(pub EnumMap<Term, bool>);
@@ -137,7 +137,7 @@ impl fmt::Display for Condition {
 mod condition_test {
 
     use super::*;
-    use world::Costs;
+    use crate::world::Costs;
 
     #[test]
     fn enumerates_all() {

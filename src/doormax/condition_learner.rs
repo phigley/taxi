@@ -1,7 +1,7 @@
 use std::fmt;
 
-use doormax::condition::Condition;
-use doormax::hypothesis::Hypothesis;
+use crate::doormax::condition::Condition;
+use crate::doormax::hypothesis::Hypothesis;
 
 #[derive(Debug, Clone)]
 pub struct ConditionLearner {
@@ -98,8 +98,8 @@ impl fmt::Display for ConditionLearner {
 #[cfg(test)]
 mod condition_learner_test {
     use super::*;
-    use state::State;
-    use world::{Costs, World};
+    use crate::state::State;
+    use crate::world::{Costs, World};
 
     #[test]
     fn learns_north() {

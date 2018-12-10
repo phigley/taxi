@@ -2,8 +2,8 @@ use std::fmt;
 
 use enum_map::EnumMap;
 
-use doormax::condition::Condition;
-use doormax::term::Term;
+use crate::doormax::condition::Condition;
+use crate::doormax::term::Term;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Require {

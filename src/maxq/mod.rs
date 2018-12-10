@@ -5,12 +5,12 @@ mod qnode;
 
 use rand::Rng;
 
-use actions::Actions;
-use state::State;
-use state_indexer::StateIndexer;
-use world::World;
+use crate::actions::Actions;
+use crate::state::State;
+use crate::state_indexer::StateIndexer;
+use crate::world::World;
 
-use runner::{Attempt, Runner};
+use crate::runner::{Attempt, Runner};
 
 use self::nodestorage::NodeStorage;
 use self::qnode::QChild;

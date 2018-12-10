@@ -2,9 +2,9 @@ use std::fmt;
 
 use rand::Rng;
 
-use actions::Actions;
-use position::Position;
-use world::{ActionAffect, World};
+use crate::actions::Actions;
+use crate::position::Position;
+use crate::world::{ActionAffect, World};
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct State {
@@ -359,7 +359,7 @@ mod test_state {
 
     use super::*;
     use rand::thread_rng;
-    use world::Costs;
+    use crate::world::Costs;
 
     #[test]
     fn build_correct() {
