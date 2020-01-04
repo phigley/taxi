@@ -1,5 +1,3 @@
-
-
 use taxi::actions::Actions;
 use taxi::position::Position;
 use taxi::world::*;
@@ -55,38 +53,38 @@ fn wall_move_validity() {
         Err(msg) => panic!(msg),
         Ok(world) => {
             assert_eq!(
-                world.determine_affect(&Position::new(2, 2), Actions::North),
+                world.determine_affect(Position::new(2, 2), Actions::North),
                 ActionAffect::Move(Position::new(0, -1))
             );
             assert_eq!(
-                world.determine_affect(&Position::new(3, 0), Actions::North),
+                world.determine_affect(Position::new(3, 0), Actions::North),
                 ActionAffect::Invalid
             );
 
             assert_eq!(
-                world.determine_affect(&Position::new(3, 3), Actions::South),
+                world.determine_affect(Position::new(3, 3), Actions::South),
                 ActionAffect::Move(Position::new(0, 1))
             );
             assert_eq!(
-                world.determine_affect(&Position::new(1, 2), Actions::South),
+                world.determine_affect(Position::new(1, 2), Actions::South),
                 ActionAffect::Invalid
             );
 
             assert_eq!(
-                world.determine_affect(&Position::new(3, 1), Actions::East),
+                world.determine_affect(Position::new(3, 1), Actions::East),
                 ActionAffect::Move(Position::new(1, 0))
             );
             assert_eq!(
-                world.determine_affect(&Position::new(0, 3), Actions::East),
+                world.determine_affect(Position::new(0, 3), Actions::East),
                 ActionAffect::Invalid
             );
 
             assert_eq!(
-                world.determine_affect(&Position::new(1, 1), Actions::West),
+                world.determine_affect(Position::new(1, 1), Actions::West),
                 ActionAffect::Move(Position::new(-1, 0))
             );
             assert_eq!(
-                world.determine_affect(&Position::new(3, 3), Actions::West),
+                world.determine_affect(Position::new(3, 3), Actions::West),
                 ActionAffect::Invalid
             );
         }
@@ -101,22 +99,22 @@ fn edge_action_validity() {
         Err(msg) => panic!(msg),
         Ok(world) => {
             assert_eq!(
-                world.determine_affect(&Position::new(1, 0), Actions::North),
+                world.determine_affect(Position::new(1, 0), Actions::North),
                 ActionAffect::Invalid
             );
 
             assert_eq!(
-                world.determine_affect(&Position::new(1, 2), Actions::South),
+                world.determine_affect(Position::new(1, 2), Actions::South),
                 ActionAffect::Invalid
             );
 
             assert_eq!(
-                world.determine_affect(&Position::new(2, 1), Actions::East),
+                world.determine_affect(Position::new(2, 1), Actions::East),
                 ActionAffect::Invalid
             );
 
             assert_eq!(
-                world.determine_affect(&Position::new(0, 1), Actions::West),
+                world.determine_affect(Position::new(0, 1), Actions::West),
                 ActionAffect::Invalid
             );
         }
@@ -144,10 +142,10 @@ fn read_fixed_position() {
         Ok(world) => {
             assert_eq!(world.num_fixed_positions(), 4);
 
-            assert_eq!(world.get_fixed_position('R'), Some(&Position::new(0, 0)));
-            assert_eq!(world.get_fixed_position('G'), Some(&Position::new(4, 0)));
-            assert_eq!(world.get_fixed_position('Y'), Some(&Position::new(0, 4)));
-            assert_eq!(world.get_fixed_position('B'), Some(&Position::new(3, 4)));
+            assert_eq!(world.get_fixed_position('R'), Some(Position::new(0, 0)));
+            assert_eq!(world.get_fixed_position('G'), Some(Position::new(4, 0)));
+            assert_eq!(world.get_fixed_position('Y'), Some(Position::new(0, 4)));
+            assert_eq!(world.get_fixed_position('B'), Some(Position::new(3, 4)));
 
             assert_eq!(world.get_fixed_position('?'), None);
         }
@@ -228,22 +226,22 @@ fn pickup_dropoff_validity() {
     let world = World::build_from_str(source, Costs::default()).unwrap();
 
     assert_eq!(
-        world.determine_affect(&Position::new(0, 0), Actions::PickUp),
+        world.determine_affect(Position::new(0, 0), Actions::PickUp),
         ActionAffect::PickUp('R')
     );
 
     assert_eq!(
-        world.determine_affect(&Position::new(1, 0), Actions::PickUp),
+        world.determine_affect(Position::new(1, 0), Actions::PickUp),
         ActionAffect::Invalid
     );
 
     assert_eq!(
-        world.determine_affect(&Position::new(3, 4), Actions::DropOff),
+        world.determine_affect(Position::new(3, 4), Actions::DropOff),
         ActionAffect::DropOff('B')
     );
 
     assert_eq!(
-        world.determine_affect(&Position::new(2, 4), Actions::DropOff),
+        world.determine_affect(Position::new(2, 4), Actions::DropOff),
         ActionAffect::Invalid
     );
 }

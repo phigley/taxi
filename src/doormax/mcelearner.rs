@@ -276,7 +276,7 @@ mod mcelearner_test {
 
         let old_state = State::build(&w, (1, 3), Some('R'), 'B').unwrap();
         let (_, new_state) = old_state.apply_action(&w, Actions::East);
-        assert_eq!(*new_state.get_taxi(), Position::new(2, 3));
+        assert_eq!(new_state.get_taxi(), Position::new(2, 3));
 
         let mut learner = MCELearner::new();
         learner.apply_experience(&w, &old_state, Actions::East, &new_state);
@@ -305,7 +305,7 @@ mod mcelearner_test {
 
         let clear_state = State::build(&w, (1, 2), Some('R'), 'B').unwrap();
         let (_, clear_final_state) = clear_state.apply_action(&w, Actions::East);
-        assert_eq!(*clear_final_state.get_taxi(), Position::new(2, 2));
+        assert_eq!(clear_final_state.get_taxi(), Position::new(2, 2));
 
         let mut learner = MCELearner::new();
         learner.apply_experience(&w, &clear_state, Actions::East, &clear_final_state);
@@ -315,7 +315,7 @@ mod mcelearner_test {
 
         let blocked_state = State::build(&w, (1, 1), Some('R'), 'B').unwrap();
         let (_, blocked_final_state) = blocked_state.apply_action(&w, Actions::East);
-        assert_eq!(*blocked_final_state.get_taxi(), Position::new(1, 1));
+        assert_eq!(blocked_final_state.get_taxi(), Position::new(1, 1));
 
         learner.apply_experience(&w, &blocked_state, Actions::East, &blocked_final_state);
 
