@@ -17,7 +17,7 @@ pub enum SolverChoice {
 }
 
 impl fmt::Display for SolverChoice {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             SolverChoice::Random => write!(f, "Random"),
             SolverChoice::QLearner => write!(f, "Q-Learner"),
@@ -173,8 +173,8 @@ pub struct Configuration {
     pub world: String,
     pub costs: CostsConfig,
     // TOML only allows for signed 64 bit integers, not unsigned.
-    pub root_seed: Option<i64>,
-    pub rerun_seeds: Vec<i64>,
+    pub root_seed: Option<(i64, i64)>,
+    pub rerun_seeds: Vec<(i64, i64)>,
     pub probes: Vec<Probe>,
     pub max_trials: usize,
     pub max_trial_steps: usize,
@@ -222,7 +222,7 @@ pub enum Error {
 }
 
 impl fmt::Debug for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             Error::OpenFailure { ref filename } => {
                 write!(f, "Configuration - Failed to open file '{}'", filename)

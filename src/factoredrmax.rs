@@ -2,15 +2,15 @@ use std::cmp;
 use std::f64;
 
 use float_cmp::ApproxOrdUlps;
-use rand::Isaac64Rng;
 use rand::Rng;
+use rand_pcg::Pcg64Mcg;
 
-use actions::Actions;
-use state::{State, StateIterator};
-use world::World;
+use crate::actions::Actions;
+use crate::state::{State, StateIterator};
+use crate::world::World;
 
-use runner::{Attempt, Runner};
-use state_indexer::StateIndexer;
+use crate::runner::{Attempt, Runner};
+use crate::state_indexer::StateIndexer;
 
 #[derive(Debug, Clone)]
 struct Transitions {
@@ -359,10 +359,12 @@ impl FactoredRMax {
         let x_index = state.get_taxi().x as usize;
         let y_index = state.get_taxi().y as usize;
 
-        let x_parent_index = self.transitions
+        let x_parent_index = self
+            .transitions
             .generate_x_parent_index(world, action, x_index, y_index);
 
-        let y_parent_index = self.transitions
+        let y_parent_index = self
+            .transitions
             .generate_y_parent_index(world, action, y_index);
 
         if let Some(passenger_index) = generate_passenger_index(world, state) {
@@ -432,19 +434,23 @@ impl FactoredRMax {
         next_state: &State,
     ) -> Option<f64> {
         let next_x_index = next_state.get_taxi().x as usize;
-        let x_transition = self.transitions
+        let x_transition = self
+            .transitions
             .get_transition(x_parent_index, next_x_index)?;
 
         let next_y_index = next_state.get_taxi().y as usize;
-        let y_transition = self.transitions
+        let y_transition = self
+            .transitions
             .get_transition(y_parent_index, next_y_index)?;
 
         let next_passenger_index = generate_passenger_index(world, next_state)?;
-        let passenger_transition = self.transitions
+        let passenger_transition = self
+            .transitions
             .get_transition(passenger_parent_index, next_passenger_index)?;
 
         let next_destination_index = generate_destination_index(world, next_state)?;
-        let destination_transition = self.transitions
+        let destination_transition = self
+            .transitions
             .get_transition(destination_parent_index, next_destination_index)?;
 
         Some(x_transition * y_transition * destination_transition * passenger_transition)
@@ -468,10 +474,12 @@ impl FactoredRMax {
                     None => self.rmax,
                 };
 
-                let x_parent_index = self.transitions
+                let x_parent_index = self
+                    .transitions
                     .generate_x_parent_index(world, action, x_index, y_index);
 
-                let y_parent_index = self.transitions
+                let y_parent_index = self
+                    .transitions
                     .generate_y_parent_index(world, action, y_index);
 
                 let passenger_parent_index = self.transitions.generate_passenger_parent_index(
@@ -550,7 +558,7 @@ impl FactoredRMax {
 
             let action_value = self.measure_value(world, state, action);
 
-            match action_value.approx_cmp(&best_value, 2) {
+            match action_value.approx_cmp_ulps(&best_value, 2) {
                 cmp::Ordering::Greater => {
                     best_value = action_value;
                     best_action_index = action_index;
@@ -692,7 +700,7 @@ impl Runner for FactoredRMax {
     }
 
     fn report_training_result(&self, world: &World, _steps: Option<usize>) {
-        let mut rng = Isaac64Rng::new_from_u64(0);
+        let mut rng = Pcg64Mcg::new(0xcafe_f00d_d15e_a5e5);
 
         let num_states = self.state_indexer.num_states();
         for state_index in 0..num_states {
@@ -867,8 +875,7 @@ fn generate_reward_parent_index(
 mod test_factoredrmax {
 
     use super::*;
-    use rand::Isaac64Rng;
-    use world::Costs;
+    use crate::world::Costs;
 
     #[test]
     fn learn_simple() {
@@ -897,7 +904,7 @@ mod test_factoredrmax {
         let initial_state = state.clone();
         assert_eq!(expected_initial_state, initial_state.display(&world));
 
-        let mut rng = Isaac64Rng::new_from_u64(0);
+        let mut rng = Pcg64Mcg::new(0xcafef00dd15ea5e5);
 
         let result = factoredrmax.learn(&world, state, 100, &mut rng);
         assert!(result.is_some());

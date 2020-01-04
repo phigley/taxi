@@ -1,15 +1,16 @@
 use std::fmt;
 use std::slice::Iter;
 
+use rand::seq::SliceRandom;
 use rand::Rng;
 
-use actions::Actions;
-use state::State;
-use world::World;
+use crate::actions::Actions;
+use crate::state::State;
+use crate::world::World;
 
-use maxq::nodestorage::NodeStorage;
-use maxq::qnode::{QNode, QNodeType};
-use maxq::MaxQParams;
+use crate::maxq::nodestorage::NodeStorage;
+use crate::maxq::qnode::{QNode, QNodeType};
+use crate::maxq::MaxQParams;
 
 #[derive(Debug, Clone, Copy)]
 pub enum MaxNodeType {
@@ -86,11 +87,13 @@ impl MaxNode {
 
     pub fn learning_reward(&self, _world: &World, state: &State) -> f64 {
         match self.node_type {
-            MaxNodeType::Put => if state.at_destination() {
-                0.0
-            } else {
-                -100.0
-            },
+            MaxNodeType::Put => {
+                if state.at_destination() {
+                    0.0
+                } else {
+                    -100.0
+                }
+            }
             _ => 0.0,
         }
     }
@@ -106,7 +109,7 @@ impl MaxNode {
         let nongreedy_roll = rng.gen_range(0.0f64, 1.0f64);
 
         if nongreedy_roll < params.epsilon {
-            rng.choose(&self.qnodes).cloned()
+            self.qnodes.choose(rng).cloned()
         } else {
             self.evaluate(nodes, world, state)
                 .map(|(_, child_index, _)| child_index)
@@ -202,13 +205,13 @@ impl MaxNode {
         3 + world.num_fixed_positions()
     }
 
-    pub fn qnode_index_iter(&self) -> Iter<usize> {
+    pub fn qnode_index_iter(&self) -> Iter<'_, usize> {
         self.qnodes.iter()
     }
 }
 
 impl fmt::Display for MaxNode {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.node_type {
             MaxNodeType::Root => write!(f, "Root"),
             MaxNodeType::Get => write!(f, "Get"),

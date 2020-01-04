@@ -1,5 +1,5 @@
-use state::State;
-use world::World;
+use crate::state::State;
+use crate::world::World;
 
 #[derive(Debug, Clone, Copy)]
 pub struct StateIndexer {
@@ -73,7 +73,8 @@ impl StateIndexer {
                 (taxi_x as i32, taxi_y as i32),
                 passenger,
                 destination,
-            ).ok()
+            )
+            .ok()
         } else {
             None
         }

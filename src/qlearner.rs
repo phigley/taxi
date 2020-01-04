@@ -3,12 +3,12 @@ use std::cmp;
 use float_cmp::ApproxOrdUlps;
 use rand::Rng;
 
-use actions::Actions;
-use state::State;
-use state_indexer::StateIndexer;
-use world::World;
+use crate::actions::Actions;
+use crate::state::State;
+use crate::state_indexer::StateIndexer;
+use crate::world::World;
 
-use runner::{Attempt, Runner};
+use crate::runner::{Attempt, Runner};
 
 #[derive(Debug, Clone)]
 pub struct QLearner {
@@ -51,7 +51,7 @@ impl QLearner {
                 best_value = *value;
                 num_found = 1;
             } else {
-                match value.approx_cmp(&best_value, 2) {
+                match value.approx_cmp_ulps(&best_value, 2) {
                     cmp::Ordering::Greater => {
                         best_action = Actions::from_index(i);
                         best_value = *value;
@@ -241,8 +241,8 @@ impl Runner for QLearner {
 mod test_qlearner {
 
     use super::*;
+    use crate::world::Costs;
     use rand::thread_rng;
-    use world::Costs;
 
     #[test]
     fn learns_go_north() {
@@ -294,7 +294,7 @@ mod test_qlearner {
         assert!(best_action != Actions::South);
         println!("Chose action {:?}", best_action);
 
-        println!("");
+        println!();
         for row in qlearner.qtable {
             println!("{:?}", row);
         }
@@ -336,7 +336,7 @@ mod test_qlearner {
             chi_sqr += (delta * delta) / expected_count;
         }
 
-        println!("");
+        println!();
         println!(
             "north count = {}, ratio = {}",
             counts[Actions::North.to_index()],
@@ -416,7 +416,7 @@ mod test_qlearner {
             chi_sqr += (delta * delta) / expected_count;
         }
 
-        println!("");
+        println!();
         println!(
             "north count = {}, ratio = {}",
             counts[Actions::North.to_index()],

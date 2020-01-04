@@ -1,6 +1,6 @@
-use actions::Actions;
-use state::State;
-use world::World;
+use crate::actions::Actions;
+use crate::state::State;
+use crate::world::World;
 
 #[derive(Debug, Clone)]
 pub struct Rewards {

@@ -11,20 +11,20 @@ use std::cmp;
 use std::f64;
 
 use float_cmp::ApproxOrdUlps;
-use rand::Isaac64Rng;
 use rand::Rng;
+use rand_pcg::Pcg64Mcg;
 
-use actions::Actions;
-use state::{State, StateIterator};
-use state_indexer::StateIndexer;
-use world::World;
+use crate::actions::Actions;
+use crate::state::{State, StateIterator};
+use crate::state_indexer::StateIndexer;
+use crate::world::World;
 
 use self::condition::Condition;
 use self::mcelearner::MCELearner;
 use self::multirewardlearner::MultiRewardLearner;
 use self::reward::Rewards;
 
-use runner::{Attempt, Runner};
+use crate::runner::{Attempt, Runner};
 
 #[derive(Debug, Clone)]
 pub struct DoorMax {
@@ -164,7 +164,7 @@ impl DoorMax {
             let action = Actions::from_index(action_index).unwrap();
             let action_value = self.measure_value(world, state, action)?;
 
-            match action_value.approx_cmp(&best_value, 2) {
+            match action_value.approx_cmp_ulps(&best_value, 2) {
                 cmp::Ordering::Greater => {
                     best_value = action_value;
                     best_action = Some(action);
@@ -322,7 +322,7 @@ impl Runner for DoorMax {
     }
 
     fn report_training_result(&self, world: &World, _steps: Option<usize>) {
-        let mut rng = Isaac64Rng::new_from_u64(0);
+        let mut rng = Pcg64Mcg::new(0xcafe_f00d_d15e_a5e5);
 
         let num_states = self.state_indexer.num_states();
         for state_index in 0..num_states {

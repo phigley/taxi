@@ -2,22 +2,24 @@
 name = "taxi"
 version = "0.1.0"
 authors = ["Peter Higley <phigley@gmail.com>"]
+edition = "2018"
 
 [lib]
 name = "taxi"
 
 [dependencies]
-rand = "*"
+rand = "0.6"
+rand_pcg = "0.1"
 serde = "1.0"
 serde_derive = "1.0"
 toml = "0.4"
 rayon = "1.0"
-float-cmp = "0.3"
-enum-map = "0.2"
+float-cmp = "0.4"
+enum-map = "0.4"
 
 [target.'cfg(not(windows))'.dependencies]
-tui = "*"
-termion = "*"
+tui = "0.3"
+termion = "1.5"
 
 [dev-dependencies]
 assert_matches = "1.2"

@@ -2,10 +2,10 @@ use std::fmt;
 
 use rand::Rng;
 
-use actions::Actions;
-use state;
-use state::State;
-use world::World;
+use crate::actions::Actions;
+use crate::state;
+use crate::state::State;
+use crate::world::World;
 
 #[derive(Debug)]
 pub struct Probe {
@@ -72,7 +72,7 @@ pub enum Error {
 }
 
 impl fmt::Debug for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             Error::BuildRandomState(ref state_error) => {
                 write!(f, "Failed to build random state:\n{:?}", state_error)

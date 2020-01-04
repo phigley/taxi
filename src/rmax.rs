@@ -3,14 +3,15 @@ use std::collections::HashMap;
 use std::f64;
 
 use float_cmp::ApproxOrdUlps;
-use rand::{Isaac64Rng, Rng};
+use rand::Rng;
+use rand_pcg::Pcg64Mcg;
 
-use actions::Actions;
-use state::State;
-use world::World;
+use crate::actions::Actions;
+use crate::state::State;
+use crate::world::World;
 
-use runner::{Attempt, Runner};
-use state_indexer::StateIndexer;
+use crate::runner::{Attempt, Runner};
+use crate::state_indexer::StateIndexer;
 
 #[derive(Debug, Clone)]
 struct TransitionEntry {
@@ -150,7 +151,7 @@ impl RMax {
         for action_index in 0..Actions::NUM_ELEMENTS {
             let action_value = self.measure_value(state_index, action_index);
 
-            match action_value.approx_cmp(&best_value, 2) {
+            match action_value.approx_cmp_ulps(&best_value, 2) {
                 cmp::Ordering::Greater => {
                     best_value = action_value;
                     best_action_index = action_index;
@@ -303,7 +304,7 @@ impl Runner for RMax {
     }
 
     fn report_training_result(&self, world: &World, _steps: Option<usize>) {
-        let mut rng = Isaac64Rng::new_from_u64(0);
+        let mut rng = Pcg64Mcg::new(0xcafe_f00d_d15e_a5e5);
 
         let num_states = self.state_indexer.num_states();
         for state_index in 0..num_states {

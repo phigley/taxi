@@ -1,11 +1,11 @@
 use std::fmt;
 
-use doormax::condition::Condition;
-use doormax::condition_learner::ConditionLearner;
+use crate::doormax::condition::Condition;
+use crate::doormax::condition_learner::ConditionLearner;
 
-use actions::Actions;
-use state::State;
-use world::World;
+use crate::actions::Actions;
+use crate::state::State;
+use crate::world::World;
 
 #[derive(Debug, Clone)]
 pub struct RewardLearner {
@@ -125,7 +125,7 @@ impl Default for RewardLearner {
 }
 
 impl fmt::Display for RewardLearner {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "CL(")?;
         let mut leader = " ";
         for &(ref condition_learner, learned_reward) in &self.condition_rewards {
@@ -171,13 +171,13 @@ impl MultiRewardLearner {
 }
 
 impl fmt::Display for MultiRewardLearner {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "reward:\n")?;
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "reward:")?;
         for action_index in 0..Actions::NUM_ELEMENTS {
             let action = Actions::from_index(action_index).unwrap();
-            write!(f, "{} - {}\n", action, self.reward_learners[action_index])?;
+            writeln!(f, "{} - {}", action, self.reward_learners[action_index])?;
         }
-        write!(f, "\n")?;
+        writeln!(f)?;
         Ok(())
     }
 }
@@ -185,8 +185,8 @@ impl fmt::Display for MultiRewardLearner {
 #[cfg(test)]
 mod multirewardlearner_test {
     use super::*;
-    use actions::Actions;
-    use world::Costs;
+    use crate::actions::Actions;
+    use crate::world::Costs;
 
     #[test]
     fn learns_pickup() {

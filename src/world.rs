@@ -1,8 +1,8 @@
 use std::fmt;
 use std::iter;
 
-use actions::Actions;
-use position::Position;
+use crate::actions::Actions;
+use crate::position::Position;
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct Wall {
@@ -24,7 +24,7 @@ impl Wall {
 }
 
 impl fmt::Display for Wall {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Wall('")?;
 
         if self.north {
@@ -102,7 +102,7 @@ pub enum Error {
 }
 
 impl fmt::Debug for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             Error::EmptyString => write!(f, "Attempted to build world from empty string."),
             Error::Parse {
@@ -125,7 +125,7 @@ pub enum ParseError {
 }
 
 impl fmt::Debug for ParseError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             ParseError::LineTooLong {
                 line,
@@ -179,7 +179,8 @@ impl World {
                     width,
                     &mut wall_row,
                     &mut fixed_positions,
-                ).map_err(|error| Error::Parse {
+                )
+                .map_err(|error| Error::Parse {
                     source: String::from(source),
                     error,
                 })?;
@@ -191,7 +192,8 @@ impl World {
                     width,
                     Some(&mut wall_row),
                     Some(&mut next_wall_row),
-                ).map_err(|error| Error::Parse {
+                )
+                .map_err(|error| Error::Parse {
                     source: String::from(source),
                     error,
                 })?;
@@ -215,10 +217,10 @@ impl World {
         }
     }
 
-    pub fn get_fixed_position(&self, id: char) -> Option<&Position> {
+    pub fn get_fixed_position(&self, id: char) -> Option<Position> {
         for fp in &self.fixed_positions {
             if fp.id == id {
-                return Some(&fp.position);
+                return Some(fp.position);
             }
         }
 
@@ -235,9 +237,9 @@ impl World {
         None
     }
 
-    pub fn get_fixed_id(&self, position: &Position) -> Option<char> {
+    pub fn get_fixed_id(&self, position: Position) -> Option<char> {
         for fp in &self.fixed_positions {
-            if fp.position == *position {
+            if fp.position == position {
                 return Some(fp.id);
             }
         }
@@ -261,11 +263,11 @@ impl World {
         }
     }
 
-    pub fn get_wall(&self, position: &Position) -> &Wall {
+    pub fn get_wall(&self, position: Position) -> &Wall {
         &self.walls[position.y as usize][position.x as usize]
     }
 
-    pub fn determine_affect(&self, position: &Position, action: Actions) -> ActionAffect {
+    pub fn determine_affect(&self, position: Position, action: Actions) -> ActionAffect {
         match action {
             Actions::North => {
                 if position.y > 0 && !self.get_wall(position).north {

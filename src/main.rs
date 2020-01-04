@@ -1,18 +1,6 @@
 #[macro_use]
 extern crate serde_derive;
 
-extern crate rand;
-extern crate rayon;
-extern crate toml;
-
-#[cfg(not(windows))]
-extern crate termion;
-
-#[cfg(not(windows))]
-extern crate tui;
-
-extern crate taxi;
-
 mod configuration;
 mod replay;
 
@@ -21,11 +9,11 @@ use std::env;
 use std::fmt;
 use std::time;
 
-use rand::Isaac64Rng;
+use rand_pcg::Pcg64Mcg;
 
 use rayon::prelude::*;
 
-use configuration::{Configuration, ReportConfig, SolverChoice};
+use crate::configuration::{Configuration, ReportConfig, SolverChoice};
 
 use taxi::distribution::MeasureDistribution;
 use taxi::state::State;
@@ -43,22 +31,13 @@ use taxi::runner::{run_training_session, Probe, Runner};
 use std::io;
 
 #[cfg(not(windows))]
-use rand::Rng;
-
-#[cfg(not(windows))]
 use termion::event;
 
 #[cfg(not(windows))]
 use termion::input::TermRead;
 
 #[cfg(not(windows))]
-use replay::Replay;
-
-fn main() {
-    if let Err(error) = run() {
-        println!("{:?}", error);
-    }
-}
+use crate::replay::Replay;
 
 enum AppError {
     NoConfiguration,
@@ -77,7 +56,7 @@ enum AppError {
 }
 
 impl fmt::Debug for AppError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             AppError::NoConfiguration => write!(f, "Configuration file not specified."),
             AppError::Configuration(ref config_error) => {
@@ -115,7 +94,7 @@ impl fmt::Debug for AppError {
     }
 }
 
-fn run() -> Result<(), AppError> {
+fn main() -> Result<(), AppError> {
     let args: Vec<String> = env::args().collect();
 
     if args.len() < 2 {
@@ -133,8 +112,8 @@ fn run() -> Result<(), AppError> {
     let world = World::build_from_str(&config.world, costs).map_err(AppError::World)?;
     let probes = build_probes(&config, &world)?;
 
-    let root_seed = if let Some(config_seed) = config.root_seed {
-        config_seed as u64
+    let root_seed = if let Some((seed_high, seed_low)) = config.root_seed {
+        (seed_high as u128).rotate_left(64) + (seed_low as u128)
     } else {
         rand::random()
     };
@@ -261,18 +240,21 @@ fn run() -> Result<(), AppError> {
 
             println!(
                 "{:?} - finished {} sessions in {:.1} average steps with stddev of {:.2} \
-                 in {:.3} secs. Using seed {}",
+                 in {:.3} secs. Using seed [{}, {}]",
                 solver_choice,
                 stats.distribution.get_count() as usize,
                 avg_steps,
                 stddev_steps,
                 elapsed_time,
+                root_seed.rotate_right(64) as i64,
                 root_seed as i64,
             );
         }
     }
 
-    for rerun_seed in config.rerun_seeds {
+    for (seed_high, seed_low) in config.rerun_seeds {
+        let seed = (seed_high as u128).rotate_left(64) + (seed_low as u128);
+
         if let Some(ref random_config) = config.random_solver {
             rerun_session(
                 RandomSolver::new,
@@ -280,7 +262,7 @@ fn run() -> Result<(), AppError> {
                 &world,
                 &probes,
                 (config.max_trials, config.max_trial_steps),
-                rerun_seed as u64,
+                seed,
             )?;
         };
 
@@ -298,7 +280,7 @@ fn run() -> Result<(), AppError> {
                 &world,
                 &probes,
                 (config.max_trials, config.max_trial_steps),
-                rerun_seed as u64,
+                seed,
             )?;
         };
 
@@ -316,7 +298,7 @@ fn run() -> Result<(), AppError> {
                 &world,
                 &probes,
                 (config.max_trials, config.max_trial_steps),
-                rerun_seed as u64,
+                seed,
             )?;
         };
 
@@ -334,7 +316,7 @@ fn run() -> Result<(), AppError> {
                 &world,
                 &probes,
                 (config.max_trials, config.max_trial_steps),
-                rerun_seed as u64,
+                seed,
             )?;
         };
 
@@ -353,7 +335,7 @@ fn run() -> Result<(), AppError> {
                 &world,
                 &probes,
                 (config.max_trials, config.max_trial_steps),
-                rerun_seed as u64,
+                seed,
             )?;
         };
 
@@ -372,30 +354,32 @@ fn run() -> Result<(), AppError> {
                 &world,
                 &probes,
                 (config.max_trials, config.max_trial_steps),
-                rerun_seed as u64,
+                seed,
             )?;
         };
     }
 
     #[cfg(not(windows))]
     {
-        let mut rng = thread_rng();
+        let mut rng = rand::thread_rng();
 
         if let Some(ref replay_config) = config.replay {
             match replay_config.solver {
-                SolverChoice::Random => if config.random_solver.is_some() {
-                    run_replay(
-                        &mut RandomSolver::new(),
-                        replay_config,
-                        &world,
-                        &probes,
-                        config.max_trials,
-                        config.max_trial_steps,
-                        &mut rng,
-                    )?
-                } else {
-                    return Err(AppError::ReplayRunnerNotConfigured(replay_config.solver));
-                },
+                SolverChoice::Random => {
+                    if config.random_solver.is_some() {
+                        run_replay(
+                            &mut RandomSolver::new(),
+                            replay_config,
+                            &world,
+                            &probes,
+                            config.max_trials,
+                            config.max_trial_steps,
+                            &mut rng,
+                        )?
+                    } else {
+                        return Err(AppError::ReplayRunnerNotConfigured(replay_config.solver));
+                    }
+                }
                 SolverChoice::QLearner => {
                     if let Some(ref qlearner_config) = config.q_learner {
                         run_replay(
@@ -404,7 +388,6 @@ fn run() -> Result<(), AppError> {
                                 qlearner_config.alpha,
                                 qlearner_config.gamma,
                                 qlearner_config.epsilon,
-                                qlearner_config.show_table,
                             ),
                             replay_config,
                             &world,
@@ -417,24 +400,26 @@ fn run() -> Result<(), AppError> {
                         return Err(AppError::ReplayRunnerNotConfigured(replay_config.solver));
                     }
                 }
-                SolverChoice::RMax => if let Some(ref rmax_config) = config.r_max {
-                    run_replay(
-                        &mut RMax::new(
+                SolverChoice::RMax => {
+                    if let Some(ref rmax_config) = config.r_max {
+                        run_replay(
+                            &mut RMax::new(
+                                &world,
+                                rmax_config.gamma,
+                                rmax_config.known_count,
+                                rmax_config.error_delta,
+                            ),
+                            replay_config,
                             &world,
-                            rmax_config.gamma,
-                            rmax_config.known_count,
-                            rmax_config.error_delta,
-                        ),
-                        replay_config,
-                        &world,
-                        &probes,
-                        config.max_trials,
-                        config.max_trial_steps,
-                        &mut rng,
-                    )?
-                } else {
-                    return Err(AppError::ReplayRunnerNotConfigured(replay_config.solver));
-                },
+                            &probes,
+                            config.max_trials,
+                            config.max_trial_steps,
+                            &mut rng,
+                        )?
+                    } else {
+                        return Err(AppError::ReplayRunnerNotConfigured(replay_config.solver));
+                    }
+                }
                 SolverChoice::FactoredRMax => {
                     if let Some(ref factored_rmax_config) = config.factored_r_max {
                         run_replay(
@@ -455,45 +440,48 @@ fn run() -> Result<(), AppError> {
                         return Err(AppError::ReplayRunnerNotConfigured(replay_config.solver));
                     }
                 }
-                SolverChoice::MaxQ => if let Some(ref maxq_config) = config.max_q {
-                    run_replay(
-                        &mut MaxQ::new(
+                SolverChoice::MaxQ => {
+                    if let Some(ref maxq_config) = config.max_q {
+                        run_replay(
+                            &mut MaxQ::new(
+                                &world,
+                                maxq_config.alpha,
+                                maxq_config.gamma,
+                                maxq_config.epsilon,
+                                maxq_config.show_learning,
+                            ),
+                            replay_config,
                             &world,
-                            maxq_config.alpha,
-                            maxq_config.gamma,
-                            maxq_config.epsilon,
-                            maxq_config.show_table,
-                            maxq_config.show_learning,
-                        ),
-                        replay_config,
-                        &world,
-                        &probes,
-                        config.max_trials,
-                        config.max_trial_steps,
-                        &mut rng,
-                    )?
-                } else {
-                    return Err(AppError::ReplayRunnerNotConfigured(replay_config.solver));
-                },
-                SolverChoice::DoorMax => if let Some(ref doormax_config) = config.door_max {
-                    run_replay(
-                        &mut DoorMax::new(
+                            &probes,
+                            config.max_trials,
+                            config.max_trial_steps,
+                            &mut rng,
+                        )?
+                    } else {
+                        return Err(AppError::ReplayRunnerNotConfigured(replay_config.solver));
+                    }
+                }
+                SolverChoice::DoorMax => {
+                    if let Some(ref doormax_config) = config.door_max {
+                        run_replay(
+                            &mut DoorMax::new(
+                                &world,
+                                doormax_config.gamma,
+                                doormax_config.use_reward_learner,
+                                doormax_config.known_count,
+                                doormax_config.error_delta,
+                            ),
+                            replay_config,
                             &world,
-                            doormax_config.gamma,
-                            doormax_config.use_reward_learner,
-                            doormax_config.known_count,
-                            doormax_config.error_delta,
-                        ),
-                        replay_config,
-                        &world,
-                        &probes,
-                        config.max_trials,
-                        config.max_trial_steps,
-                        &mut rng,
-                    )?
-                } else {
-                    return Err(AppError::ReplayRunnerNotConfigured(replay_config.solver));
-                },
+                            &probes,
+                            config.max_trials,
+                            config.max_trial_steps,
+                            &mut rng,
+                        )?
+                    } else {
+                        return Err(AppError::ReplayRunnerNotConfigured(replay_config.solver));
+                    }
+                }
             };
         }
     }
@@ -510,7 +498,8 @@ fn build_probes(config: &Configuration, world: &World) -> Result<Vec<Probe>, App
             probe_config.taxi_pos,
             probe_config.passenger_loc,
             probe_config.destination_loc,
-        ).map_err(AppError::BuildProbes)?;
+        )
+        .map_err(AppError::BuildProbes)?;
 
         probes.push(Probe::new(state, probe_config.max_steps));
     }
@@ -526,19 +515,19 @@ struct Stats {
 
 fn gather_stats<B, Rnr>(
     builder: B,
-    report_config: &ReportConfig,
+    report_config: &dyn ReportConfig,
     world: &World,
     probes: &[Probe],
     config: &Configuration,
-    root_seed: u64,
+    root_seed: u128,
     results: &mut Vec<(SolverChoice, Stats)>,
 ) -> Result<(), AppError>
 where
     B: Fn() -> Rnr + Sync,
     Rnr: Runner + Sync,
 {
-    let mut seed_generator = Isaac64Rng::new_from_u64(root_seed);
-    let session_ids: Vec<(usize, u64)> = (0..config.sessions)
+    let mut seed_generator = Pcg64Mcg::new(root_seed);
+    let session_ids: Vec<(usize, u128)> = (0..config.sessions)
         .map(|session_id| (session_id, seed_generator.gen()))
         .collect();
 
@@ -555,7 +544,7 @@ where
 
                     let mut solver = builder();
 
-                    let mut rng = Isaac64Rng::new_from_u64(*seed);
+                    let mut rng = Pcg64Mcg::new(*seed);
 
                     let training_step_count = run_training_session(
                         world,
@@ -564,7 +553,8 @@ where
                         config.max_trial_steps,
                         &mut solver,
                         &mut rng,
-                    ).map_err(AppError::Runner)?;
+                    )
+                    .map_err(AppError::Runner)?;
 
                     let duration = start_time.elapsed();
                     let elapsed_time =
@@ -573,9 +563,10 @@ where
                     match training_step_count {
                         Some(num_steps) => {
                             println!(
-                                "{:?} - Finished session {} [{}] in {} steps in {:.3} secs.",
+                                "{:?} - Finished session {} [{}, {}] in {} steps in {:.3} secs.",
                                 solver_choice,
                                 session_number,
+                                seed.rotate_right(64) as i64,
                                 *seed as i64,
                                 num_steps,
                                 elapsed_time,
@@ -584,10 +575,11 @@ where
                         }
                         None => {
                             println!(
-                                "{:?} - Failed session {} [{}] with maximums {} trials of {} steps \
+                                "{:?} - Failed session {} [{},{}] with maximums {} trials of {} steps \
                                  in {:.3} secs.",
                                 solver_choice,
                                 session_number,
+                                seed.rotate_right(64) as i64,
                                 *seed as i64,
                                 config.max_trials,
                                 config.max_trial_steps,
@@ -631,11 +623,11 @@ where
 
 fn rerun_session<B, Rnr>(
     builder: B,
-    report_config: &ReportConfig,
+    report_config: &dyn ReportConfig,
     world: &World,
     probes: &[Probe],
     (max_trials, max_trial_steps): (usize, usize),
-    seed: u64,
+    seed: u128,
 ) -> Result<(), AppError>
 where
     B: Fn() -> Rnr,
@@ -646,7 +638,7 @@ where
     let start_time = time::Instant::now();
 
     let mut solver = builder();
-    let mut rng = Isaac64Rng::new_from_u64(seed);
+    let mut rng = Pcg64Mcg::new(seed);
 
     let training_step_count = run_training_session(
         world,
@@ -655,7 +647,8 @@ where
         max_trial_steps,
         &mut solver,
         &mut rng,
-    ).map_err(AppError::Runner)?;
+    )
+    .map_err(AppError::Runner)?;
 
     let duration = start_time.elapsed();
     let elapsed_time = duration.as_secs() as f64 + f64::from(duration.subsec_nanos()) * 1e-9;
@@ -663,15 +656,24 @@ where
     match training_step_count {
         Some(num_steps) => {
             println!(
-                "{:?} - Finished seed {} in {} steps in {:.3} secs.",
-                solver_choice, seed as i64, num_steps, elapsed_time,
+                "{:?} - Finished seed [{}, {}] in {} steps in {:.3} secs.",
+                solver_choice,
+                seed.rotate_right(64) as i64,
+                seed as i64,
+                num_steps,
+                elapsed_time,
             );
         }
         None => {
             println!(
-                "{:?} - Failed seed {} with maximums {} trials of {} steps \
+                "{:?} - Failed seed [{},{}] with maximums {} trials of {} steps \
                  in {:.3} secs.",
-                solver_choice, seed as i64, max_trials, max_trial_steps, elapsed_time,
+                solver_choice,
+                seed.rotate_right(64) as i64,
+                seed as i64,
+                max_trials,
+                max_trial_steps,
+                elapsed_time,
             );
         }
     };
@@ -704,7 +706,8 @@ where
             replay_config.taxi_pos,
             replay_config.passenger_loc,
             replay_config.destination_loc,
-        ).map_err(AppError::ReplayState)?;
+        )
+        .map_err(AppError::ReplayState)?;
 
         let attempt = solver.attempt(world, replay_state, replay_config.max_steps, &mut rng);
 

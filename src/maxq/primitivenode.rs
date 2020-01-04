@@ -1,8 +1,8 @@
-use actions::Actions;
-use state::State;
-use world::World;
+use crate::actions::Actions;
+use crate::state::State;
+use crate::world::World;
 
-use maxq::MaxQParams;
+use crate::maxq::MaxQParams;
 
 #[derive(Debug, Clone)]
 pub struct PrimitiveNode {

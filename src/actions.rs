@@ -15,8 +15,8 @@ pub enum Actions {
 impl Actions {
     pub const NUM_ELEMENTS: usize = 6;
 
-    pub fn to_index(&self) -> usize {
-        match *self {
+    pub fn to_index(self) -> usize {
+        match self {
             Actions::North => 0,
             Actions::South => 1,
             Actions::East => 2,
@@ -54,7 +54,7 @@ impl Distribution<Actions> for Standard {
 }
 
 impl fmt::Display for Actions {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             Actions::North => write!(f, "N"),
             Actions::South => write!(f, "S"),
@@ -154,7 +154,7 @@ mod test_actions {
             chi_sqr += (delta * delta) / expected_count;
         }
 
-        println!("");
+        println!();
         println!(
             "north count = {}, ratio = {}",
             counts[Actions::North.to_index()],

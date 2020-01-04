@@ -1,13 +1,13 @@
 use std::fmt;
 
-use doormax::condition::Condition;
-use doormax::condition_learner::ConditionLearner;
-use doormax::effect;
-use doormax::effect::{ChangePassenger, ChangeTaxiX, ChangeTaxiY, Effect};
+use crate::doormax::condition::Condition;
+use crate::doormax::condition_learner::ConditionLearner;
+use crate::doormax::effect;
+use crate::doormax::effect::{ChangePassenger, ChangeTaxiX, ChangeTaxiY, Effect};
 
-use actions::Actions;
-use state::State;
-use world::World;
+use crate::actions::Actions;
+use crate::state::State;
+use crate::world::World;
 
 #[derive(Debug, Clone)]
 pub struct CELearner<E: Effect> {
@@ -149,7 +149,7 @@ impl<E: Effect> Default for CELearner<E> {
 }
 
 impl<E: Effect + fmt::Display> fmt::Display for CELearner<E> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "CL(")?;
         let mut leader = " ";
         for &(ref condition_learner, ref learned_effect) in &self.condition_effects {
@@ -224,31 +224,27 @@ impl MCELearner {
 }
 
 impl fmt::Display for MCELearner {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "taxi_x:\n")?;
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "taxi_x:")?;
         for action_index in 0..Actions::NUM_ELEMENTS {
             let action = Actions::from_index(action_index).unwrap();
-            write!(f, "{} - {}\n", action, self.taxi_x_learners[action_index])?;
+            writeln!(f, "{} - {}", action, self.taxi_x_learners[action_index])?;
         }
-        write!(f, "\n")?;
+        writeln!(f)?;
 
-        write!(f, "taxi_y:\n")?;
+        writeln!(f, "taxi_y:")?;
         for action_index in 0..Actions::NUM_ELEMENTS {
             let action = Actions::from_index(action_index).unwrap();
-            write!(f, "{} - {}\n", action, self.taxi_y_learners[action_index])?;
+            writeln!(f, "{} - {}", action, self.taxi_y_learners[action_index])?;
         }
-        write!(f, "\n")?;
+        writeln!(f)?;
 
-        write!(f, "passenger:\n")?;
+        writeln!(f, "passenger:")?;
         for action_index in 0..Actions::NUM_ELEMENTS {
             let action = Actions::from_index(action_index).unwrap();
-            write!(
-                f,
-                "{} - {}\n",
-                action, self.passenger_learners[action_index]
-            )?;
+            writeln!(f, "{} - {}", action, self.passenger_learners[action_index])?;
         }
-        write!(f, "\n")?;
+        writeln!(f)?;
 
         Ok(())
     }
@@ -257,8 +253,8 @@ impl fmt::Display for MCELearner {
 #[cfg(test)]
 mod mcelearner_test {
     use super::*;
-    use position::Position;
-    use world::Costs;
+    use crate::position::Position;
+    use crate::world::Costs;
 
     #[test]
     fn learns_taxi_east_simple() {

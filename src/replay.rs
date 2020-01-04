@@ -4,10 +4,11 @@ use std::io;
 
 use termion::event;
 use termion::input::TermRead;
+use termion::raw::IntoRawMode;
 
-use tui::backend::RawBackend;
-use tui::layout::{Direction, Group, Rect, Size};
-use tui::widgets::{Paragraph, Widget};
+use tui::backend::TermionBackend;
+use tui::layout::{Constraint, Direction, Layout, Rect};
+use tui::widgets::{Paragraph, Text, Widget};
 use tui::Terminal;
 
 use taxi::actions::Actions;
@@ -68,8 +69,9 @@ impl Replay {
 
     pub fn run(&self) -> Result<(), io::Error> {
         let stdin = io::stdin();
+        let stdout = io::stdout().into_raw_mode()?;
 
-        let backend = RawBackend::new()?;
+        let backend = TermionBackend::new(stdout);
         let mut terminal = Terminal::new(backend)?;
 
         terminal.resize(self.term_size)?;
@@ -112,36 +114,38 @@ impl Replay {
         }
     }
 
-    pub fn draw(&self, step: isize, mut t: &mut Terminal<RawBackend>) -> Result<(), io::Error> {
-        Group::default()
-            .direction(Direction::Vertical)
-            .sizes(&[
-                Size::Fixed(self.state_height),
-                Size::Fixed(self.step_height),
-                Size::Fixed(self.summary_height),
-            ])
-            .render(&mut t, &self.term_size, |mut t, chunks| {
-                let render_state_chunk = chunks[0];
-                let step_data_chunk = chunks[1];
-                let run_data_chunk = chunks[2];
+    pub fn draw(
+        &self,
+        step: isize,
+        t: &mut Terminal<TermionBackend<termion::raw::RawTerminal<std::io::Stdout>>>,
+    ) -> Result<(), io::Error> {
+        t.draw(|mut f| {
+            let chunks = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints(
+                    [
+                        Constraint::Length(self.state_height),
+                        Constraint::Length(self.step_height),
+                        Constraint::Length(self.summary_height),
+                    ]
+                    .as_ref(),
+                )
+                .split(self.term_size);
 
-                Paragraph::default()
-                    .text(&self.states[step as usize])
-                    .render(&mut t, &render_state_chunk);
+            let step_data = build_step_string(step as usize, self.solved, &self.actions);
 
-                let step_data = build_step_string(step as usize, self.solved, &self.actions);
+            Paragraph::new([Text::raw(&self.states[step as usize])].iter())
+                .wrap(true)
+                .render(&mut f, chunks[0]);
 
-                Paragraph::default()
-                    .text(&step_data)
-                    .render(&mut t, &step_data_chunk);
+            Paragraph::new([Text::raw(&step_data)].iter())
+                .wrap(true)
+                .render(&mut f, chunks[1]);
 
-                Paragraph::default()
-                    .wrap(true)
-                    .text(&self.summary)
-                    .render(&mut t, &run_data_chunk);
-            });
-
-        t.draw()?;
+            Paragraph::new([Text::raw(&self.summary)].iter())
+                .wrap(true)
+                .render(&mut f, chunks[2]);
+        })?;
 
         Ok(())
     }

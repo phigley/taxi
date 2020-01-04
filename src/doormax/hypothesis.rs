@@ -2,8 +2,8 @@ use std::fmt;
 
 use enum_map::EnumMap;
 
-use doormax::condition::Condition;
-use doormax::term::Term;
+use crate::doormax::condition::Condition;
+use crate::doormax::term::Term;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Require {
@@ -57,13 +57,17 @@ impl Hypothesis {
 
         for (key, &value) in self_map {
             match value {
-                Require::True => if !cond_map[key] {
-                    result_map[key] = Require::None;
-                },
+                Require::True => {
+                    if !cond_map[key] {
+                        result_map[key] = Require::None;
+                    }
+                }
 
-                Require::False => if cond_map[key] {
-                    result_map[key] = Require::None;
-                },
+                Require::False => {
+                    if cond_map[key] {
+                        result_map[key] = Require::None;
+                    }
+                }
 
                 Require::None => {}
             }
@@ -92,7 +96,7 @@ impl Hypothesis {
 }
 
 impl fmt::Display for Hypothesis {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let &Hypothesis(ref hyp_map) = self;
 
         fn show_require(r: Require) -> &'static str {
@@ -119,7 +123,7 @@ impl fmt::Display for Hypothesis {
 
 impl From<Condition> for Hypothesis {
     fn from(Condition(cond_map): Condition) -> Self {
-        Hypothesis(enum_map!{
+        Hypothesis(enum_map! {
             Term::TouchWallN => Require::from(cond_map[Term::TouchWallN]),
             Term::TouchWallS => Require::from(cond_map[Term::TouchWallS]),
             Term::TouchWallE => Require::from(cond_map[Term::TouchWallE]),
@@ -138,7 +142,7 @@ mod test_hypthothesis {
 
     #[test]
     fn hypothesis_matches() {
-        let hyp_a = Hypothesis(enum_map!{
+        let hyp_a = Hypothesis(enum_map! {
             Term::TouchWallN => Require::True,
             Term::TouchWallS => Require::True,
             Term::TouchWallE => Require::True,
@@ -148,7 +152,7 @@ mod test_hypthothesis {
             Term::HasPassenger => Require::True,
         });
 
-        let hyp_b = Hypothesis(enum_map!{
+        let hyp_b = Hypothesis(enum_map! {
             Term::TouchWallN => Require::False,
             Term::TouchWallS => Require::False,
             Term::TouchWallE => Require::False,
@@ -158,7 +162,7 @@ mod test_hypthothesis {
             Term::HasPassenger => Require::False,
         });
 
-        let hyp_c = Hypothesis(enum_map!{
+        let hyp_c = Hypothesis(enum_map! {
             Term::TouchWallN => Require::True,
             Term::TouchWallS => Require::None,
             Term::TouchWallE => Require::None,
@@ -168,7 +172,7 @@ mod test_hypthothesis {
             Term::HasPassenger => Require::None,
         });
 
-        let hyp_d = Hypothesis(enum_map!{
+        let hyp_d = Hypothesis(enum_map! {
             Term::TouchWallN => Require::True,
             Term::TouchWallS => Require::False,
             Term::TouchWallE => Require::None,
@@ -178,7 +182,7 @@ mod test_hypthothesis {
             Term::HasPassenger => Require::None,
         });
 
-        let hyp_e = Hypothesis(enum_map!{
+        let hyp_e = Hypothesis(enum_map! {
             Term::TouchWallN => Require::True,
             Term::TouchWallS => Require::False,
             Term::TouchWallE => Require::True,
@@ -221,7 +225,7 @@ mod test_hypthothesis {
 
     #[test]
     fn hypothesis_matches_cond() {
-        let hyp_a = Hypothesis(enum_map!{
+        let hyp_a = Hypothesis(enum_map! {
             Term::TouchWallN => Require::True,
             Term::TouchWallS => Require::None,
             Term::TouchWallE => Require::None,
@@ -231,7 +235,7 @@ mod test_hypthothesis {
             Term::HasPassenger => Require::None,
         });
 
-        let hyp_b = Hypothesis(enum_map!{
+        let hyp_b = Hypothesis(enum_map! {
             Term::TouchWallN => Require::True,
             Term::TouchWallS => Require::False,
             Term::TouchWallE => Require::None,
@@ -241,7 +245,7 @@ mod test_hypthothesis {
             Term::HasPassenger => Require::None,
         });
 
-        let hyp_c = Hypothesis(enum_map!{
+        let hyp_c = Hypothesis(enum_map! {
             Term::TouchWallN => Require::True,
             Term::TouchWallS => Require::False,
             Term::TouchWallE => Require::True,
@@ -251,7 +255,7 @@ mod test_hypthothesis {
             Term::HasPassenger => Require::True,
         });
 
-        let cond_a = Condition(enum_map!{
+        let cond_a = Condition(enum_map! {
             Term::TouchWallN => true,
             Term::TouchWallS => false,
             Term::TouchWallE => false,
@@ -261,7 +265,7 @@ mod test_hypthothesis {
             Term::HasPassenger => false,
         });
 
-        let cond_b = Condition(enum_map!{
+        let cond_b = Condition(enum_map! {
             Term::TouchWallN => true,
             Term::TouchWallS => false,
             Term::TouchWallE => false,
@@ -271,7 +275,7 @@ mod test_hypthothesis {
             Term::HasPassenger => true,
         });
 
-        let cond_c = Condition(enum_map!{
+        let cond_c = Condition(enum_map! {
             Term::TouchWallN => false,
             Term::TouchWallS => false,
             Term::TouchWallE => false,

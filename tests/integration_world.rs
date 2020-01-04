@@ -1,4 +1,4 @@
-extern crate taxi;
+
 
 use taxi::actions::Actions;
 use taxi::position::Position;

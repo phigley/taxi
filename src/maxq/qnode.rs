@@ -1,13 +1,13 @@
 use std::fmt;
 
-use actions::Actions;
-use state::State;
-use world::World;
+use crate::actions::Actions;
+use crate::state::State;
+use crate::world::World;
 
-use maxq::maxnode::{MaxNode, MaxNodeType};
-use maxq::nodestorage::NodeStorage;
+use crate::maxq::maxnode::{MaxNode, MaxNodeType};
+use crate::maxq::nodestorage::NodeStorage;
 
-use maxq::MaxQParams;
+use crate::maxq::MaxQParams;
 
 #[derive(Debug, Clone, Copy)]
 pub enum QNodeType {
@@ -65,9 +65,11 @@ impl QNode {
         world: &World,
         state: &State,
     ) -> Option<(f64, f64, Actions)> {
-        let completion = self.get_completion_index(world, state)
-            .map(|completion_index| self.completions[completion_index])
-            .unwrap_or(0.0);
+        let completion = if let Some(completion_index) = self.get_completion_index(world, state) {
+            self.completions[completion_index]
+        } else {
+            0.0
+        };
 
         let qchild = self.get_child(world, state)?;
 
@@ -95,7 +97,8 @@ impl QNode {
         world: &World,
         state: &State,
     ) -> Option<(f64, f64, f64)> {
-        let (learning_completion, completion) = self.get_completion_index(world, state)
+        let (learning_completion, completion) = self
+            .get_completion_index(world, state)
             .map(|completion_index| {
                 (
                     self.learning_completions[completion_index],
@@ -137,28 +140,27 @@ impl QNode {
             println!("Updating completion for {}", self);
         }
 
-        self.get_completion_index(world, state)
-            .map(|completion_index| {
-                let old_completion = self.completions[completion_index];
+        if let Some(completion_index) = self.get_completion_index(world, state) {
+            let old_completion = self.completions[completion_index];
 
-                self.learning_completions[completion_index] *= 1.0 - params.alpha;
-                self.learning_completions[completion_index] +=
-                    params.alpha * gamma * result_learning_completion;
+            self.learning_completions[completion_index] *= 1.0 - params.alpha;
+            self.learning_completions[completion_index] +=
+                params.alpha * gamma * result_learning_completion;
 
-                self.completions[completion_index] *= 1.0 - params.alpha;
-                self.completions[completion_index] += params.alpha * gamma * result_completion;
+            self.completions[completion_index] *= 1.0 - params.alpha;
+            self.completions[completion_index] += params.alpha * gamma * result_completion;
 
-                if params.show_learning {
-                    println!(
-                        "{} completion {} - was {} applied {} -> {}",
-                        self,
-                        completion_index,
-                        old_completion,
-                        result_completion,
-                        self.completions[completion_index]
-                    );
-                }
-            });
+            if params.show_learning {
+                println!(
+                    "{} completion {} - was {} applied {} -> {}",
+                    self,
+                    completion_index,
+                    old_completion,
+                    result_completion,
+                    self.completions[completion_index]
+                );
+            }
+        }
     }
 
     pub fn get_completion_index(&self, world: &World, state: &State) -> Option<usize> {
@@ -307,7 +309,7 @@ impl QNode {
 }
 
 impl fmt::Display for QNode {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.node_type {
             QNodeType::Get => write!(f, "Get"),
             QNodeType::NavigateForGet => write!(f, "NavigateForGet"),
