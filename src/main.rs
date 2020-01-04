@@ -690,7 +690,7 @@ where
     run_training_session(world, probes, max_trials, max_trial_steps, solver, &mut rng)
         .map_err(AppError::ReplayTraining)?;
 
-    let do_replay = wait_for_input().map_err(AppError::WaitForReplay)?;
+    let do_replay = ask_for_replay().map_err(AppError::WaitForReplay)?;
 
     if do_replay {
         let replay_state = State::build(
@@ -710,7 +710,7 @@ where
     Ok(())
 }
 
-fn wait_for_input() -> crossterm::Result<bool> {
+fn ask_for_replay() -> crossterm::Result<bool> {
     println!("Press Enter to see replay.  q to exit.");
 
     loop {
@@ -719,10 +719,7 @@ fn wait_for_input() -> crossterm::Result<bool> {
         if let Event::Key(key) = event {
             match key.code {
                 KeyCode::Char('q') | KeyCode::Char('Q') => return Ok(false),
-                KeyCode::Enter => {
-                    println!("Received return.");
-                    return Ok(true);
-                }
+                KeyCode::Enter => return Ok(true),
                 _ => (),
             }
         }
