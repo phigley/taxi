@@ -27,16 +27,10 @@ use taxi::random_solver::RandomSolver;
 use taxi::rmax::RMax;
 use taxi::runner::{run_training_session, Probe, Runner};
 
-#[cfg(not(windows))]
+use crossterm::event;
+use crossterm::event::{Event, KeyCode};
 use std::io;
 
-#[cfg(not(windows))]
-use termion::event;
-
-#[cfg(not(windows))]
-use termion::input::TermRead;
-
-#[cfg(not(windows))]
 use crate::replay::Replay;
 
 enum AppError {
@@ -45,13 +39,10 @@ enum AppError {
     World(taxi::world::Error),
     BuildProbes(taxi::state::Error),
     Runner(taxi::runner::Error),
-    #[cfg(not(windows))]
     ReplayRunnerNotConfigured(SolverChoice),
-    #[cfg(not(windows))]
     ReplayTraining(taxi::runner::Error),
-    #[cfg(not(windows))]
     ReplayState(taxi::state::Error),
-    #[cfg(not(windows))]
+    WaitForReplay(crossterm::ErrorKind),
     Replay(io::Error),
 }
 
@@ -71,22 +62,23 @@ impl fmt::Debug for AppError {
             AppError::Runner(ref runner_error) => {
                 write!(f, "Failed to run trial:\n{:?}", runner_error)
             }
-            #[cfg(not(windows))]
             AppError::ReplayRunnerNotConfigured(ref runner_type) => write!(
                 f,
                 "Attempting to replay {:?} solver with out a valid configuration \
                  for that solver.",
                 runner_type
             ),
-            #[cfg(not(windows))]
             AppError::ReplayTraining(ref runner_error) => {
                 write!(f, "Failed to run training for replay:\n{:?}", runner_error)
             }
-            #[cfg(not(windows))]
             AppError::ReplayState(ref state_error) => {
                 write!(f, "Failed to build replay state:\n{:?}", state_error)
             }
-            #[cfg(not(windows))]
+            AppError::WaitForReplay(ref crossterm_error) => write!(
+                f,
+                "Failed to read input while waiting for replay:\n{:?}",
+                crossterm_error
+            ),
             AppError::Replay(ref replay_error) => {
                 write!(f, "Failed to replay:\n{:?}", replay_error)
             }
@@ -359,7 +351,6 @@ fn main() -> Result<(), AppError> {
         };
     }
 
-    #[cfg(not(windows))]
     {
         let mut rng = rand::thread_rng();
 
@@ -683,7 +674,6 @@ where
     Ok(())
 }
 
-#[cfg(not(windows))]
 fn run_replay<Rnr, R>(
     solver: &mut Rnr,
     replay_config: &configuration::Replay,
@@ -700,7 +690,9 @@ where
     run_training_session(world, probes, max_trials, max_trial_steps, solver, &mut rng)
         .map_err(AppError::ReplayTraining)?;
 
-    if wait_for_input().is_some() {
+    let do_replay = wait_for_input().map_err(AppError::WaitForReplay)?;
+
+    if do_replay {
         let replay_state = State::build(
             world,
             replay_config.taxi_pos,
@@ -718,19 +710,20 @@ where
     Ok(())
 }
 
-#[cfg(not(windows))]
-fn wait_for_input() -> Option<()> {
+fn wait_for_input() -> crossterm::Result<bool> {
     println!("Press Enter to see replay.  q to exit.");
 
     loop {
-        for c in io::stdin().keys() {
-            match c {
-                Ok(evt) => match evt {
-                    event::Key::Char('q') | event::Key::Char('Q') => return None,
-                    event::Key::Char('\n') => return Some(()),
-                    _ => (),
-                },
-                Err(_) => return None,
+        let event = event::read()?;
+
+        if let Event::Key(key) = event {
+            match key.code {
+                KeyCode::Char('q') | KeyCode::Char('Q') => return Ok(false),
+                KeyCode::Enter => {
+                    println!("Received return.");
+                    return Ok(true);
+                }
+                _ => (),
             }
         }
     }

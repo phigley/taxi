@@ -1,12 +1,9 @@
-#![cfg(not(windows))]
-
 use std::io;
 
-use termion::event;
-use termion::input::TermRead;
-use termion::raw::IntoRawMode;
+use crossterm::event;
+use crossterm::event::{Event, KeyCode};
 
-use tui::backend::TermionBackend;
+use tui::backend::CrosstermBackend;
 use tui::layout::{Constraint, Direction, Layout, Rect};
 use tui::widgets::{Paragraph, Text, Widget};
 use tui::Terminal;
@@ -68,10 +65,9 @@ impl Replay {
     }
 
     pub fn run(&self) -> Result<(), io::Error> {
-        let stdin = io::stdin();
-        let stdout = io::stdout().into_raw_mode()?;
+        let stdout = io::stdout();
 
-        let backend = TermionBackend::new(stdout);
+        let backend = CrosstermBackend::new(stdout);
         let mut terminal = Terminal::new(backend)?;
 
         terminal.resize(self.term_size)?;
@@ -82,15 +78,18 @@ impl Replay {
         let mut step = 0;
 
         self.draw(step, &mut terminal)?;
-        for c in stdin.keys() {
-            let evt = c?;
 
-            match evt {
-                event::Key::Esc => break,
-                event::Key::Right => step = self.trim_step(step + 1),
-                event::Key::Left => step = self.trim_step(step - 1),
-                _ => (),
-            }
+        loop {
+            if let Ok(event) = event::read() {
+                if let Event::Key(key) = event {
+                    match key.code {
+                        KeyCode::Esc => break,
+                        KeyCode::Right => step = self.trim_step(step + 1),
+                        KeyCode::Left => step = self.trim_step(step - 1),
+                        _ => (),
+                    }
+                }
+            };
 
             self.draw(step, &mut terminal)?;
         }
@@ -117,7 +116,7 @@ impl Replay {
     pub fn draw(
         &self,
         step: isize,
-        t: &mut Terminal<TermionBackend<termion::raw::RawTerminal<std::io::Stdout>>>,
+        t: &mut Terminal<CrosstermBackend<std::io::Stdout>>,
     ) -> Result<(), io::Error> {
         t.draw(|mut f| {
             let chunks = Layout::default()
