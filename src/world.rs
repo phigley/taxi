@@ -4,7 +4,7 @@ use std::iter;
 use crate::actions::Actions;
 use crate::position::Position;
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(PartialEq, Clone, Copy, Debug)]
 pub struct Wall {
     pub north: bool,
     pub south: bool,
@@ -47,13 +47,13 @@ impl fmt::Display for Wall {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 struct FixedPosition {
     id: char,
     position: Position,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Costs {
     pub movement: f64,
     pub miss_pickup: f64,
@@ -74,7 +74,7 @@ impl Costs {
 
 impl Default for Costs {
     fn default() -> Self {
-        Costs::new(-1.0, -10.0, -10.0, -10.0)
+        Costs::new(-1.0, -10.0, -11.0, -12.0)
     }
 }
 
@@ -88,7 +88,7 @@ pub struct World {
     pub costs: Costs,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ActionAffect {
     Invalid,
     Move(Position),
@@ -349,7 +349,7 @@ impl World {
                     None
                 };
 
-                upper_chars.push(calc_upper_left_char(w, previous_wall, upper_wall));
+                upper_chars.push(calc_upper_left_char(*w, previous_wall, upper_wall));
                 upper_chars.push(if w.north { '─' } else { ' ' });
 
                 chars.push(if w.west { '│' } else { ' ' });
@@ -375,7 +375,7 @@ impl World {
                     None
                 };
 
-                upper_chars.push(calc_upper_right_char(w, upper_wall));
+                upper_chars.push(calc_upper_right_char(*w, upper_wall));
                 chars.push(if w.east { '│' } else { ' ' });
             }
 
@@ -389,7 +389,7 @@ impl World {
             let mut bottom_chars = String::new();
             let mut previous_wall = None;
             for w in r {
-                bottom_chars.push(calc_lower_left_char(w, previous_wall));
+                bottom_chars.push(calc_lower_left_char(*w, previous_wall));
                 bottom_chars.push(if w.south { '─' } else { ' ' });
 
                 previous_wall = Some(w);
@@ -407,7 +407,7 @@ impl World {
 }
 
 fn calc_upper_left_char(
-    current_wall: &Wall,
+    current_wall: Wall,
     previous_wall: Option<&Wall>,
     upper_wall: Option<&Wall>,
 ) -> char {
@@ -439,7 +439,7 @@ fn calc_upper_left_char(
     render_connection(connect_north, connect_south, connect_east, connect_west)
 }
 
-fn calc_upper_right_char(current_wall: &Wall, upper_wall: Option<&Wall>) -> char {
+fn calc_upper_right_char(current_wall: Wall, upper_wall: Option<&Wall>) -> char {
     let mut connect_north = false;
     let mut connect_south = false;
     let connect_east = false;
@@ -462,7 +462,7 @@ fn calc_upper_right_char(current_wall: &Wall, upper_wall: Option<&Wall>) -> char
     render_connection(connect_north, connect_south, connect_east, connect_west)
 }
 
-fn calc_lower_left_char(current_wall: &Wall, previous_wall: Option<&Wall>) -> char {
+fn calc_lower_left_char(current_wall: Wall, previous_wall: Option<&Wall>) -> char {
     let mut connect_north = false;
     let connect_south = false;
     let mut connect_east = false;
@@ -639,8 +639,8 @@ mod test_world {
                       │ │\n\
                       │.│\n\
                       └─┘";
-
-        let res = World::build_from_str(source, Costs::default());
+        let costs = Costs::default();
+        let res = World::build_from_str(source, costs);
         assert_matches!(res, Ok(World { height: 4, .. }))
     }
 
@@ -651,8 +651,8 @@ mod test_world {
                       │d T . . .│\n\
                       └─────────┘\n\
                       ";
-
-        let res = World::build_from_str(source, Costs::default());
+        let costs = Costs::default();
+        let res = World::build_from_str(source, costs);
         assert_matches!(res, Ok(World { width: 5, .. }))
     }
 
@@ -665,8 +665,8 @@ mod test_world {
                       │. . . .│\n\
                       └───────┘\n\
                       ";
-
-        let res = World::build_from_str(source, Costs::default());
+        let costs = Costs::default();
+        let res = World::build_from_str(source, costs);
         assert_matches!(res, Err(_))
     }
 
@@ -679,8 +679,8 @@ mod test_world {
                       │ . . . . │\n\
                       └─────────┘\n\
                       ";
-
-        let res = World::build_from_str(source, Costs::default());
+        let costs = Costs::default();
+        let res = World::build_from_str(source, costs);
         assert_matches!(res, Err(_))
     }
 
@@ -693,8 +693,8 @@ mod test_world {
                       │ . . . . │\n\
                       └─────────┘\n\
                       ";
-
-        let res = World::build_from_str(source, Costs::default());
+        let costs = Costs::default();
+        let res = World::build_from_str(source, costs);
         assert_matches!(res, Err(_))
     }
 
@@ -707,8 +707,8 @@ mod test_world {
                       │ . . . . │\n\
                       └────────┘\n\
                       ";
-
-        let res = World::build_from_str(source, Costs::default());
+        let costs = Costs::default();
+        let res = World::build_from_str(source, costs);
         assert_matches!(res, Err(_))
     }
 
@@ -721,8 +721,8 @@ mod test_world {
                       │. . . .│\n\
                       └───────┘\n\
                       ";
-
-        let res = World::build_from_str(source, Costs::default());
+        let costs = Costs::default();
+        let res = World::build_from_str(source, costs);
         assert_matches!(res, Err(_))
     }
 
@@ -735,8 +735,8 @@ mod test_world {
                       │ . . . . │\n\
                       └─────────┘\n\
                       ";
-
-        let res = World::build_from_str(source, Costs::default());
+        let costs = Costs::default();
+        let res = World::build_from_str(source, costs);
         assert_matches!(res, Err(_))
     }
 
@@ -749,8 +749,8 @@ mod test_world {
                       │ . . . . │\n\
                       └─────────┘\n\
                       ";
-
-        let res = World::build_from_str(source, Costs::default());
+        let costs = Costs::default();
+        let res = World::build_from_str(source, costs);
         assert_matches!(res, Err(_))
     }
 
@@ -763,8 +763,8 @@ mod test_world {
                       │ . . . . │\n\
                       └──────────┘\n\
                       ";
-
-        let res = World::build_from_str(source, Costs::default());
+        let costs = Costs::default();
+        let res = World::build_from_str(source, costs);
         assert_matches!(res, Err(_))
     }
 
@@ -808,7 +808,8 @@ mod test_world {
         expected_w.height = 1;
         expected_w.walls = vec![vec![build_wall("nsew")]];
 
-        match World::build_from_str(source, Costs::default()) {
+        let costs = Costs::default();
+        match World::build_from_str(source, costs) {
             Err(msg) => panic!(msg),
             Ok(w) => {
                 assert_eq!(w, expected_w);
@@ -840,7 +841,8 @@ mod test_world {
             vec![build_wall("sw"), build_wall("s"), build_wall("se")],
         ];
 
-        match World::build_from_str(source, Costs::default()) {
+        let costs = Costs::default();
+        match World::build_from_str(source, costs) {
             Err(msg) => panic!(msg),
             Ok(w) => {
                 assert_eq!(w, expected_w);
@@ -884,7 +886,8 @@ mod test_world {
             ],
         ];
 
-        match World::build_from_str(source, Costs::default()) {
+        let costs = Costs::default();
+        match World::build_from_str(source, costs) {
             Err(msg) => panic!(msg),
             Ok(w) => {
                 assert_eq!(w, expected_w);
@@ -949,7 +952,8 @@ mod test_world {
             ],
         ];
 
-        match World::build_from_str(source, Costs::default()) {
+        let costs = Costs::default();
+        match World::build_from_str(source, costs) {
             Err(msg) => panic!(msg),
             Ok(w) => {
                 assert_eq!(w, expected_w);
@@ -995,7 +999,8 @@ mod test_world {
             },
         ];
 
-        match World::build_from_str(source, Costs::default()) {
+        let costs = Costs::default();
+        match World::build_from_str(source, costs) {
             Err(msg) => panic!(msg),
             Ok(w) => {
                 assert_eq!(w, expected_w);

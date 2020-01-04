@@ -376,8 +376,8 @@ mod test_state {
                             │.│. .│. .│\n\
                             └─┴───┴───┘\n\
                             ";
-
-        let w = World::build_from_str(source_world, Costs::default()).unwrap();
+        let costs = Costs::default();
+        let w = World::build_from_str(source_world, costs).unwrap();
         let expected_state = State {
             taxi: Position::new(1, 3),
             passenger: Some('R'),
@@ -403,8 +403,8 @@ mod test_state {
                             │.│. .│. .│\n\
                             └─┴───┴───┘\n\
                             ";
-
-        let w = World::build_from_str(source_world, Costs::default()).unwrap();
+        let costs = Costs::default();
+        let w = World::build_from_str(source_world, costs).unwrap();
 
         let initial_state = State::build(&w, (2, 2), Some('R'), 'G').unwrap();
 
@@ -446,8 +446,8 @@ mod test_state {
                             │.│. .│. .│\n\
                             └─┴───┴───┘\n\
                             ";
-
-        let w = World::build_from_str(source_world, Costs::default()).unwrap();
+        let costs = Costs::default();
+        let w = World::build_from_str(source_world, costs).unwrap();
 
         let initial_state = State::build(&w, (1, 3), Some('R'), 'G').unwrap();
 
@@ -600,8 +600,8 @@ mod test_state {
                 Actions::North,
             ),
         ];
-
-        let w = World::build_from_str(source, Costs::default()).unwrap();
+        let costs = Costs::default();
+        let w = World::build_from_str(source, costs).unwrap();
 
         let mut state = State::build(&w, (1, 2), Some('R'), 'G').unwrap();
         println!();
@@ -824,8 +824,8 @@ mod test_state {
                 Actions::South,
             ),
         ];
-
-        let w = World::build_from_str(source, Costs::default()).unwrap();
+        let costs = Costs::default();
+        let w = World::build_from_str(source, costs).unwrap();
 
         let mut state = State::build(&w, (1, 3), Some('R'), 'G').unwrap();
         println!();
@@ -865,8 +865,8 @@ mod test_state {
                             │Y│. .│B .│\n\
                             └─┴───┴───┘\n\
                             ";
-
-        let w = World::build_from_str(source_world, Costs::default()).unwrap();
+        let costs = Costs::default();
+        let w = World::build_from_str(source_world, costs).unwrap();
 
         let mut rng = thread_rng();
 

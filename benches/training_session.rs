@@ -1,7 +1,3 @@
-
-
-
-
 #[macro_use]
 extern crate criterion;
 
@@ -9,6 +5,7 @@ use rand_pcg::Pcg64Mcg;
 
 use criterion::Criterion;
 
+use taxi::doormax::DoorMax;
 use taxi::factoredrmax::FactoredRMax;
 use taxi::qlearner::QLearner;
 use taxi::rmax::RMax;
@@ -16,7 +13,7 @@ use taxi::runner::{run_training_session, Probe};
 use taxi::state::State;
 use taxi::world::{Costs, World};
 
-criterion_group!(trainers, qlearner, rmax, factored_rmax);
+criterion_group!(trainers, qlearner, rmax, factored_rmax, doormax);
 criterion_main!(trainers);
 
 struct SessionData {
@@ -78,7 +75,7 @@ impl Default for SessionData {
 
 fn qlearner(c: &mut Criterion) {
     let data = SessionData::default();
-    let source_rng = Pcg64Mcg::new(0xcafef00dd15ea5e5);
+    let source_rng = Pcg64Mcg::new(0xcafe_f00d_d15e_a5e5);
 
     c.bench_function("qmax", move |b| {
         b.iter(|| {
@@ -92,7 +89,7 @@ fn qlearner(c: &mut Criterion) {
 
 fn rmax(c: &mut Criterion) {
     let data = SessionData::default();
-    let source_rng = Pcg64Mcg::new(0xcafef00dd15ea5e5);
+    let source_rng = Pcg64Mcg::new(0xcafe_f00d_d15e_a5e5);
 
     c.bench_function("rmax", move |b| {
         b.iter(|| {
@@ -106,7 +103,7 @@ fn rmax(c: &mut Criterion) {
 
 fn factored_rmax(c: &mut Criterion) {
     let data = SessionData::default();
-    let source_rng = Pcg64Mcg::new(0xcafef00dd15ea5e5);
+    let source_rng = Pcg64Mcg::new(0xcafe_f00d_d15e_a5e5);
 
     c.bench_function("factored_rmax", move |b| {
         b.iter(|| {
@@ -114,6 +111,20 @@ fn factored_rmax(c: &mut Criterion) {
             let rng = &mut source_rng.clone();
 
             run_training_session(&data.world, &data.probes, 1, 10, &mut factored_rmax, rng)
+        })
+    });
+}
+
+fn doormax(c: &mut Criterion) {
+    let data = SessionData::default();
+    let source_rng = Pcg64Mcg::new(0xcafe_f00d_d15e_a5e5);
+
+    c.bench_function("doormax", move |b| {
+        b.iter(|| {
+            let mut doormax = DoorMax::new(&data.world, 0.95, true, 1.0, 1.0e-6);
+            let rng = &mut source_rng.clone();
+
+            run_training_session(&data.world, &data.probes, 1, 10, &mut doormax, rng)
         })
     });
 }

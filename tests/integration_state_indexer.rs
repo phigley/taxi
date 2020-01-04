@@ -1,5 +1,3 @@
-
-
 use taxi::state::State;
 use taxi::state_indexer::StateIndexer;
 use taxi::world::{Costs, World};
@@ -20,7 +18,8 @@ fn indices_unique() {
 
     let possible_destinations = ['R', 'Y', 'G'];
 
-    let world = World::build_from_str(source_world, Costs::default()).unwrap();
+    let costs = Costs::default();
+    let world = World::build_from_str(source_world, costs).unwrap();
 
     let state_indexer = StateIndexer::new(&world);
 

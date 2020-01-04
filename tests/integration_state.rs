@@ -1,5 +1,3 @@
-
-
 use taxi::actions::Actions;
 use taxi::state::*;
 use taxi::world::{Costs, World};
@@ -21,7 +19,8 @@ fn build_fails_unknown_passenger() {
                         └─┴───┴───┘\n\
                         ";
 
-    let w = World::build_from_str(source_world, Costs::default()).unwrap();
+    let costs = Costs::default();
+    let w = World::build_from_str(source_world, costs).unwrap();
     State::build(&w, (1, 3), Some('C'), 'B').unwrap();
 }
 
@@ -42,7 +41,8 @@ fn build_fails_unknown_destination() {
                         └─┴───┴───┘\n\
                         ";
 
-    let w = World::build_from_str(source_world, Costs::default()).unwrap();
+    let costs = Costs::default();
+    let w = World::build_from_str(source_world, costs).unwrap();
     State::build(&w, (1, 3), Some('Y'), 'Q').unwrap();
 }
 
@@ -63,7 +63,8 @@ fn build_fails_invalid_taxi() {
                         └─┴───┴───┘\n\
                         ";
 
-    let w = World::build_from_str(source_world, Costs::default()).unwrap();
+    let costs = Costs::default();
+    let w = World::build_from_str(source_world, costs).unwrap();
     State::build(&w, (1, 6), Some('R'), 'B').unwrap();
 }
 
@@ -83,7 +84,8 @@ fn output_matches_str_simple() {
     expected_str += " t p \n";
     expected_str += "     \n";
 
-    let w = World::build_from_str(&source_world, Costs::default()).unwrap();
+    let costs = Costs::default();
+    let w = World::build_from_str(&source_world, costs).unwrap();
     let state = State::build(&w, (0, 1), Some('G'), 'R').unwrap();
 
     let output = state.display(&w);
@@ -106,7 +108,8 @@ fn output_matches_str_passenger_in_taxi() {
     expected_str += " T . \n";
     expected_str += "     \n";
 
-    let w = World::build_from_str(&source_world, Costs::default()).unwrap();
+    let costs = Costs::default();
+    let w = World::build_from_str(&source_world, costs).unwrap();
     let state = State::build(&w, (0, 1), None, 'R').unwrap();
 
     let output = state.display(&w);
@@ -143,7 +146,8 @@ fn output_matches_str_complex() {
                                 └─┴───┴───┘\n\
                                 ";
 
-    let world = World::build_from_str(source_world, Costs::default()).unwrap();
+    let costs = Costs::default();
+    let world = World::build_from_str(source_world, costs).unwrap();
     let initial_state = State::build(&world, (1, 3), Some('R'), 'B').unwrap();
 
     let initial_str = initial_state.display(&world);
@@ -180,7 +184,8 @@ fn move_allowed_north() {
                           └─┴───┴───┘\n\
                           ";
 
-    let world = World::build_from_str(source_world, Costs::default()).unwrap();
+    let costs = Costs::default();
+    let world = World::build_from_str(source_world, costs).unwrap();
     let initial_state = State::build(&world, (1, 3), Some('R'), 'G').unwrap();
 
     let (_, state_north) = initial_state.apply_action(&world, Actions::North);
@@ -217,7 +222,8 @@ fn move_top_north() {
                           └─┴───┴───┘\n\
                           ";
 
-    match World::build_from_str(source_world, Costs::default()) {
+    let costs = Costs::default();
+    match World::build_from_str(source_world, costs) {
         Err(msg) => panic!(msg),
         Ok(w) => match State::build(&w, (1, 0), Some('R'), 'G') {
             Err(msg) => panic!(msg),
@@ -259,7 +265,8 @@ fn move_wall_north() {
                           └─┴───┴───┘\n\
                           ";
 
-    match World::build_from_str(source_world, Costs::default()) {
+    let costs = Costs::default();
+    match World::build_from_str(source_world, costs) {
         Err(msg) => panic!(msg),
         Ok(w) => match State::build(&w, (1, 3), Some('R'), 'G') {
             Err(msg) => panic!(msg),
@@ -301,7 +308,8 @@ fn move_allowed_south() {
                           └─┴───┴───┘\n\
                           ";
 
-    match World::build_from_str(source_world, Costs::default()) {
+    let costs = Costs::default();
+    match World::build_from_str(source_world, costs) {
         Err(msg) => panic!(msg),
         Ok(w) => match State::build(&w, (3, 1), Some('R'), 'G') {
             Err(msg) => panic!(msg),
@@ -343,7 +351,8 @@ fn move_bottom_south() {
                           └─┴───┴───┘\n\
                           ";
 
-    match World::build_from_str(source_world, Costs::default()) {
+    let costs = Costs::default();
+    match World::build_from_str(source_world, costs) {
         Err(msg) => panic!(msg),
         Ok(w) => match State::build(&w, (0, 4), Some('R'), 'G') {
             Err(msg) => panic!(msg),
@@ -385,7 +394,8 @@ fn move_wall_south() {
                           └─┴───┴───┘\n\
                           ";
 
-    match World::build_from_str(source_world, Costs::default()) {
+    let costs = Costs::default();
+    match World::build_from_str(source_world, costs) {
         Err(msg) => panic!(msg),
         Ok(w) => match State::build(&w, (1, 2), Some('R'), 'G') {
             Err(msg) => panic!(msg),
@@ -427,7 +437,8 @@ fn move_allowed_east() {
                          └─┴───┴───┘\n\
                          ";
 
-    match World::build_from_str(source_world, Costs::default()) {
+    let costs = Costs::default();
+    match World::build_from_str(source_world, costs) {
         Err(msg) => panic!(msg),
         Ok(w) => match State::build(&w, (1, 2), Some('R'), 'G') {
             Err(msg) => panic!(msg),
@@ -469,7 +480,8 @@ fn move_right_east() {
                          └─┴───┴───┘\n\
                          ";
 
-    match World::build_from_str(source_world, Costs::default()) {
+    let costs = Costs::default();
+    match World::build_from_str(source_world, costs) {
         Err(msg) => panic!(msg),
         Ok(w) => match State::build(&w, (3, 1), Some('R'), 'G') {
             Err(msg) => panic!(msg),
@@ -511,7 +523,8 @@ fn move_wall_east() {
                          └─┴───┴───┘\n\
                          ";
 
-    match World::build_from_str(source_world, Costs::default()) {
+    let costs = Costs::default();
+    match World::build_from_str(source_world, costs) {
         Err(msg) => panic!(msg),
         Ok(w) => match State::build(&w, (1, 1), Some('R'), 'G') {
             Err(msg) => panic!(msg),
@@ -553,7 +566,8 @@ fn move_allowed_west() {
                          └─┴───┴───┘\n\
                          ";
 
-    match World::build_from_str(source_world, Costs::default()) {
+    let costs = Costs::default();
+    match World::build_from_str(source_world, costs) {
         Err(msg) => panic!(msg),
         Ok(w) => match State::build(&w, (1, 1), Some('R'), 'G') {
             Err(msg) => panic!(msg),
@@ -595,7 +609,8 @@ fn move_left_west() {
                          └─┴───┴───┘\n\
                          ";
 
-    match World::build_from_str(source_world, Costs::default()) {
+    let costs = Costs::default();
+    match World::build_from_str(source_world, costs) {
         Err(msg) => panic!(msg),
         Ok(w) => match State::build(&w, (1, 2), Some('R'), 'G') {
             Err(msg) => panic!(msg),
@@ -637,7 +652,8 @@ fn move_wall_west() {
                          └─┴───┴───┘\n\
                          ";
 
-    match World::build_from_str(source_world, Costs::default()) {
+    let costs = Costs::default();
+    match World::build_from_str(source_world, costs) {
         Err(msg) => panic!(msg),
         Ok(w) => match State::build(&w, (3, 4), Some('R'), 'G') {
             Err(msg) => panic!(msg),
@@ -677,7 +693,8 @@ fn reaches_destination() {
     // │.│. .│. .│
     // └─┴───┴───┘
 
-    match World::build_from_str(source_world, Costs::default()) {
+    let costs = Costs::default();
+    match World::build_from_str(source_world, costs) {
         Err(msg) => panic!(msg),
         Ok(w) => match State::build(&w, (2, 1), Some('R'), 'G') {
             Err(msg) => panic!(msg),
@@ -731,22 +748,23 @@ fn movement_reward() {
                                 └─────┘\n\
                                 ";
 
-    let world = World::build_from_str(source_world, Costs::default()).unwrap();
+    let costs = Costs::default();
+    let world = World::build_from_str(source_world, costs).unwrap();
     let initial_state = State::build(&world, (1, 2), Some('R'), 'G').unwrap();
 
     assert_eq!(expected_initial_str, initial_state.display(&world));
 
     let (north_reward, _) = initial_state.apply_action(&world, Actions::North);
-    assert_eq!(-1.0, north_reward);
+    assert!((-1.0 - north_reward).abs() < 1.0e-6);
 
     let (south_reward, _) = initial_state.apply_action(&world, Actions::South);
-    assert_eq!(-1.0, south_reward);
+    assert!((-1.0 - south_reward).abs() < 1.0e-6);
 
     let (east_reward, _) = initial_state.apply_action(&world, Actions::East);
-    assert_eq!(-1.0, east_reward);
+    assert!((-1.0 - east_reward).abs() < 1.0e-6);
 
     let (west_reward, _) = initial_state.apply_action(&world, Actions::West);
-    assert_eq!(-1.0, west_reward);
+    assert!((-1.0 - west_reward).abs() < 1.0e-6);
 }
 
 #[test]
@@ -771,13 +789,14 @@ fn correct_pickup_reward() {
                                 └─────┘\n\
                                 ";
 
-    let world = World::build_from_str(source_world, Costs::default()).unwrap();
+    let costs = Costs::default();
+    let world = World::build_from_str(source_world, costs).unwrap();
     let initial_state = State::build(&world, (0, 0), Some('R'), 'G').unwrap();
 
     assert_eq!(expected_initial_str, initial_state.display(&world));
 
     let (pickup_reward, _) = initial_state.apply_action(&world, Actions::PickUp);
-    assert_eq!(0.0, pickup_reward);
+    assert!(pickup_reward.abs() < 1.0e-6);
 }
 
 #[test]
@@ -791,8 +810,8 @@ fn incorrect_pickup_reward() {
                         │. Y .│\n\
                         └─────┘\n\
                         ";
-
-    let world = World::build_from_str(source_world, Costs::default()).unwrap();
+    let costs = Costs::default();
+    let world = World::build_from_str(source_world, costs).unwrap();
 
     let expected_off_passenger_str = "\
                                       ┌─────┐\n\
@@ -810,9 +829,9 @@ fn incorrect_pickup_reward() {
         expected_off_passenger_str,
         off_passenger_state.display(&world)
     );
-    assert_eq!(
-        -10.0,
-        off_passenger_state.apply_action(&world, Actions::PickUp).0
+    assert!(
+        (costs.miss_pickup - off_passenger_state.apply_action(&world, Actions::PickUp).0).abs()
+            < 1.0e-6
     );
 
     let expected_has_passenger_str = "\
@@ -831,9 +850,9 @@ fn incorrect_pickup_reward() {
         expected_has_passenger_str,
         has_passenger_state.display(&world)
     );
-    assert_eq!(
-        -10.0,
-        has_passenger_state.apply_action(&world, Actions::PickUp).0
+    assert!(
+        (costs.miss_pickup - has_passenger_state.apply_action(&world, Actions::PickUp).0).abs()
+            < 1.0e-6
     );
 
     let expected_wrong_fp_str = "\
@@ -849,9 +868,8 @@ fn incorrect_pickup_reward() {
     let wrong_fp_state = State::build(&world, (1, 2), Some('R'), 'G').unwrap();
 
     assert_eq!(expected_wrong_fp_str, wrong_fp_state.display(&world));
-    assert_eq!(
-        -10.0,
-        wrong_fp_state.apply_action(&world, Actions::PickUp).0
+    assert!(
+        (costs.miss_pickup - wrong_fp_state.apply_action(&world, Actions::PickUp).0).abs() < 1.0e-6
     );
 }
 
@@ -867,7 +885,8 @@ fn incorrect_dropoff_reward() {
                         └─────┘\n\
                         ";
 
-    let world = World::build_from_str(source_world, Costs::default()).unwrap();
+    let costs = Costs::default();
+    let world = World::build_from_str(source_world, costs).unwrap();
 
     let expected_no_passenger_str = "\
                                      ┌─────┐\n\
@@ -886,9 +905,9 @@ fn incorrect_dropoff_reward() {
         no_passenger_state.display(&world)
     );
 
-    assert_eq!(
-        -10.0,
-        no_passenger_state.apply_action(&world, Actions::DropOff).0
+    assert!(
+        (costs.empty_dropoff - no_passenger_state.apply_action(&world, Actions::DropOff).0).abs()
+            < 1.0e-6
     );
 
     let expected_no_passenger_on_dest_str = "\
@@ -908,11 +927,13 @@ fn incorrect_dropoff_reward() {
         no_passenger_on_deststate.display(&world)
     );
 
-    assert_eq!(
-        -10.0,
-        no_passenger_on_deststate
-            .apply_action(&world, Actions::DropOff)
-            .0
+    assert!(
+        (costs.empty_dropoff
+            - no_passenger_on_deststate
+                .apply_action(&world, Actions::DropOff)
+                .0)
+            .abs()
+            < 1.0e-6
     );
 
     let expected_passenger_off_fp_str = "\
@@ -932,11 +953,13 @@ fn incorrect_dropoff_reward() {
         passenger_off_fp_state.display(&world)
     );
 
-    assert_eq!(
-        -10.0,
-        passenger_off_fp_state
-            .apply_action(&world, Actions::DropOff)
-            .0
+    assert!(
+        (costs.miss_dropoff
+            - passenger_off_fp_state
+                .apply_action(&world, Actions::DropOff)
+                .0)
+            .abs()
+            < 1.0e-6
     );
 
     let expected_passenger_wrong_fp_str = "\
@@ -956,11 +979,13 @@ fn incorrect_dropoff_reward() {
         passenger_wrong_fp_state.display(&world)
     );
 
-    assert_eq!(
-        -10.0,
-        passenger_wrong_fp_state
-            .apply_action(&world, Actions::DropOff)
-            .0
+    assert!(
+        (costs.miss_dropoff
+            - passenger_wrong_fp_state
+                .apply_action(&world, Actions::DropOff)
+                .0)
+            .abs()
+            < 1.0e-6
     );
 }
 
@@ -974,7 +999,8 @@ fn tiny_state_iterator_walks_all() {
                         └───┘\n\
                         ";
 
-    let world = World::build_from_str(source_world, Costs::default()).unwrap();
+    let costs = Costs::default();
+    let world = World::build_from_str(source_world, costs).unwrap();
 
     // 2 x positions, 2 y positions, 2 destations, 3 passenger states
     let num_states = 2 * 2 * 2 * 3;
@@ -1002,7 +1028,8 @@ fn state_iterator_walks_all() {
                         └─────┘\n\
                         ";
 
-    let world = World::build_from_str(source_world, Costs::default()).unwrap();
+    let costs = Costs::default();
+    let world = World::build_from_str(source_world, costs).unwrap();
 
     // 3 x positions, 3 y positions, 3 destations, 4 passenger states
     let num_states = 3 * 3 * 3 * 4;

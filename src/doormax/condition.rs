@@ -167,8 +167,8 @@ mod condition_test {
                       │.│G .│. .│\n\
                       └─┴───┴───┘\n\
                       ";
-
-        let w = World::build_from_str(source, Costs::default()).unwrap();
+        let costs = Costs::default();
+        let w = World::build_from_str(source, costs).unwrap();
 
         let state0 = State::build(&w, (1, 2), Some('R'), 'G').unwrap();
         let cond0 = Condition::new(&w, &state0);

@@ -10,17 +10,19 @@ use crate::world::World;
 #[derive(Debug, Clone)]
 pub struct RewardLearner {
     condition_rewards: Vec<(ConditionLearner, f64)>,
+    error_delta: f64,
 }
 
 impl RewardLearner {
-    pub fn new() -> Self {
+    pub fn new(error_delta: f64) -> Self {
         RewardLearner {
             condition_rewards: Vec::new(),
+            error_delta,
         }
     }
 
     pub fn predict(&self, condition: &Condition) -> Option<f64> {
-        let mut full_result = None;
+        let mut full_result: Option<f64> = None;
 
         for &(ref condition_learner, learned_reward) in &self.condition_rewards {
             let matches_condition = condition_learner.predict(condition);
@@ -31,7 +33,7 @@ impl RewardLearner {
                 Some(false) => (),
                 Some(true) => {
                     if let Some(full_result) = full_result {
-                        if full_result != learned_reward {
+                        if (full_result - learned_reward).abs() > self.error_delta {
                             // Conflicting result
                             // This should not be possible for rewards
                             // as they have only one effect.
@@ -51,7 +53,7 @@ impl RewardLearner {
     pub fn apply_experience(&mut self, condition: &Condition, reward: f64) {
         let mut found_entry = false;
         for &mut (ref mut condition_learner, learned_reward) in &mut self.condition_rewards {
-            if reward == learned_reward {
+            if (reward - learned_reward).abs() < self.error_delta {
                 condition_learner.apply_experience(condition, true);
                 found_entry = true;
             } else {
@@ -118,12 +120,6 @@ impl RewardLearner {
     }
 }
 
-impl Default for RewardLearner {
-    fn default() -> Self {
-        RewardLearner::new()
-    }
-}
-
 impl fmt::Display for RewardLearner {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "CL(")?;
@@ -142,10 +138,17 @@ pub struct MultiRewardLearner {
 }
 
 impl MultiRewardLearner {
-    pub fn new() -> Self {
-        MultiRewardLearner {
-            reward_learners: Default::default(),
-        }
+    pub fn new(error_delta: f64) -> Self {
+        let reward_learners = [
+            RewardLearner::new(error_delta),
+            RewardLearner::new(error_delta),
+            RewardLearner::new(error_delta),
+            RewardLearner::new(error_delta),
+            RewardLearner::new(error_delta),
+            RewardLearner::new(error_delta),
+        ];
+
+        MultiRewardLearner { reward_learners }
     }
 
     pub fn predict(&self, world: &World, state: &State, action: Actions) -> Option<f64> {
@@ -204,13 +207,14 @@ mod multirewardlearner_test {
                             └─┴───┴───┘\n\
                             ";
 
-        let w = World::build_from_str(source_world, Costs::default()).unwrap();
+        let costs = Costs::default();
+        let w = World::build_from_str(source_world, costs).unwrap();
 
         let off_passenger = State::build(&w, (0, 1), Some('R'), 'B').unwrap();
         let (off_passenger_reward, _) = off_passenger.apply_action(&w, Actions::PickUp);
-        assert_eq!(off_passenger_reward, -10.0);
+        assert!((off_passenger_reward - costs.miss_pickup).abs() < 1.0e-6);
 
-        let mut learner = MultiRewardLearner::new();
+        let mut learner = MultiRewardLearner::new(1.0e-6);
 
         assert_eq!(learner.predict(&w, &off_passenger, Actions::PickUp), None);
 
@@ -223,7 +227,7 @@ mod multirewardlearner_test {
 
         let on_passenger = State::build(&w, (0, 0), Some('R'), 'B').unwrap();
         let (on_passenger_reward, _) = on_passenger.apply_action(&w, Actions::PickUp);
-        assert_eq!(on_passenger_reward, 0.0);
+        assert!(on_passenger_reward.abs() < 1.0e-6);
 
         assert_eq!(learner.predict(&w, &on_passenger, Actions::PickUp), None);
         assert_eq!(
@@ -259,13 +263,14 @@ mod multirewardlearner_test {
                             └─┴───┴───┘\n\
                             ";
 
-        let w = World::build_from_str(source_world, Costs::default()).unwrap();
+        let costs = Costs::default();
+        let w = World::build_from_str(source_world, costs).unwrap();
 
         let no_passenger = State::build(&w, (3, 3), Some('R'), 'B').unwrap();
         let (no_passenger_reward, _) = no_passenger.apply_action(&w, Actions::DropOff);
-        assert_eq!(no_passenger_reward, -10.0);
+        assert!((no_passenger_reward - costs.empty_dropoff).abs() < 1.0e-6);
 
-        let mut learner = MultiRewardLearner::new();
+        let mut learner = MultiRewardLearner::new(1.0e-6);
 
         assert_eq!(learner.predict(&w, &no_passenger, Actions::DropOff), None);
 
@@ -278,7 +283,7 @@ mod multirewardlearner_test {
 
         let off_destination = State::build(&w, (1, 3), None, 'B').unwrap();
         let (off_destination_reward, _) = off_destination.apply_action(&w, Actions::DropOff);
-        assert_eq!(off_destination_reward, -10.0);
+        assert!((off_destination_reward - costs.miss_dropoff).abs() < 1.0e-6);
 
         assert_eq!(
             learner.predict(&w, &off_destination, Actions::DropOff),
@@ -303,13 +308,12 @@ mod multirewardlearner_test {
 
         let on_destination = State::build(&w, (3, 3), None, 'B').unwrap();
         let (on_destination_reward, _) = on_destination.apply_action(&w, Actions::DropOff);
-        assert_eq!(on_destination_reward, 0.0);
+        assert!(on_destination_reward.abs() < 1.0e-6);
 
-        // This fails, it will predict Some(-10) because no_passenger
-        // and off_destination states have taught that those 2 conditions are **
-        // for that effect.  This is what Diuk is talking about when he says
-        // disjunctions cannot be learned.
-        //assert_eq!(learner.predict(&w, &on_destination, Actions::DropOff), None);
+        // This fails if miss_dropoff  and empty_dropoff are both -10. It will predict Some(-10)
+        // because no_passenger and off_destination states have taught that those 2 conditions are **
+        // for that effect.  This is what Diuk is talking about when he says disjunctions cannot be learned.
+        // assert_eq!(learner.predict(&w, &on_destination, Actions::DropOff), None);
 
         learner.apply_experience(&w, &on_destination, Actions::DropOff, on_destination_reward);
 

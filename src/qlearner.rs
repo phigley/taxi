@@ -253,8 +253,8 @@ mod test_qlearner {
                          │. G│\n\
                          └───┘\n\
                          ";
-
-        let world = World::build_from_str(world_str, Costs::default()).unwrap();
+        let costs = Costs::default();
+        let world = World::build_from_str(world_str, costs).unwrap();
 
         let expected_initial_str = "\
                                     ┌───┐\n\
@@ -309,15 +309,15 @@ mod test_qlearner {
                          │. G│\n\
                          └───┘\n\
                          ";
-
-        let world = World::build_from_str(world_str, Costs::default()).unwrap();
+        let costs = Costs::default();
+        let world = World::build_from_str(world_str, costs).unwrap();
 
         let qlearner = QLearner::new(&world, 1.0, 1.0, 0.0);
 
         let mut counts = vec![0.0f64; Actions::NUM_ELEMENTS];
 
         let mut rng = thread_rng();
-        let max_iterations = 100000;
+        let max_iterations = 100_000;
 
         for _ in 0..max_iterations {
             let action: Actions = qlearner.determine_greedy_action(0, &mut rng).unwrap();
@@ -387,8 +387,8 @@ mod test_qlearner {
                          │. G│\n\
                          └───┘\n\
                          ";
-
-        let world = World::build_from_str(world_str, Costs::default()).unwrap();
+        let costs = Costs::default();
+        let world = World::build_from_str(world_str, costs).unwrap();
 
         let qlearner = QLearner::new(&world, 1.0, 1.0, 0.0);
 
@@ -397,7 +397,7 @@ mod test_qlearner {
         assert!(counts.len() == Actions::NUM_ELEMENTS);
 
         let mut rng = thread_rng();
-        let max_iterations = 100000;
+        let max_iterations = 100_000;
 
         for _ in 0..max_iterations {
             let action: Actions = qlearner.determine_learning_action(0, &mut rng).unwrap();

@@ -132,7 +132,7 @@ mod test_actions {
 
     #[test]
     fn distribution() {
-        let max_iterations = 1000000;
+        let max_iterations = 1_000_000;
 
         let mut counts = vec![0.0f64; Actions::NUM_ELEMENTS];
 

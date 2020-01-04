@@ -242,25 +242,7 @@ impl Rewards {
         }
     }
 
-    fn apply_experience(
-        &mut self,
-        reward: f64,
-        world: &World,
-        action: Actions,
-        x_index: usize,
-        y_index: usize,
-        passenger_index: usize,
-        destination_index: usize,
-    ) {
-        let reward_parent_index = generate_reward_parent_index(
-            world,
-            action,
-            x_index,
-            y_index,
-            passenger_index,
-            destination_index,
-        );
-
+    fn apply_experience(&mut self, reward: f64, action: Actions, reward_parent_index: usize) {
         let action_index = action.to_index();
 
         let reward_index = self.reward_starts[action_index] + reward_parent_index;
@@ -411,8 +393,7 @@ impl FactoredRMax {
                     }
                 }
 
-                self.rewards.apply_experience(
-                    reward,
+                let reward_parent_index = generate_reward_parent_index(
                     world,
                     action,
                     x_index,
@@ -420,6 +401,9 @@ impl FactoredRMax {
                     passenger_index,
                     destination_index,
                 );
+
+                self.rewards
+                    .apply_experience(reward, action, reward_parent_index);
             }
         }
     }
@@ -886,8 +870,8 @@ mod test_factoredrmax {
                          │. G│\n\
                          └───┘\n\
                          ";
-
-        let world = World::build_from_str(world_str, Costs::default()).unwrap();
+        let costs = Costs::default();
+        let world = World::build_from_str(world_str, costs).unwrap();
 
         let mut factoredrmax = FactoredRMax::new(&world, 0.3, 1.0, 1.0e-6);
 
@@ -901,10 +885,10 @@ mod test_factoredrmax {
                                       └───┘\n\
                                       ";
 
-        let initial_state = state.clone();
+        let initial_state = state;
         assert_eq!(expected_initial_state, initial_state.display(&world));
 
-        let mut rng = Pcg64Mcg::new(0xcafef00dd15ea5e5);
+        let mut rng = Pcg64Mcg::new(0xcafe_f00d_d15e_a5e5);
 
         let result = factoredrmax.learn(&world, state, 100, &mut rng);
         assert!(result.is_some());

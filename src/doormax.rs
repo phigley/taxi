@@ -71,7 +71,7 @@ impl DoorMax {
             mcelearner: MCELearner::new(),
 
             use_reward_learner,
-            rewardlearner: MultiRewardLearner::new(),
+            rewardlearner: MultiRewardLearner::new(error_delta),
 
             rewards,
             known_reward_count,

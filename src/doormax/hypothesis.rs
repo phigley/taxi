@@ -140,6 +140,7 @@ mod test_hypthothesis {
 
     use super::*;
 
+    #[allow(clippy::cognitive_complexity)]
     #[test]
     fn hypothesis_matches() {
         let hyp_a = Hypothesis(enum_map! {
@@ -191,7 +192,6 @@ mod test_hypthothesis {
             Term::OnDestination => Require::True,
             Term::HasPassenger => Require::True,
         });
-
         assert!(hyp_a.matches(&hyp_a));
         assert!(!hyp_a.matches(&hyp_b));
         assert!(!hyp_a.matches(&hyp_c));
@@ -297,5 +297,4 @@ mod test_hypthothesis {
         assert!(!hyp_c.matches_cond(&cond_b));
         assert!(!hyp_c.matches_cond(&cond_c));
     }
-
 }

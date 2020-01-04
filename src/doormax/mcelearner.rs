@@ -272,7 +272,8 @@ mod mcelearner_test {
                             └─┴───┴───┘\n\
                             ";
 
-        let w = World::build_from_str(source_world, Costs::default()).unwrap();
+        let costs = Costs::default();
+        let w = World::build_from_str(source_world, costs).unwrap();
 
         let old_state = State::build(&w, (1, 3), Some('R'), 'B').unwrap();
         let (_, new_state) = old_state.apply_action(&w, Actions::East);
@@ -300,8 +301,8 @@ mod mcelearner_test {
                             │.│. .│. .│\n\
                             └─┴───┴───┘\n\
                             ";
-
-        let w = World::build_from_str(source_world, Costs::default()).unwrap();
+        let costs = Costs::default();
+        let w = World::build_from_str(source_world, costs).unwrap();
 
         let clear_state = State::build(&w, (1, 2), Some('R'), 'B').unwrap();
         let (_, clear_final_state) = clear_state.apply_action(&w, Actions::East);

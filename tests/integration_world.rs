@@ -5,7 +5,8 @@ use taxi::world::*;
 #[test]
 #[should_panic]
 fn build_fails_on_emptystring() {
-    World::build_from_str("", Costs::default()).unwrap();
+    let costs = Costs::default();
+    World::build_from_str("", costs).unwrap();
 }
 
 #[test]
@@ -24,7 +25,8 @@ fn build_world() {
                   └─┴───┴───┘\n\
                   ";
 
-    match World::build_from_str(source, Costs::default()) {
+    let costs = Costs::default();
+    match World::build_from_str(source, costs) {
         Err(msg) => panic!(msg),
         Ok(world) => {
             assert_eq!(world.width, 5);
@@ -49,7 +51,8 @@ fn wall_move_validity() {
                   └─┴───┴───┘\n\
                   ";
 
-    match World::build_from_str(source, Costs::default()) {
+    let costs = Costs::default();
+    match World::build_from_str(source, costs) {
         Err(msg) => panic!(msg),
         Ok(world) => {
             assert_eq!(
@@ -95,7 +98,8 @@ fn wall_move_validity() {
 fn edge_action_validity() {
     let source = " . . . \n . . . \n . . . \n";
 
-    match World::build_from_str(source, Costs::default()) {
+    let costs = Costs::default();
+    match World::build_from_str(source, costs) {
         Err(msg) => panic!(msg),
         Ok(world) => {
             assert_eq!(
@@ -137,7 +141,8 @@ fn read_fixed_position() {
                   └─┴───┴───┘\n\
                   ";
 
-    match World::build_from_str(source, Costs::default()) {
+    let costs = Costs::default();
+    match World::build_from_str(source, costs) {
         Err(msg) => panic!(msg),
         Ok(world) => {
             assert_eq!(world.num_fixed_positions(), 4);
@@ -168,7 +173,8 @@ fn fixed_position_indices() {
                   └─┴───┴───┘\n\
                   ";
 
-    let world = World::build_from_str(source, Costs::default()).unwrap();
+    let costs = Costs::default();
+    let world = World::build_from_str(source, costs).unwrap();
 
     let tests = ['R', 'G', 'B', 'Y'];
 
@@ -204,7 +210,8 @@ fn no_duplicate_fixed_position() {
                   └─┴───┴───┘\n\
                   ";
 
-    World::build_from_str(source, Costs::default()).unwrap();
+    let costs = Costs::default();
+    World::build_from_str(source, costs).unwrap();
 }
 
 #[test]
@@ -223,7 +230,8 @@ fn pickup_dropoff_validity() {
                   └─┴───┴───┘\n\
                   ";
 
-    let world = World::build_from_str(source, Costs::default()).unwrap();
+    let costs = Costs::default();
+    let world = World::build_from_str(source, costs).unwrap();
 
     assert_eq!(
         world.determine_affect(Position::new(0, 0), Actions::PickUp),
@@ -262,7 +270,8 @@ fn output_world() {
                   └─┴───┴───┘\n\
                   ";
 
-    let world = World::build_from_str(source, Costs::default()).unwrap();
+    let costs = Costs::default();
+    let world = World::build_from_str(source, costs).unwrap();
     let strings = world.display_strings();
 
     let mut result = String::new();

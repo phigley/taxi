@@ -34,7 +34,7 @@ where
     fn apply(&self, world: &World, state: &State) -> Result<State, Error>;
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct ChangeTaxiX {
     delta: i32,
 }
@@ -76,7 +76,7 @@ impl fmt::Display for ChangeTaxiX {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct ChangeTaxiY {
     delta: i32,
 }
@@ -118,7 +118,7 @@ impl fmt::Display for ChangeTaxiY {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct ChangePassenger {
     on_destination: bool,
 }

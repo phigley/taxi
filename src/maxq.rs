@@ -15,7 +15,7 @@ use crate::runner::{Attempt, Runner};
 use self::nodestorage::NodeStorage;
 use self::qnode::QChild;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct MaxQParams {
     alpha: f64,
     gamma: f64,
