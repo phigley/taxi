@@ -1,7 +1,5 @@
-use std::cmp;
 use std::f64;
 
-use float_cmp::ApproxOrdUlps;
 use rand::Rng;
 use rand_pcg::Pcg64Mcg;
 
@@ -542,20 +540,16 @@ impl FactoredRMax {
 
             let action_value = self.measure_value(world, state, action);
 
-            match action_value.approx_cmp_ulps(&best_value, 2) {
-                cmp::Ordering::Greater => {
-                    best_value = action_value;
-                    best_action_index = action_index;
-                    num_found = 1;
-                }
-                cmp::Ordering::Equal => {
-                    num_found += 1;
+            if approx_eq!(f64, action_value, best_value) {
+                num_found += 1;
 
-                    if 0 == rng.gen_range(0, num_found) {
-                        best_action_index = action_index;
-                    }
+                if 0 == rng.gen_range(0, num_found) {
+                    best_action_index = action_index;
                 }
-                cmp::Ordering::Less => {}
+            } else if action_value > best_value {
+                best_value = action_value;
+                best_action_index = action_index;
+                num_found = 1;
             }
         }
 

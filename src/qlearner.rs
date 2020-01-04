@@ -1,6 +1,3 @@
-use std::cmp;
-
-use float_cmp::ApproxOrdUlps;
 use rand::Rng;
 
 use crate::actions::Actions;
@@ -50,21 +47,15 @@ impl QLearner {
                 best_action = Actions::from_index(i);
                 best_value = *value;
                 num_found = 1;
-            } else {
-                match value.approx_cmp_ulps(&best_value, 2) {
-                    cmp::Ordering::Greater => {
-                        best_action = Actions::from_index(i);
-                        best_value = *value;
-                        num_found = 1;
-                    }
-                    cmp::Ordering::Equal => {
-                        num_found += 1;
-                        if rng.gen_range(0, num_found) == 0 {
-                            best_action = Actions::from_index(i);
-                        }
-                    }
-                    cmp::Ordering::Less => {}
+            } else if approx_eq!(f64, *value, best_value, ulps = 2) {
+                num_found += 1;
+                if rng.gen_range(0, num_found) == 0 {
+                    best_action = Actions::from_index(i);
                 }
+            } else if *value > best_value {
+                best_action = Actions::from_index(i);
+                best_value = *value;
+                num_found = 1;
             }
         }
 

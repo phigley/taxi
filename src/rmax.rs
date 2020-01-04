@@ -1,8 +1,6 @@
-use std::cmp;
 use std::collections::HashMap;
 use std::f64;
 
-use float_cmp::ApproxOrdUlps;
 use rand::Rng;
 use rand_pcg::Pcg64Mcg;
 
@@ -151,20 +149,16 @@ impl RMax {
         for action_index in 0..Actions::NUM_ELEMENTS {
             let action_value = self.measure_value(state_index, action_index);
 
-            match action_value.approx_cmp_ulps(&best_value, 2) {
-                cmp::Ordering::Greater => {
-                    best_value = action_value;
-                    best_action_index = action_index;
-                    num_found = 1;
-                }
-                cmp::Ordering::Equal => {
-                    num_found += 1;
+            if approx_eq!(f64, action_value, best_value, ulps = 2) {
+                num_found += 1;
 
-                    if 0 == rng.gen_range(0, num_found) {
-                        best_action_index = action_index;
-                    }
+                if 0 == rng.gen_range(0, num_found) {
+                    best_action_index = action_index;
                 }
-                cmp::Ordering::Less => {}
+            } else if action_value > best_value {
+                best_value = action_value;
+                best_action_index = action_index;
+                num_found = 1;
             }
         }
 

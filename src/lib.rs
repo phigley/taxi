@@ -5,9 +5,8 @@ extern crate assert_matches;
 #[macro_use]
 extern crate enum_map;
 
-
-
-
+#[macro_use]
+extern crate float_cmp;
 
 pub mod actions;
 pub mod distribution;

@@ -33,7 +33,7 @@ impl RewardLearner {
                 Some(false) => (),
                 Some(true) => {
                     if let Some(full_result) = full_result {
-                        if (full_result - learned_reward).abs() > self.error_delta {
+                        if !approx_eq!(f64, full_result, learned_reward, ulps = 2) {
                             // Conflicting result
                             // This should not be possible for rewards
                             // as they have only one effect.
@@ -53,7 +53,7 @@ impl RewardLearner {
     pub fn apply_experience(&mut self, condition: &Condition, reward: f64) {
         let mut found_entry = false;
         for &mut (ref mut condition_learner, learned_reward) in &mut self.condition_rewards {
-            if (reward - learned_reward).abs() < self.error_delta {
+            if approx_eq!(f64, reward, learned_reward, ulps = 2) {
                 condition_learner.apply_experience(condition, true);
                 found_entry = true;
             } else {
@@ -212,7 +212,12 @@ mod multirewardlearner_test {
 
         let off_passenger = State::build(&w, (0, 1), Some('R'), 'B').unwrap();
         let (off_passenger_reward, _) = off_passenger.apply_action(&w, Actions::PickUp);
-        assert!((off_passenger_reward - costs.miss_pickup).abs() < 1.0e-6);
+        assert!(approx_eq!(
+            f64,
+            off_passenger_reward,
+            costs.miss_pickup,
+            ulps = 1
+        ));
 
         let mut learner = MultiRewardLearner::new(1.0e-6);
 
@@ -227,7 +232,7 @@ mod multirewardlearner_test {
 
         let on_passenger = State::build(&w, (0, 0), Some('R'), 'B').unwrap();
         let (on_passenger_reward, _) = on_passenger.apply_action(&w, Actions::PickUp);
-        assert!(on_passenger_reward.abs() < 1.0e-6);
+        assert!(approx_eq!(f64, on_passenger_reward, 0.0, ulps = 1));
 
         assert_eq!(learner.predict(&w, &on_passenger, Actions::PickUp), None);
         assert_eq!(
@@ -268,7 +273,12 @@ mod multirewardlearner_test {
 
         let no_passenger = State::build(&w, (3, 3), Some('R'), 'B').unwrap();
         let (no_passenger_reward, _) = no_passenger.apply_action(&w, Actions::DropOff);
-        assert!((no_passenger_reward - costs.empty_dropoff).abs() < 1.0e-6);
+        assert!(approx_eq!(
+            f64,
+            no_passenger_reward,
+            costs.empty_dropoff,
+            ulps = 1
+        ));
 
         let mut learner = MultiRewardLearner::new(1.0e-6);
 
@@ -283,7 +293,12 @@ mod multirewardlearner_test {
 
         let off_destination = State::build(&w, (1, 3), None, 'B').unwrap();
         let (off_destination_reward, _) = off_destination.apply_action(&w, Actions::DropOff);
-        assert!((off_destination_reward - costs.miss_dropoff).abs() < 1.0e-6);
+        assert!(approx_eq!(
+            f64,
+            off_destination_reward,
+            costs.miss_dropoff,
+            ulps = 1
+        ));
 
         assert_eq!(
             learner.predict(&w, &off_destination, Actions::DropOff),
@@ -308,7 +323,7 @@ mod multirewardlearner_test {
 
         let on_destination = State::build(&w, (3, 3), None, 'B').unwrap();
         let (on_destination_reward, _) = on_destination.apply_action(&w, Actions::DropOff);
-        assert!(on_destination_reward.abs() < 1.0e-6);
+        assert!(approx_eq!(f64, on_destination_reward, 0.0, ulps = 1));
 
         // This fails if miss_dropoff  and empty_dropoff are both -10. It will predict Some(-10)
         // because no_passenger and off_destination states have taught that those 2 conditions are **
