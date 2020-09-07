@@ -13,11 +13,11 @@ rand_pcg = "0.2"
 serde = "1.0"
 serde_derive = "1.0"
 toml = "0.5"
-rayon = "1.3"
-float-cmp = "0.6"
+rayon = "1.4"
+float-cmp = "0.8"
 enum-map = "0.6"
-crossterm = "0.16"
-tui = { version = "0.8", default-features = false, features = ['crossterm'] }
+crossterm = "0.17"
+tui = { version = "0.10", default-features = false, features = ['crossterm'] }
 
 [dev-dependencies]
 assert_matches = "1.3"

@@ -5,7 +5,7 @@ use crossterm::event::{Event, KeyCode};
 
 use tui::backend::CrosstermBackend;
 use tui::layout::{Constraint, Direction, Layout, Rect};
-use tui::widgets::{Paragraph, Text, Widget};
+use tui::widgets::{Paragraph, Wrap};
 use tui::Terminal;
 
 use taxi::actions::Actions;
@@ -118,7 +118,7 @@ impl Replay {
         step: isize,
         t: &mut Terminal<CrosstermBackend<std::io::Stdout>>,
     ) -> Result<(), io::Error> {
-        t.draw(|mut f| {
+        t.draw(|f| {
             let chunks = Layout::default()
                 .direction(Direction::Vertical)
                 .constraints(
@@ -133,17 +133,14 @@ impl Replay {
 
             let step_data = build_step_string(step as usize, self.solved, &self.actions);
 
-            Paragraph::new([Text::raw(&self.states[step as usize])].iter())
-                .wrap(true)
-                .render(&mut f, chunks[0]);
+            let p0 = Paragraph::new(self.states[step as usize].as_str()).wrap(Wrap { trim: true });
+            f.render_widget(p0, chunks[0]);
 
-            Paragraph::new([Text::raw(&step_data)].iter())
-                .wrap(true)
-                .render(&mut f, chunks[1]);
+            let p1 = Paragraph::new(step_data.as_str()).wrap(Wrap { trim: true });
+            f.render_widget(p1, chunks[1]);
 
-            Paragraph::new([Text::raw(&self.summary)].iter())
-                .wrap(true)
-                .render(&mut f, chunks[2]);
+            let p2 = Paragraph::new(self.summary.as_str()).wrap(Wrap { trim: true });
+            f.render_widget(p2, chunks[2]);
         })?;
 
         Ok(())
